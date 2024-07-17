@@ -8,7 +8,6 @@ use prettytable::format::FormatBuilder;
 use prettytable::Table;
 use std::fs;
 use std::io;
-use term_size;
 
 fn main() -> io::Result<()> {
     let matches = Command::new("ls_replacement")
@@ -64,9 +63,14 @@ fn main() -> io::Result<()> {
             let metadata = entry.metadata()?;
             let file_name = entry.file_name().into_string().unwrap();
 
-            let file_name = utils::get_file_name_with_slash(&metadata, &file_name, append_slash);
+            let file_name = utils::get_file_name_with_slash(
+                &metadata,
+                &file_name,
+                append_slash,
+            );
             let item_icon = utils::get_item_icon(&metadata);
-            let (file_type, mode, nlink, size, mtime) = utils::get_file_details(&metadata);
+            let (file_type, mode, nlink, size, mtime) =
+                utils::get_file_details(&metadata);
 
             table.add_row(row![
                 file_type, mode, nlink, size, mtime, item_icon, file_name,
@@ -74,50 +78,15 @@ fn main() -> io::Result<()> {
         }
         table.printstd();
     } else {
-        //     let mut file_names = Vec::new();
-        //     for entry in entries {
-        //         let entry = entry?;
-        //         let file_name = entry.file_name().into_string().unwrap();
-        //         let metadata = entry.metadata()?;
-        //         let file_name = utils::get_file_name_with_slash(&metadata, &file_name, append_slash);
-        //
-        //         file_names.push(file_name);
-        //     }
-        //     println!("{}", file_names.join(" "));
-        // }
-        let terminal_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
-
-        // Collect file names and their lengths
-        let mut file_names = Vec::new();
-        for entry in entries {
-            let entry = entry?;
-            let metadata = entry.metadata()?;
-            let file_name = entry.file_name().into_string().unwrap();
-            let file_name = utils::get_file_name_with_slash(&metadata, &file_name, append_slash);
-            file_names.push(file_name);
-        }
-
-        // Calculate maximum filename length
-        let max_name_length = file_names.iter().map(|name| name.len()).max().unwrap_or(0) + 2; // Adding space between columns
+        // this is the default short-form behavior
+        let file_names = utils::collect_file_names(entries, append_slash)?;
+        let max_name_length = utils::calculate_max_name_length(&file_names);
+        let terminal_width =
+            term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
         let num_columns = terminal_width / max_name_length;
 
-        // Create a new table with no borders or padding
-        let mut table = Table::new();
-        let format = FormatBuilder::new()
-            .column_separator(' ')
-            .borders(' ')
-            .padding(0, 2)
-            .build();
-        table.set_format(format);
-
-        // Add filenames to the table
-        for chunk in file_names.chunks(num_columns) {
-            let mut row = prettytable::Row::empty();
-            for cell in chunk.iter() {
-                row.add_cell(prettytable::Cell::new(cell));
-            }
-            table.add_row(row);
-        }
+        let mut table = utils::create_table();
+        utils::add_files_to_table(&mut table, &file_names, num_columns);
 
         table.printstd();
     }
