@@ -66,8 +66,12 @@ pub fn calculate_max_name_length(file_names: &[String]) -> usize {
 pub fn collect_file_names(
     entries: fs::ReadDir,
     append_slash: bool,
+    show_dotdot: bool,
 ) -> io::Result<Vec<String>> {
     let mut file_names = Vec::new();
+    if show_dotdot {
+        file_names = vec![".".to_string(), "..".to_string()]; // Initialize with . and ..
+    }
     for entry in entries {
         let entry = entry?;
         let metadata = entry.metadata()?;
