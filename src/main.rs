@@ -30,10 +30,12 @@ fn main() -> io::Result<()> {
         )
         .get_matches();
 
+    // read in the command line arguments
     let path = matches.get_one::<String>("path").unwrap();
     let long_format = matches.get_flag("long");
     let append_slash = matches.get_flag("slash");
 
+    // different behavior for long format or short format
     if long_format {
         let mut table = utils::create_table(1);
         let file_names = utils::collect_file_names(path, append_slash, true)?;

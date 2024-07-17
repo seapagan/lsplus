@@ -72,8 +72,13 @@ pub fn collect_file_names(
     let mut file_names = Vec::new();
 
     if show_dotdot {
-        file_names = vec![".".to_string(), "..".to_string()]; // Initialize with . and ..
+        if append_slash {
+            file_names = vec!["./".to_string(), "../".to_string()];
+        } else {
+            file_names = vec![".".to_string(), "..".to_string()];
+        }
     }
+
     for entry in entries {
         let entry = entry?;
         let path = entry.path();
