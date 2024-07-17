@@ -10,10 +10,10 @@ use std::fs;
 use std::io;
 
 fn main() -> io::Result<()> {
-    let matches = Command::new("ls_replacement")
-        .version("1.0")
-        .author("Your Name <your.email@example.com>")
-        .about("A replacement for the ls command")
+    let matches = Command::new("rls")
+        .version("0.0.1")
+        .author("Grant Ramsay <seapagan@gmail.com>")
+        .about("A replacement for the ls command written in Rust.")
         .arg(
             Arg::new("long")
                 .short('l')
