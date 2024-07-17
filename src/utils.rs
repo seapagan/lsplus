@@ -19,7 +19,7 @@ pub fn get_file_name_with_slash(
 
 pub fn get_item_icon(metadata: &fs::Metadata) -> String {
     if metadata.is_dir() {
-        "d".to_string() // Placeholder icon
+        "\u{f07c}".to_string() // Placeholder icon
     } else {
         "".to_string()
     }
