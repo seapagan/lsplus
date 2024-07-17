@@ -22,7 +22,8 @@ fn main() -> io::Result<()> {
         .arg(Arg::new("path").default_value(".").help("The path to list"))
         .arg(
             Arg::new("slash")
-                .short('s')
+                .short('p')
+                .long("slash-dirs")
                 .help("Append a slash to directories")
                 .action(clap::ArgAction::SetTrue),
         )
