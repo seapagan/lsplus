@@ -6,6 +6,7 @@ mod utils;
 use clap::{Arg, Command};
 use std::fs;
 use std::io;
+use std::path::PathBuf;
 
 fn main() -> io::Result<()> {
     let matches = Command::new("rls")
@@ -38,14 +39,50 @@ fn main() -> io::Result<()> {
         let file_names = utils::collect_file_names(path, append_slash, true)?;
 
         for file_name in file_names {
-            let metadata =
-                fs::symlink_metadata(format!("{}/{}", path, file_name))?;
+            let full_path = PathBuf::from(format!("{}/{}", path, file_name));
+            let metadata = fs::symlink_metadata(&full_path)?;
             let item_icon = utils::get_item_icon(&metadata);
             let (_file_type, mode, nlink, size, mtime, user, group) =
                 utils::get_file_details(&metadata);
 
+            let mut display_name = file_name.clone();
+            if metadata.is_symlink() {
+                match fs::read_link(&full_path) {
+                    Ok(target) => {
+                        let target_path = if target.is_relative() {
+                            full_path.parent().unwrap().join(target)
+                        } else {
+                            target
+                        };
+                        if target_path.exists() {
+                            display_name = format!(
+                                "{} -> {}",
+                                file_name,
+                                target_path.display()
+                            );
+                        } else {
+                            display_name = format!(
+                                "{} -> {} [Broken Link]",
+                                file_name,
+                                target_path.display()
+                            );
+                        }
+                    }
+                    Err(_) => {
+                        display_name =
+                            format!("{} -> (unreadable)", file_name);
+                    }
+                }
+            }
             table.add_row(row![
-                mode, nlink, user, group, size, mtime, item_icon, file_name,
+                mode,
+                nlink,
+                user,
+                group,
+                size,
+                mtime,
+                item_icon,
+                display_name,
             ]);
         }
         table.printstd();

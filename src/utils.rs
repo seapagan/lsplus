@@ -84,6 +84,7 @@ pub fn collect_file_names(
 
         file_name =
             get_file_name_with_slash(&metadata, &file_name, append_slash);
+
         file_names.push(file_name);
     }
     Ok(file_names)
