@@ -41,6 +41,7 @@ pub fn get_file_details(
 
     let permissions = metadata.permissions();
     let mode = permissions.mode();
+    let rwx_mode = mode_to_rwx(mode);
 
     let nlink = metadata.nlink();
     let size = metadata.size();
@@ -49,7 +50,7 @@ pub fn get_file_details(
     let datetime: DateTime<Local> = DateTime::from(modified_time);
     let mtime = datetime.format("%c").to_string();
 
-    (file_type, format!("{:o}", mode & 0o777), nlink, size, mtime)
+    (file_type, rwx_mode, nlink, size, mtime)
 }
 
 pub fn calculate_max_name_length(file_names: &[String]) -> usize {
@@ -95,4 +96,29 @@ pub fn add_files_to_table(
         }
         table.add_row(row);
     }
+}
+
+pub fn mode_to_rwx(mode: u32) -> String {
+    let mut rwx = String::new();
+    let perms = [
+        (mode & 0o400, 'r'),
+        (mode & 0o200, 'w'),
+        (mode & 0o100, 'x'), // Owner
+        (mode & 0o040, 'r'),
+        (mode & 0o020, 'w'),
+        (mode & 0o010, 'x'), // Group
+        (mode & 0o004, 'r'),
+        (mode & 0o002, 'w'),
+        (mode & 0o001, 'x'), // Others
+    ];
+
+    for (bit, chr) in perms.iter() {
+        if *bit != 0 {
+            rwx.push(*chr);
+        } else {
+            rwx.push('-');
+        }
+    }
+
+    rwx
 }
