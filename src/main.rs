@@ -8,6 +8,7 @@ use prettytable::format::FormatBuilder;
 use prettytable::Table;
 use std::fs;
 use std::io;
+use term_size;
 
 fn main() -> io::Result<()> {
     let matches = Command::new("ls_replacement")
@@ -73,17 +74,52 @@ fn main() -> io::Result<()> {
         }
         table.printstd();
     } else {
-        // Print filenames in a single line separated by spaces
+        //     let mut file_names = Vec::new();
+        //     for entry in entries {
+        //         let entry = entry?;
+        //         let file_name = entry.file_name().into_string().unwrap();
+        //         let metadata = entry.metadata()?;
+        //         let file_name = utils::get_file_name_with_slash(&metadata, &file_name, append_slash);
+        //
+        //         file_names.push(file_name);
+        //     }
+        //     println!("{}", file_names.join(" "));
+        // }
+        let terminal_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
+
+        // Collect file names and their lengths
         let mut file_names = Vec::new();
         for entry in entries {
             let entry = entry?;
-            let file_name = entry.file_name().into_string().unwrap();
             let metadata = entry.metadata()?;
+            let file_name = entry.file_name().into_string().unwrap();
             let file_name = utils::get_file_name_with_slash(&metadata, &file_name, append_slash);
-
             file_names.push(file_name);
         }
-        println!("{}", file_names.join(" "));
+
+        // Calculate maximum filename length
+        let max_name_length = file_names.iter().map(|name| name.len()).max().unwrap_or(0) + 2; // Adding space between columns
+        let num_columns = terminal_width / max_name_length;
+
+        // Create a new table with no borders or padding
+        let mut table = Table::new();
+        let format = FormatBuilder::new()
+            .column_separator(' ')
+            .borders(' ')
+            .padding(0, 2)
+            .build();
+        table.set_format(format);
+
+        // Add filenames to the table
+        for chunk in file_names.chunks(num_columns) {
+            let mut row = prettytable::Row::empty();
+            for cell in chunk.iter() {
+                row.add_cell(prettytable::Cell::new(cell));
+            }
+            table.add_row(row);
+        }
+
+        table.printstd();
     }
 
     Ok(())
