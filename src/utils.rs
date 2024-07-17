@@ -31,7 +31,6 @@ pub fn get_item_icon(metadata: &fs::Metadata) -> String {
 pub fn get_file_details(
     metadata: &fs::Metadata,
 ) -> (String, String, u64, u64, String, String, String) {
-    println!("{:?}", metadata);
     let file_type = if metadata.is_dir() {
         "d"
     } else if metadata.is_file() {
@@ -77,7 +76,10 @@ pub fn collect_file_names(
     }
     for entry in entries {
         let entry = entry?;
-        let metadata = entry.metadata()?;
+        let path = entry.path();
+
+        let metadata = fs::symlink_metadata(&path)?;
+
         let file_name = entry.file_name().into_string().unwrap();
         let file_name =
             get_file_name_with_slash(&metadata, &file_name, append_slash);

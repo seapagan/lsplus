@@ -37,7 +37,8 @@ fn main() -> io::Result<()> {
         let file_names = utils::collect_file_names(path, append_slash, true)?;
 
         for file_name in file_names {
-            let metadata = fs::metadata(format!("{}/{}", path, file_name))?;
+            let metadata =
+                fs::symlink_metadata(format!("{}/{}", path, file_name))?;
             let item_icon = utils::get_item_icon(&metadata);
             let (_file_type, mode, nlink, size, mtime, user, group) =
                 utils::get_file_details(&metadata);
