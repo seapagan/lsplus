@@ -4,8 +4,6 @@ extern crate prettytable;
 mod utils;
 
 use clap::{Arg, Command};
-use prettytable::format::FormatBuilder;
-use prettytable::Table;
 use std::fs;
 use std::io;
 
@@ -36,16 +34,8 @@ fn main() -> io::Result<()> {
 
     let entries = fs::read_dir(path)?;
 
-    let mut table = Table::new();
-    let format = FormatBuilder::new()
-        .column_separator(' ')
-        .borders(' ')
-        .padding(1, 1)
-        .build();
-
-    table.set_format(format);
-
     if long_format {
+        let mut table = utils::create_table(1);
         table.set_titles(row![
             "Type",
             "Mode",
@@ -55,9 +45,7 @@ fn main() -> io::Result<()> {
             "",
             "Name"
         ]);
-    }
 
-    if long_format {
         for entry in entries {
             let entry = entry?;
             let metadata = entry.metadata()?;
@@ -85,7 +73,7 @@ fn main() -> io::Result<()> {
             term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
         let num_columns = terminal_width / max_name_length;
 
-        let mut table = utils::create_table();
+        let mut table = utils::create_table(2);
         utils::add_files_to_table(&mut table, &file_names, num_columns);
 
         table.printstd();

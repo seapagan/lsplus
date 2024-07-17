@@ -72,11 +72,11 @@ pub fn collect_file_names(
     Ok(file_names)
 }
 
-pub fn create_table() -> Table {
+pub fn create_table(padding: usize) -> Table {
     let format = FormatBuilder::new()
         .column_separator(' ')
         .borders(' ')
-        .padding(0, 2)
+        .padding(0, padding)
         .build();
     let mut table = Table::new();
     table.set_format(format);
