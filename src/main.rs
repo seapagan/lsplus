@@ -36,15 +36,6 @@ fn main() -> io::Result<()> {
 
     if long_format {
         let mut table = utils::create_table(1);
-        table.set_titles(row![
-            "Type",
-            "Mode",
-            "Links",
-            "Size",
-            "Modified Time",
-            "",
-            "Name"
-        ]);
 
         for entry in entries {
             let entry = entry?;
@@ -57,11 +48,11 @@ fn main() -> io::Result<()> {
                 append_slash,
             );
             let item_icon = utils::get_item_icon(&metadata);
-            let (file_type, mode, nlink, size, mtime) =
+            let (_file_type, mode, nlink, size, mtime, user, group) =
                 utils::get_file_details(&metadata);
 
             table.add_row(row![
-                file_type, mode, nlink, size, mtime, item_icon, file_name,
+                mode, nlink, user, group, size, mtime, item_icon, file_name,
             ]);
         }
         table.printstd();

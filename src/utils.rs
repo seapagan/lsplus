@@ -1,4 +1,5 @@
 use chrono::{DateTime, Local};
+use nix::unistd::{Group, User};
 use prettytable::{format::FormatBuilder, Cell, Row, Table};
 use std::fs;
 use std::io;
@@ -29,7 +30,7 @@ pub fn get_item_icon(metadata: &fs::Metadata) -> String {
 
 pub fn get_file_details(
     metadata: &fs::Metadata,
-) -> (String, String, u64, u64, String) {
+) -> (String, String, u64, u64, String, String, String) {
     let file_type = if metadata.is_dir() {
         "d"
     } else if metadata.is_file() {
@@ -48,11 +49,14 @@ pub fn get_file_details(
     let nlink = metadata.nlink();
     let size = metadata.size();
 
+    let user = get_username(metadata.uid());
+    let group = get_groupname(metadata.gid());
+
     let modified_time = metadata.modified().unwrap();
     let datetime: DateTime<Local> = DateTime::from(modified_time);
     let mtime = datetime.format("%c").to_string();
 
-    (file_type, rwx_mode, nlink, size, mtime)
+    (file_type, rwx_mode, nlink, size, mtime, user, group)
 }
 
 pub fn calculate_max_name_length(file_names: &[String]) -> usize {
@@ -123,4 +127,18 @@ pub fn mode_to_rwx(mode: u32) -> String {
     }
 
     rwx
+}
+
+pub fn get_username(uid: u32) -> String {
+    match User::from_uid(uid.into()) {
+        Ok(Some(user)) => user.name,
+        _ => uid.to_string(),
+    }
+}
+
+pub fn get_groupname(gid: u32) -> String {
+    match Group::from_gid(gid.into()) {
+        Ok(Some(group)) => group.name,
+        _ => gid.to_string(),
+    }
 }
