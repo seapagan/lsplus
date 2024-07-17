@@ -32,12 +32,9 @@ fn main() -> io::Result<()> {
     let long_format = matches.get_flag("long");
     let append_slash = matches.get_flag("slash");
 
-    let entries = fs::read_dir(path)?;
-
     if long_format {
         let mut table = utils::create_table(1);
-        let file_names =
-            utils::collect_file_names(entries, append_slash, true)?;
+        let file_names = utils::collect_file_names(path, append_slash, true)?;
 
         for file_name in file_names {
             let metadata = fs::metadata(format!("{}/{}", path, file_name))?;
@@ -52,8 +49,7 @@ fn main() -> io::Result<()> {
         table.printstd();
     } else {
         // this is the default short-form behavior
-        let file_names =
-            utils::collect_file_names(entries, append_slash, false)?;
+        let file_names = utils::collect_file_names(path, append_slash, false)?;
         let max_name_length = utils::calculate_max_name_length(&file_names);
         let terminal_width =
             term_size::dimensions().map(|(w, _)| w).unwrap_or(80);

@@ -31,6 +31,7 @@ pub fn get_item_icon(metadata: &fs::Metadata) -> String {
 pub fn get_file_details(
     metadata: &fs::Metadata,
 ) -> (String, String, u64, u64, String, String, String) {
+    println!("{:?}", metadata);
     let file_type = if metadata.is_dir() {
         "d"
     } else if metadata.is_file() {
@@ -64,11 +65,13 @@ pub fn calculate_max_name_length(file_names: &[String]) -> usize {
 }
 
 pub fn collect_file_names(
-    entries: fs::ReadDir,
+    path: &String,
     append_slash: bool,
     show_dotdot: bool,
 ) -> io::Result<Vec<String>> {
+    let entries = fs::read_dir(path)?;
     let mut file_names = Vec::new();
+
     if show_dotdot {
         file_names = vec![".".to_string(), "..".to_string()]; // Initialize with . and ..
     }
