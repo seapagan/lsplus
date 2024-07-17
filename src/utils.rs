@@ -80,8 +80,9 @@ pub fn collect_file_names(
 
         let metadata = fs::symlink_metadata(&path)?;
 
-        let file_name = entry.file_name().into_string().unwrap();
-        let file_name =
+        let mut file_name = entry.file_name().into_string().unwrap();
+
+        file_name =
             get_file_name_with_slash(&metadata, &file_name, append_slash);
         file_names.push(file_name);
     }
