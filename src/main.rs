@@ -28,17 +28,26 @@ fn main() -> io::Result<()> {
                 .help("Append a slash to directories")
                 .action(clap::ArgAction::SetTrue),
         )
+        .arg(
+            Arg::new("dirs-first")
+                .short('d')
+                .long("dirs-first")
+                .help("Sort directories first")
+                .action(clap::ArgAction::SetTrue),
+        )
         .get_matches();
 
     // read in the command line arguments
     let path = matches.get_one::<String>("path").unwrap();
     let long_format = matches.get_flag("long");
     let append_slash = matches.get_flag("slash");
+    let dirs_first = matches.get_flag("dirs-first");
 
     // different behavior for long format or short format
     if long_format {
         let mut table = utils::create_table(1);
-        let file_names = utils::collect_file_names(path, append_slash, true)?;
+        let file_names =
+            utils::collect_file_names(path, append_slash, dirs_first, true)?;
 
         for file_name in file_names {
             let full_path = PathBuf::from(format!("{}/{}", path, file_name));
@@ -95,7 +104,8 @@ fn main() -> io::Result<()> {
         table.printstd();
     } else {
         // this is the default short-form behavior
-        let file_names = utils::collect_file_names(path, append_slash, false)?;
+        let file_names =
+            utils::collect_file_names(path, append_slash, dirs_first, false)?;
         let max_name_length = utils::calculate_max_name_length(&file_names);
         let terminal_width =
             term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
