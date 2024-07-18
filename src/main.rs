@@ -2,8 +2,8 @@
 extern crate prettytable;
 
 mod utils;
-
 use clap::{Arg, Command};
+use inline_colorization::*;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
@@ -12,7 +12,7 @@ fn main() -> io::Result<()> {
     let matches = Command::new("rls")
         .version("0.0.1")
         .author("Grant Ramsay <seapagan@gmail.com>")
-        .about("A replacement for the ls command written in Rust.")
+        .about("A replacement for the 'ls' command written in Rust.")
         .arg(
             Arg::new("long")
                 .short('l')
@@ -58,31 +58,36 @@ fn main() -> io::Result<()> {
                         };
                         if target_path.exists() {
                             display_name = format!(
-                                "{} -> {}",
+                                "{color_cyan}{} -> {}",
                                 file_name,
                                 target_path.display()
                             );
                         } else {
                             display_name = format!(
-                                "{} -> {} [Broken Link]",
+                                "{color_cyan}{} -> {} {color_red}[Broken Link]",
                                 file_name,
                                 target_path.display()
                             );
                         }
                     }
                     Err(_) => {
-                        display_name =
-                            format!("{} -> (unreadable)", file_name);
+                        display_name = format!(
+                            "{color_red}{} -> (unreadable)",
+                            file_name
+                        );
                     }
                 }
+            } else if metadata.is_dir() {
+                display_name = format!("{color_blue}{}", file_name);
             }
+
             table.add_row(row![
                 mode,
                 nlink,
-                user,
-                group,
+                format!("{color_cyan}{}", user),
+                format!("{color_green}{}", group),
                 size,
-                mtime,
+                format!("{color_yellow}{}", mtime),
                 item_icon,
                 display_name,
             ]);
