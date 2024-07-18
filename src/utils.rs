@@ -69,12 +69,26 @@ pub fn collect_file_names(
     dirs_first: bool,
     show_dotdot: bool,
 ) -> io::Result<Vec<String>> {
-    // let entries = fs::read_dir(path)?;
     let mut entries: Vec<fs::DirEntry> =
         fs::read_dir(path)?.filter_map(Result::ok).collect();
 
     // Sort entries alphabetically
-    entries.sort_by_key(|a| a.file_name());
+    entries.sort_by(|a, b| {
+        let a_name = a
+            .file_name()
+            .into_string()
+            .unwrap()
+            .trim_start_matches('.')
+            .to_lowercase();
+        let b_name = b
+            .file_name()
+            .into_string()
+            .unwrap()
+            .trim_start_matches('.')
+            .to_lowercase();
+        a_name.cmp(&b_name)
+    });
+
     // Separate directories and files if dirs_first is true
     if dirs_first {
         let (dirs, files): (Vec<_>, Vec<_>) =
@@ -96,9 +110,6 @@ pub fn collect_file_names(
     }
 
     for entry in entries {
-        // let entry = entry?;
-        // let path = entry.path();
-
         let metadata = fs::symlink_metadata(entry.path())?;
 
         let mut file_name = entry.file_name().into_string().unwrap();
