@@ -50,7 +50,13 @@ fn main() -> io::Result<()> {
             utils::collect_file_names(path, append_slash, dirs_first, true)?;
 
         for file_name in file_names {
-            let full_path = PathBuf::from(format!("{}/{}", path, file_name));
+            let path_metadata = fs::symlink_metadata(path)?;
+
+            let full_path = if path_metadata.is_dir() {
+                PathBuf::from(format!("{}/{}", path, file_name))
+            } else {
+                PathBuf::from(file_name.clone())
+            };
             let metadata = fs::symlink_metadata(&full_path)?;
             let item_icon = utils::get_item_icon(&metadata);
             let (_file_type, mode, nlink, size, mtime, user, group) =

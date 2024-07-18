@@ -5,6 +5,7 @@ use std::fs;
 use std::io;
 use std::os::unix::fs::MetadataExt;
 use std::os::unix::fs::PermissionsExt;
+use std::path::PathBuf;
 
 pub fn get_file_name_with_slash(
     metadata: &fs::Metadata,
@@ -69,55 +70,65 @@ pub fn collect_file_names(
     dirs_first: bool,
     show_dotdot: bool,
 ) -> io::Result<Vec<String>> {
-    let mut entries: Vec<fs::DirEntry> =
-        fs::read_dir(path)?.filter_map(Result::ok).collect();
-
-    // Sort entries alphabetically
-    entries.sort_by(|a, b| {
-        let a_name = a
-            .file_name()
-            .into_string()
-            .unwrap()
-            .trim_start_matches('.')
-            .to_lowercase();
-        let b_name = b
-            .file_name()
-            .into_string()
-            .unwrap()
-            .trim_start_matches('.')
-            .to_lowercase();
-        a_name.cmp(&b_name)
-    });
-
-    // Separate directories and files if dirs_first is true
-    if dirs_first {
-        let (dirs, files): (Vec<_>, Vec<_>) =
-            entries.into_iter().partition(|entry| {
-                entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false)
-            });
-
-        entries = dirs.into_iter().chain(files).collect();
-    }
-
     let mut file_names = Vec::new();
 
-    if show_dotdot {
-        if append_slash {
-            file_names = vec!["./".to_string(), "../".to_string()];
-        } else {
-            file_names = vec![".".to_string(), "..".to_string()];
-        }
-    }
-
-    for entry in entries {
-        let metadata = fs::symlink_metadata(entry.path())?;
-
-        let mut file_name = entry.file_name().into_string().unwrap();
-
-        file_name =
-            get_file_name_with_slash(&metadata, &file_name, append_slash);
-
+    // Check if the path is a file or a directory
+    let metadata = fs::symlink_metadata(path)?;
+    if metadata.is_file() {
+        // If it's a file, add it directly to the file_names vector
+        let file_name = PathBuf::from(path)
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
         file_names.push(file_name);
+    } else {
+        // If it's a directory, read its entries
+        let mut entries: Vec<fs::DirEntry> =
+            fs::read_dir(path)?.filter_map(Result::ok).collect();
+
+        // Sort entries alphabetically, ignoring leading dots
+        entries.sort_by(|a, b| {
+            let a_name = a
+                .file_name()
+                .into_string()
+                .unwrap()
+                .trim_start_matches('.')
+                .to_lowercase();
+            let b_name = b
+                .file_name()
+                .into_string()
+                .unwrap()
+                .trim_start_matches('.')
+                .to_lowercase();
+            a_name.cmp(&b_name)
+        });
+
+        // Separate directories and files if dirs_first is true
+        if dirs_first {
+            let (dirs, files): (Vec<_>, Vec<_>) =
+                entries.into_iter().partition(|entry| {
+                    entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false)
+                });
+
+            entries = dirs.into_iter().chain(files).collect();
+        }
+
+        if show_dotdot {
+            if append_slash {
+                file_names = vec!["./".to_string(), "../".to_string()];
+            } else {
+                file_names = vec![".".to_string(), "..".to_string()];
+            }
+        }
+
+        for entry in entries {
+            let metadata = fs::symlink_metadata(entry.path())?;
+            let mut file_name = entry.file_name().into_string().unwrap();
+            file_name =
+                get_file_name_with_slash(&metadata, &file_name, append_slash);
+            file_names.push(file_name);
+        }
     }
     Ok(file_names)
 }
