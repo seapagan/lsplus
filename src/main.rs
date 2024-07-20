@@ -55,7 +55,7 @@ fn main() -> io::Result<()> {
             };
             let metadata = fs::symlink_metadata(&full_path)?;
             let item_icon = utils::get_item_icon(&metadata);
-            let (_file_type, mode, nlink, size, mtime, user, group) =
+            let (file_type, mode, nlink, size, mtime, user, group) =
                 utils::get_file_details(&metadata);
 
             let mut display_name = file_name.clone();
@@ -93,7 +93,7 @@ fn main() -> io::Result<()> {
             }
 
             table.add_row(row![
-                mode,
+                format!("{}{}", file_type, mode),
                 nlink,
                 format!("{color_cyan}{}", user),
                 format!("{color_green}{}", group),
