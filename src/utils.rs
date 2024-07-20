@@ -72,18 +72,10 @@ pub fn collect_file_names(
 ) -> io::Result<Vec<String>> {
     let mut file_names = Vec::new();
 
-    // Check if the path is a symlink and resolve it
     let path_metadata = fs::symlink_metadata(path)?;
-    let target_metadata = if path_metadata.file_type().is_symlink() {
-        let target_path = fs::read_link(path)?;
-        fs::symlink_metadata(target_path)?
-    } else {
-        path_metadata.clone()
-    };
 
-    // Check if the path is a file or a directory
-    if target_metadata.is_file() {
-        // If it's a file, add it directly to the file_names vector
+    if !path_metadata.is_dir() {
+        // If it's a file or symlink, add it directly to the file_names vector
         let file_name = PathBuf::from(path)
             // .file_name()
             // .unwrap()
