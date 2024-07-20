@@ -85,8 +85,8 @@ pub fn collect_file_names(
     if target_metadata.is_file() {
         // If it's a file, add it directly to the file_names vector
         let file_name = PathBuf::from(path)
-            .file_name()
-            .unwrap()
+            // .file_name()
+            // .unwrap()
             .to_string_lossy()
             .into_owned();
         file_names.push(file_name);
