@@ -5,7 +5,7 @@ use std::fs;
 use std::io;
 use std::os::unix::fs::MetadataExt;
 use std::os::unix::fs::PermissionsExt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub fn get_file_name_with_slash(
     metadata: &fs::Metadata,
@@ -203,4 +203,13 @@ pub fn get_groupname(gid: u32) -> String {
         Ok(Some(group)) => group.name,
         _ => gid.to_string(),
     }
+}
+
+#[allow(dead_code)]
+pub fn get_filename_from_path(path: &str) -> String {
+    Path::new(path)
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned()
 }

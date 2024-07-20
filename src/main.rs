@@ -104,6 +104,7 @@ fn main() -> io::Result<()> {
                 size,
                 format!("{color_yellow}{}", mtime),
                 item_icon,
+                // utils::get_filename_from_path(&display_name),
                 display_name,
             ]);
         }
