@@ -12,3 +12,5 @@ customizable and theme-able. Make it default but allow an option to disable it.
 - [ ] add configuration file to set options. Use TOML format by default,
 maybe adding YAML later. Store in the correct `.config` directory depending on
 the OS.
+- [ ] for a symlink, color the name as it is, but color the target depending on
+whether it is a directory, file, or symlink.
