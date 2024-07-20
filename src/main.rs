@@ -1,56 +1,52 @@
 #[macro_use]
 extern crate prettytable;
 
+use clap::{ArgAction, Parser};
 mod utils;
-use clap::{Arg, Command};
 use inline_colorization::*;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
 
+// Set up the CLI arguments
+#[derive(Parser)]
+#[command(
+    name = "rls",
+    version = "0.0.1",
+    author = "Grant Ramsay <seapagan@gmail.com>",
+    about = "A replacement for the 'ls' command written in Rust."
+)]
+struct Cli {
+    #[arg(short='l', long="long", action = ArgAction::SetTrue, help = "Display detailed information")]
+    long: bool,
+
+    #[arg(default_value = ".", help = "The path to list")]
+    path: String,
+
+    #[arg(short = 'p', long = "slash-dirs", action = ArgAction::SetTrue, help = "Append a slash to directories")]
+    slash: bool,
+
+    #[arg(short = 'd', long = "dirs-first", action = ArgAction::SetTrue, help = "Sort directories first")]
+    dirs_first: bool,
+}
+
 fn main() -> io::Result<()> {
-    let matches = Command::new("rls")
-        .version("0.0.1")
-        .author("Grant Ramsay <seapagan@gmail.com>")
-        .about("A replacement for the 'ls' command written in Rust.")
-        .arg(
-            Arg::new("long")
-                .short('l')
-                .long("long")
-                .help("Display detailed information")
-                .action(clap::ArgAction::SetTrue),
-        )
-        .arg(Arg::new("path").default_value(".").help("The path to list"))
-        .arg(
-            Arg::new("slash")
-                .short('p')
-                .long("slash-dirs")
-                .help("Append a slash to directories")
-                .action(clap::ArgAction::SetTrue),
-        )
-        .arg(
-            Arg::new("dirs-first")
-                .short('d')
-                .long("dirs-first")
-                .help("Sort directories first")
-                .action(clap::ArgAction::SetTrue),
-        )
-        .get_matches();
+    let args = Cli::parse();
 
     // read in the command line arguments
-    let path = matches.get_one::<String>("path").unwrap();
-    let long_format = matches.get_flag("long");
-    let append_slash = matches.get_flag("slash");
-    let dirs_first = matches.get_flag("dirs-first");
+    let path = args.path;
+    let long_format = args.long;
+    let append_slash = args.slash;
+    let dirs_first = args.dirs_first;
 
     // different behavior for long format or short format
     if long_format {
         let mut table = utils::create_table(1);
         let file_names =
-            utils::collect_file_names(path, append_slash, dirs_first, true)?;
+            utils::collect_file_names(&path, append_slash, dirs_first, true)?;
 
         for file_name in file_names {
-            let path_metadata = fs::symlink_metadata(path)?;
+            let path_metadata = fs::symlink_metadata(&path)?;
 
             let full_path = if path_metadata.is_dir() {
                 PathBuf::from(format!("{}/{}", path, file_name))
@@ -112,7 +108,7 @@ fn main() -> io::Result<()> {
     } else {
         // this is the default short-form behavior
         let file_names =
-            utils::collect_file_names(path, append_slash, dirs_first, false)?;
+            utils::collect_file_names(&path, append_slash, dirs_first, false)?;
         let max_name_length = utils::calculate_max_name_length(&file_names);
         let terminal_width =
             term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
