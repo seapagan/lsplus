@@ -12,7 +12,7 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(
     name = "rls",
-    version = "0.0.1",
+    version = "0.1.0",
     author = "Grant Ramsay <seapagan@gmail.com>",
     about = "A replacement for the 'ls' command written in Rust."
 )]

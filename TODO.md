@@ -3,6 +3,7 @@
 - [ ] in short mode when `-p` is specified, show a '*' or something if the file
 is a symlink.
 - [ ] add option `-h` to show file sizes in 'human readable' format.
+- [ ] add the 'd' or 'l' or '-' to the mode column as standard ls would do.
 - [ ] only show hidden files if `-a` is specified. At the moment, hidden files
 are always shown.
 - [x] sorting to put folders first, then files, then symlinks.
