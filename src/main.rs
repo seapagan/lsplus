@@ -152,7 +152,6 @@ fn main() -> io::Result<()> {
             }
 
             let (display_size, units) = utils::show_size(size, human_readable);
-            // let test = format!("{} {}", display_size, units);
 
             let mut row_cells = vec![
                 Cell::new(&format!("{}{} ", file_type, mode)),
