@@ -45,6 +45,8 @@ fn version_info() -> String {
 struct Cli {
     #[arg(short ='a', long = "all", action = ArgAction::SetTrue, help = "Do not ignore entries starting with .")]
     show_all: bool,
+    #[arg(short ='A', long = "almost-all", action = ArgAction::SetTrue, help = "Do not list implied . and ..")]
+    almost_all: bool,
     #[arg(short='l', long="long", action = ArgAction::SetTrue, help = "Display detailed information")]
     long: bool,
 
@@ -77,12 +79,19 @@ fn main() -> io::Result<()> {
     let long_format = args.long;
     let append_slash = args.slash;
     let dirs_first = args.dirs_first;
+    let show_all = args.show_all;
+    let almost_all = args.almost_all;
 
     // different behavior for long format or short format
     if long_format {
         let mut table = utils::create_table(1);
-        let file_names =
-            utils::collect_file_names(&path, append_slash, dirs_first, true)?;
+        let file_names = utils::collect_file_names(
+            &path,
+            show_all,
+            append_slash,
+            dirs_first,
+            almost_all,
+        )?;
 
         for file_name in file_names {
             let path_metadata = fs::symlink_metadata(&path)?;
@@ -146,8 +155,13 @@ fn main() -> io::Result<()> {
         table.printstd();
     } else {
         // this is the default short-form behavior
-        let file_names =
-            utils::collect_file_names(&path, append_slash, dirs_first, false)?;
+        let file_names = utils::collect_file_names(
+            &path,
+            show_all,
+            append_slash,
+            dirs_first,
+            almost_all,
+        )?;
         let max_name_length = utils::calculate_max_name_length(&file_names);
         let terminal_width =
             term_size::dimensions().map(|(w, _)| w).unwrap_or(80);

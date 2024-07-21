@@ -66,9 +66,10 @@ pub fn calculate_max_name_length(file_names: &[String]) -> usize {
 
 pub fn collect_file_names(
     path: &String,
+    show_all: bool,
     append_slash: bool,
     dirs_first: bool,
-    show_dotdot: bool,
+    almost_all: bool,
 ) -> io::Result<Vec<String>> {
     let mut file_names = Vec::new();
 
@@ -84,8 +85,20 @@ pub fn collect_file_names(
         file_names.push(file_name);
     } else {
         // If it's a directory, read its entries
-        let mut entries: Vec<fs::DirEntry> =
-            fs::read_dir(path)?.filter_map(Result::ok).collect();
+        let mut entries: Vec<fs::DirEntry> = fs::read_dir(path)?
+            .filter_map(Result::ok)
+            .filter(|entry| {
+                if show_all || almost_all {
+                    true
+                } else {
+                    entry
+                        .file_name()
+                        .to_str()
+                        .map(|s| !s.starts_with('.'))
+                        .unwrap_or(false)
+                }
+            })
+            .collect();
 
         // Sort entries alphabetically, ignoring leading dots
         entries.sort_by(|a, b| {
@@ -114,7 +127,7 @@ pub fn collect_file_names(
             entries = dirs.into_iter().chain(files).collect();
         }
 
-        if show_dotdot {
+        if !almost_all && show_all {
             if append_slash {
                 file_names = vec!["./".to_string(), "../".to_string()];
             } else {
