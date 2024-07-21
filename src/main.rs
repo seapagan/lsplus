@@ -7,14 +7,40 @@ use inline_colorization::*;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
+use std::process::exit;
+
+fn version_info() -> String {
+    let version = env!("CARGO_PKG_VERSION");
+    let authors = env!("CARGO_PKG_AUTHORS");
+    let description = env!("CARGO_PKG_DESCRIPTION");
+
+    // Provide default values if fields are empty
+    let authors = if authors.is_empty() {
+        "Unknown"
+    } else {
+        authors
+    };
+    let description = if description.is_empty() {
+        "No description provided"
+    } else {
+        description
+    };
+
+    format!(
+        "lsplus v{}\n\
+        \n{}\n\
+        \nReleased under the MIT license by {}\n",
+        version, description, authors
+    )
+}
 
 // Set up the CLI arguments
 #[derive(Parser)]
 #[command(
     name = "lsplus",
-    version = "0.1.0",
-    author = "Grant Ramsay <seapagan@gmail.com>",
-    about = "A replacement for the 'ls' command written in Rust."
+    author = env!("CARGO_PKG_AUTHORS"),
+    about =env!("CARGO_PKG_DESCRIPTION"),
+    long_about = None,
 )]
 struct Cli {
     #[arg(short='l', long="long", action = ArgAction::SetTrue, help = "Display detailed information")]
@@ -28,11 +54,22 @@ struct Cli {
 
     #[arg(short = 'd', long = "dirs-first", action = ArgAction::SetTrue, help = "Sort directories first")]
     dirs_first: bool,
+    #[arg(
+        long = "version",
+        short = 'V',
+        action = ArgAction::SetTrue,
+        help = "Print version information and exit",
+        global = true
+    )]
+    version: bool,
 }
 
 fn main() -> io::Result<()> {
     let args = Cli::parse();
-
+    if args.version {
+        println!("{}", version_info());
+        exit(0);
+    }
     // read in the command line arguments
     let path = args.path;
     let long_format = args.long;

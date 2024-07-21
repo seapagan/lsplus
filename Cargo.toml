@@ -2,6 +2,8 @@
 name = "lsplus"
 version = "0.1.0"
 edition = "2021"
+authors = ["Grant Ramsay <seapagan@gmail.com>"]
+description = "A replacement for the 'ls' command written in Rust."
 
 [[bin]]
 name = "lsp"
