@@ -56,7 +56,7 @@ struct Cli {
     #[arg(short = 'p', long = "slash-dirs", action = ArgAction::SetTrue, help = "Append a slash to directories")]
     slash: bool,
 
-    #[arg(short = 'd', long = "dirs-first", action = ArgAction::SetTrue, help = "Sort directories first")]
+    #[arg(short = 'D', long = "sort-dirs", action = ArgAction::SetTrue, help = "Sort directories first")]
     dirs_first: bool,
     #[arg(
         long = "version",
