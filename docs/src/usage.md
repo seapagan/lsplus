@@ -1,38 +1,4 @@
-# LSPlus - a Rust 'ls' clone.
-
-This is currently a very simple (though functional) clone of the Unix 'ls' 
-command written in Rust. It is a learning project for me to learn Rust so 
-probably contains many inefficiencies and bad practices. I'll get better :grin:
-
-![lsp output](./docs/src/images/screenshot.png)
-
-## Installation
-
-To install the latest release of this package, you can use the following command:
-
-### Latest Release
-
-```bash
-cargo install lsplus
-``` 
-
-This will install the `lsp` binary into your `~/.cargo/bin` directory. Make 
-sure that this directory is in your `PATH` environment variable so that you 
-can run the `lsp` command from anywhere.
-
-## From Source
-
-You can also install the package from source by cloning the repository and 
-running the following command:
-
-```bash
-git clone https://github.com/seapagan/lsplus.git
-cd lsplus
-cargo install --path .
-```
-
-
-## Usage
+# Usage
 
 Run this command in your terminal to list files in the current directory:
 
@@ -61,7 +27,7 @@ there will be an option to disable colors in the future.
 Icons are added to folders and links, this will be improved to show relevant
 icons for other file types in the future.
 
-### Aliases
+## Aliases
 
 The `lsp` command can be aliased to `ls` by adding the following line to your
 `.bashrc`, `.zshrc` or similar file:
@@ -76,9 +42,14 @@ alias to take effect.
 The example below shows an alias for ls that uses many of the current options:
 
 ```sh
-alias ls='lsp -laph'
+alias ll='lsp -laph'
 ```
 
 This will show a long format listing with hidden files, append a '/' to
-directories, and show human readable file sizes, as in the image above.
+directories, and show human readable file sizes.
 
+![lsp output](./images/screenshot.png)
+
+If you add the '-D' option to the command, directories will be sorted first:
+
+![lsp output](./images/screenshot2.png)
