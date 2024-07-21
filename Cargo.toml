@@ -1,7 +1,11 @@
 [package]
-name = "rls"
+name = "lsplus"
 version = "0.1.0"
 edition = "2021"
+
+[[bin]]
+name = "lsp"
+path = "src/main.rs"
 
 [dependencies]
 chrono = "0.4.38"

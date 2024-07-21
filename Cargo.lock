@@ -329,6 +329,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
 
 [[package]]
+name = "lsplus"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "inline_colorization",
+ "nix",
+ "prettytable",
+ "term_size",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -402,18 +414,6 @@ dependencies = [
  "getrandom",
  "libredox",
  "thiserror",
-]
-
-[[package]]
-name = "rls"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "clap",
- "inline_colorization",
- "nix",
- "prettytable",
- "term_size",
 ]
 
 [[package]]

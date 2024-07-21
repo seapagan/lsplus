@@ -11,7 +11,7 @@ use std::path::PathBuf;
 // Set up the CLI arguments
 #[derive(Parser)]
 #[command(
-    name = "rls",
+    name = "lsplus",
     version = "0.1.0",
     author = "Grant Ramsay <seapagan@gmail.com>",
     about = "A replacement for the 'ls' command written in Rust."
