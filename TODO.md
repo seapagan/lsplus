@@ -14,3 +14,5 @@ the OS.
 - [ ] for a symlink, color the name as it is, but color the target depending on
 whether it is a directory, file, or symlink.
 - [ ] show executable files as bold.
+- [ ] add option for 'fuzzy' dates, e.g. 'yesterday', 'last week', 'last month',
+'last year', '2 years ago', etc.

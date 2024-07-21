@@ -1,4 +1,7 @@
-# LSPlus - a Rust 'ls' clone.
+# LSPlus - an 'ls' clone written in Rust.
+
+[![Rust](https://github.com/seapagan/lsplus/actions/workflows/rust.yml/badge.svg)](https://github.com/seapagan/lsplus/actions/workflows/rust.yml)
+[![pages-build-deployment](https://github.com/seapagan/lsplus/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/seapagan/lsplus/actions/workflows/pages/pages-build-deployment)
 
 This is currently a very simple (though functional) clone of the Unix 'ls' 
 command written in Rust. It is a learning project for me to learn Rust so 
