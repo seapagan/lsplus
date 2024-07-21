@@ -1,9 +1,7 @@
-#[macro_use]
-extern crate prettytable;
-
-use clap::{ArgAction, Parser};
+use clap::{Arg, ArgAction, Parser};
 mod utils;
 use inline_colorization::*;
+use prettytable::{Cell, Row};
 use std::fs;
 use std::io;
 use std::path::PathBuf;
@@ -41,14 +39,26 @@ fn version_info() -> String {
     author = env!("CARGO_PKG_AUTHORS"),
     about =env!("CARGO_PKG_DESCRIPTION"),
     long_about = None,
+    disable_help_flag = true,
+    arg(
+        Arg::new("help")
+            .long("help")
+            .action(ArgAction::Help)
+            .help("Print help information")
+    )
 )]
 struct Cli {
     #[arg(short ='a', long = "all", action = ArgAction::SetTrue, help = "Do not ignore entries starting with .")]
     show_all: bool,
+
     #[arg(short ='A', long = "almost-all", action = ArgAction::SetTrue, help = "Do not list implied . and ..")]
     almost_all: bool,
+
     #[arg(short='l', long="long", action = ArgAction::SetTrue, help = "Display detailed information")]
     long: bool,
+
+    #[arg(short='h', long="human-readable", action = ArgAction::SetTrue, help = "with -l, print sizes like 1K 234M 2G etc.")]
+    human_readable: bool,
 
     #[arg(default_value = ".", help = "The path to list")]
     path: String,
@@ -81,10 +91,11 @@ fn main() -> io::Result<()> {
     let dirs_first = args.dirs_first;
     let show_all = args.show_all;
     let almost_all = args.almost_all;
+    let human_readable = args.human_readable;
 
     // different behavior for long format or short format
     if long_format {
-        let mut table = utils::create_table(1);
+        let mut table = utils::create_table(0);
         let file_names = utils::collect_file_names(
             &path,
             show_all,
@@ -140,17 +151,24 @@ fn main() -> io::Result<()> {
                 display_name = format!("{color_blue}{}", file_name);
             }
 
-            table.add_row(row![
-                format!("{}{}", file_type, mode),
-                nlink,
-                format!("{color_cyan}{}", user),
-                format!("{color_green}{}", group),
-                size,
-                format!("{color_yellow}{}", mtime),
-                item_icon,
-                // utils::get_filename_from_path(&display_name),
-                display_name,
-            ]);
+            let (display_size, units) = utils::show_size(size, human_readable);
+            // let test = format!("{} {}", display_size, units);
+
+            let mut row_cells = vec![
+                Cell::new(&format!("{}{} ", file_type, mode)),
+                Cell::new(&nlink.to_string()),
+                Cell::new(&format!(" {color_cyan}{}", user)),
+                Cell::new(&format!("{color_green}{} ", group)),
+                Cell::new(&display_size).style_spec("r"),
+                Cell::new(&format!(" {color_yellow}{} ", mtime)),
+                Cell::new(&item_icon),
+                Cell::new(&format!(" {}", display_name)),
+            ];
+
+            if !units.is_empty() {
+                row_cells.insert(5, Cell::new(units)); //.style_spec("l"));
+            }
+            table.add_row(Row::new(row_cells));
         }
         table.printstd();
     } else {
