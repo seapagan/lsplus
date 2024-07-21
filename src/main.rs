@@ -43,6 +43,8 @@ fn version_info() -> String {
     long_about = None,
 )]
 struct Cli {
+    #[arg(short ='a', long = "all", action = ArgAction::SetTrue, help = "Do not ignore entries starting with .")]
+    show_all: bool,
     #[arg(short='l', long="long", action = ArgAction::SetTrue, help = "Display detailed information")]
     long: bool,
 
