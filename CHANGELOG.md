@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 **New Features**
 
+- Human readable file size ([#9](https://github.com/seapagan/lsplus/pull/9)) by [seapagan](https://github.com/seapagan)
 - Only show dot-files when passed the '-a' or '--all' flag ([#8](https://github.com/seapagan/lsplus/pull/8)) by [seapagan](https://github.com/seapagan)
 - Provide a custom version command ([#7](https://github.com/seapagan/lsplus/pull/7)) by [seapagan](https://github.com/seapagan)
 - Show item type (dir, symlink, file) before the attrs. ([#5](https://github.com/seapagan/lsplus/pull/5)) by [seapagan](https://github.com/seapagan)
@@ -24,6 +25,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 **Refactoring**
 
 - Rename project to `lsplus` ([#6](https://github.com/seapagan/lsplus/pull/6)) by [seapagan](https://github.com/seapagan)
+
+**Documentation**
+
+- Add first docs and a gh action to publish ([#10](https://github.com/seapagan/lsplus/pull/10)) by [seapagan](https://github.com/seapagan)
 
 ---
 *This changelog was generated using [github-changelog-md](http://changelog.seapagan.net/) by [Seapagan](https://github.com/seapagan)*
