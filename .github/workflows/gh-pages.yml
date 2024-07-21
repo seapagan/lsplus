@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'docs/**' # only need this to run if changes to the actual docs
   workflow_dispatch:
 
 jobs:
