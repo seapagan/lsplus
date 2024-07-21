@@ -218,3 +218,29 @@ pub fn get_filename_from_path(path: &str) -> String {
         .to_string_lossy()
         .into_owned()
 }
+
+pub fn human_readable_format(size: u64) -> (f64, &'static str) {
+    const UNITS: [&str; 6] = ["B", "KB", "MB", "GB", "TB", "PB"];
+    let mut size = size as f64;
+    let mut unit_index = 0;
+
+    while size >= 1024.0 && unit_index < UNITS.len() - 1 {
+        size /= 1024.0;
+        unit_index += 1;
+    }
+
+    (size, UNITS[unit_index])
+}
+
+pub fn show_size(size: u64, human_readable: bool) -> (String, &'static str) {
+    if human_readable {
+        let (size, unit) = human_readable_format(size);
+        if size.fract() == 0.0 {
+            (format!("{:.0}", size), unit)
+        } else {
+            (format!("{:.1}", size), unit)
+        }
+    } else {
+        (size.to_string(), "")
+    }
+}
