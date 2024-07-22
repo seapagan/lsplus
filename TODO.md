@@ -16,3 +16,4 @@ whether it is a directory, file, or symlink.
 - [ ] show executable files as bold.
 - [ ] add option for 'fuzzy' dates, e.g. 'yesterday', 'last week', 'last month',
 'last year', '2 years ago', etc.
+- [ ] colorize the short-form output same as the long-form output.
