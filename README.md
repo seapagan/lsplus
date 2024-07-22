@@ -2,6 +2,9 @@
 
 [![Rust](https://github.com/seapagan/lsplus/actions/workflows/rust.yml/badge.svg)](https://github.com/seapagan/lsplus/actions/workflows/rust.yml)
 [![pages-build-deployment](https://github.com/seapagan/lsplus/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/seapagan/lsplus/actions/workflows/pages/pages-build-deployment)
+![Crates.io License](https://img.shields.io/crates/l/lsplus)
+[![Crates.io Version](https://img.shields.io/crates/v/lsplus?link=https%3A%2F%2Fcrates.io%2Fcrates%2Flsplus)](https://crates.io/crates/lsplus)
+[![GitHub issues](https://img.shields.io/github/issues/seapagan/lsplus)](https://github.com/seapagan/lsplus/issues)
 
 This is currently a very simple (though functional) clone of the Unix 'ls' 
 command written in Rust. It is a learning project for me to learn Rust so 
