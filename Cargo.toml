@@ -8,8 +8,9 @@ license = "MIT"
 homepage = "https://seapagan.github.io/lsplus/"
 repository = "https://github.com/seapagan/lsplus"
 readme = "README.md"
-categories = ["command-line-utilities","file-system"]
+categories = ["command-line-utilities","filesystem"]
 keywords = ["ls", "command-line", "utility", "file-system", "listing"]
+exclude = [".github/*", "docs/*"]
 
 [[bin]]
 name = "lsp"
