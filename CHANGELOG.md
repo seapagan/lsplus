@@ -24,11 +24,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 **Refactoring**
 
+- Refactor the project layout, split into modules by functionality ([#12](https://github.com/seapagan/lsplus/pull/12)) by [seapagan](https://github.com/seapagan)
 - Rename project to `lsplus` ([#6](https://github.com/seapagan/lsplus/pull/6)) by [seapagan](https://github.com/seapagan)
 
 **Documentation**
 
 - Add first docs and a gh action to publish ([#10](https://github.com/seapagan/lsplus/pull/10)) by [seapagan](https://github.com/seapagan)
+
+**Dependency Updates**
+
+- Bump actions/checkout from 2 to 4 ([#11](https://github.com/seapagan/lsplus/pull/11)) by [dependabot[bot]](https://github.com/apps/dependabot)
 
 ---
 *This changelog was generated using [github-changelog-md](http://changelog.seapagan.net/) by [Seapagan](https://github.com/seapagan)*
