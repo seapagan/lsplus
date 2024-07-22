@@ -7,6 +7,10 @@ This is currently a very simple (though functional) clone of the Unix 'ls'
 command written in Rust. It is a learning project for me to learn Rust so 
 probably contains many inefficiencies and bad practices. I'll get better :grin:
 
+> [!IMPORTANT]
+> This project is currently only compatible with Unix-like systems (Linux, 
+MacOs, etc.). Windows support is planned to be added very soon.
+
 ![lsp output](./docs/src/images/screenshot.png)
 
 ## Installation

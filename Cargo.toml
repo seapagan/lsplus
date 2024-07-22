@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Grant Ramsay <seapagan@gmail.com>"]
 description = "A replacement for the 'ls' command written in Rust."
+license = "MIT"
+homepage = "https://seapagan.github.io/lsplus/"
+repository = "https://github.com/seapagan/lsplus"
+readme = "README.md"
+categories = ["command-line-utilities","file-system"]
+keywords = ["ls", "command-line", "utility", "file-system", "listing"]
 
 [[bin]]
 name = "lsp"
