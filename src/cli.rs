@@ -15,7 +15,7 @@ use clap::{Arg, ArgAction, Parser};
             .help("Print help information")
     )
 )]
-pub struct CLI {
+pub struct Flags {
     #[arg(short ='a', long = "all", action = ArgAction::SetTrue, help = "Do not ignore entries starting with .")]
     pub show_all: bool,
 

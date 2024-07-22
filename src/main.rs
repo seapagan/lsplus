@@ -19,7 +19,7 @@ struct Params {
 }
 
 fn main() -> io::Result<()> {
-    let args = cli::CLI::parse();
+    let args = cli::Flags::parse();
     if args.version {
         println!("{}", cli::version_info());
         exit(0);
