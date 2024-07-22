@@ -6,7 +6,7 @@ project since the first release.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [Unreleased](https://github.com/seapagan/lsplus/tree/HEAD)
+## [0.1.0](https://github.com/seapagan/lsplus/releases/tag/0.1.0) (2024-07-22)
 
 **New Features**
 
