@@ -38,8 +38,8 @@ fn main() -> io::Result<()> {
 
     // different behavior for long format or short format
     if params.long_format {
-        let mut table = utils::create_table(0);
-        let file_names = utils::collect_file_names(&path, &params)?;
+        let mut table = utils::table::create_table(0);
+        let file_names = utils::file::collect_file_names(&path, &params)?;
 
         for file_name in file_names {
             let path_metadata = fs::symlink_metadata(&path)?;
@@ -50,9 +50,9 @@ fn main() -> io::Result<()> {
                 PathBuf::from(file_name.clone())
             };
             let metadata = fs::symlink_metadata(&full_path)?;
-            let item_icon = utils::get_item_icon(&metadata);
+            let item_icon = utils::icons::get_item_icon(&metadata);
             let (file_type, mode, nlink, size, mtime, user, group) =
-                utils::get_file_details(&metadata);
+                utils::file::get_file_details(&metadata);
 
             let mut display_name = file_name.clone();
             if metadata.is_symlink() {
@@ -89,7 +89,7 @@ fn main() -> io::Result<()> {
             }
 
             let (display_size, units) =
-                utils::show_size(size, params.human_readable);
+                utils::format::show_size(size, params.human_readable);
 
             let mut row_cells = vec![
                 Cell::new(&format!("{}{} ", file_type, mode)),
@@ -110,14 +110,15 @@ fn main() -> io::Result<()> {
         table.printstd();
     } else {
         // this is the default short-form behavior
-        let file_names = utils::collect_file_names(&path, &params)?;
-        let max_name_length = utils::calculate_max_name_length(&file_names);
+        let file_names = utils::file::collect_file_names(&path, &params)?;
+        let max_name_length =
+            utils::file::calculate_max_name_length(&file_names);
         let terminal_width =
             term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
         let num_columns = terminal_width / max_name_length;
 
-        let mut table = utils::create_table(2);
-        utils::add_files_to_table(&mut table, &file_names, num_columns);
+        let mut table = utils::table::create_table(2);
+        utils::table::add_files_to_table(&mut table, &file_names, num_columns);
 
         table.printstd();
     }
