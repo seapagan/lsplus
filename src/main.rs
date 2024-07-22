@@ -9,31 +9,37 @@ use std::process::exit;
 mod cli;
 mod utils;
 
+struct Params {
+    show_all: bool,
+    append_slash: bool,
+    dirs_first: bool,
+    almost_all: bool,
+    long_format: bool,
+    human_readable: bool,
+}
+
 fn main() -> io::Result<()> {
     let args = cli::CLI::parse();
     if args.version {
         println!("{}", cli::version_info());
         exit(0);
     }
+
     // read in the command line arguments
+    let params = Params {
+        show_all: args.show_all,
+        append_slash: args.slash,
+        dirs_first: args.dirs_first,
+        almost_all: args.almost_all,
+        long_format: args.long,
+        human_readable: args.human_readable,
+    };
     let path = args.path;
-    let long_format = args.long;
-    let append_slash = args.slash;
-    let dirs_first = args.dirs_first;
-    let show_all = args.show_all;
-    let almost_all = args.almost_all;
-    let human_readable = args.human_readable;
 
     // different behavior for long format or short format
-    if long_format {
+    if params.long_format {
         let mut table = utils::create_table(0);
-        let file_names = utils::collect_file_names(
-            &path,
-            show_all,
-            append_slash,
-            dirs_first,
-            almost_all,
-        )?;
+        let file_names = utils::collect_file_names(&path, &params)?;
 
         for file_name in file_names {
             let path_metadata = fs::symlink_metadata(&path)?;
@@ -82,7 +88,8 @@ fn main() -> io::Result<()> {
                 display_name = format!("{color_blue}{}", file_name);
             }
 
-            let (display_size, units) = utils::show_size(size, human_readable);
+            let (display_size, units) =
+                utils::show_size(size, params.human_readable);
 
             let mut row_cells = vec![
                 Cell::new(&format!("{}{} ", file_type, mode)),
@@ -103,13 +110,7 @@ fn main() -> io::Result<()> {
         table.printstd();
     } else {
         // this is the default short-form behavior
-        let file_names = utils::collect_file_names(
-            &path,
-            show_all,
-            append_slash,
-            dirs_first,
-            almost_all,
-        )?;
+        let file_names = utils::collect_file_names(&path, &params)?;
         let max_name_length = utils::calculate_max_name_length(&file_names);
         let terminal_width =
             term_size::dimensions().map(|(w, _)| w).unwrap_or(80);

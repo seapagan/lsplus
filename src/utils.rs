@@ -7,6 +7,8 @@ use std::os::unix::fs::MetadataExt;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
+use crate::Params;
+
 pub fn get_file_name_with_slash(
     metadata: &fs::Metadata,
     file_name: &str,
@@ -66,10 +68,7 @@ pub fn calculate_max_name_length(file_names: &[String]) -> usize {
 
 pub fn collect_file_names(
     path: &String,
-    show_all: bool,
-    append_slash: bool,
-    dirs_first: bool,
-    almost_all: bool,
+    params: &Params,
 ) -> io::Result<Vec<String>> {
     let mut file_names = Vec::new();
 
@@ -88,7 +87,7 @@ pub fn collect_file_names(
         let mut entries: Vec<fs::DirEntry> = fs::read_dir(path)?
             .filter_map(Result::ok)
             .filter(|entry| {
-                if show_all || almost_all {
+                if params.show_all || params.almost_all {
                     true
                 } else {
                     entry
@@ -118,7 +117,7 @@ pub fn collect_file_names(
         });
 
         // Separate directories and files if dirs_first is true
-        if dirs_first {
+        if params.dirs_first {
             let (dirs, files): (Vec<_>, Vec<_>) =
                 entries.into_iter().partition(|entry| {
                     entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false)
@@ -127,8 +126,8 @@ pub fn collect_file_names(
             entries = dirs.into_iter().chain(files).collect();
         }
 
-        if !almost_all && show_all {
-            if append_slash {
+        if !params.almost_all && params.show_all {
+            if params.append_slash {
                 file_names = vec!["./".to_string(), "../".to_string()];
             } else {
                 file_names = vec![".".to_string(), "..".to_string()];
@@ -138,8 +137,11 @@ pub fn collect_file_names(
         for entry in entries {
             let metadata = fs::symlink_metadata(entry.path())?;
             let mut file_name = entry.file_name().into_string().unwrap();
-            file_name =
-                get_file_name_with_slash(&metadata, &file_name, append_slash);
+            file_name = get_file_name_with_slash(
+                &metadata,
+                &file_name,
+                params.append_slash,
+            );
             file_names.push(file_name);
         }
     }
