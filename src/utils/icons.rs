@@ -49,15 +49,8 @@ pub enum Icon {
     XmlFile = '\u{e619}' as isize,
     ZipFile = '\u{f1c6}' as isize,
 }
-#[allow(non_upper_case_globals)] // needed to keep constant names consistent
-#[allow(dead_code)] // This is a temporary solution to avoid warnings
-impl Icon {
-    // these constants are used to make it easier to reference the icons
-    // by multiple names without Enum errors. We need this to use the same icon
-    // for a folder and a file, for example.
-    pub const GitFolder: Icon = Icon::GitFile;
-    pub const ConfigFolder: Icon = Icon::ConfigFile;
 
+impl Icon {
     fn as_char(self) -> char {
         char::from_u32(self as u32).unwrap()
     }
@@ -81,10 +74,10 @@ fn folder_icons() -> &'static HashMap<&'static str, Icon> {
 
     FOLDER_ICONS.get_or_init(|| {
         let mut m = HashMap::new();
-        m.insert(".config", Icon::ConfigFolder);
+        m.insert(".config", Icon::ConfigFile);
         m.insert(".github", Icon::GitHubFolder);
         m.insert(".ssh", Icon::SshFolder);
-        m.insert(".git", Icon::GitFolder);
+        m.insert(".git", Icon::GitFile);
         m.insert(".vscode", Icon::VsCodeFolder);
         m.insert("node_modules", Icon::NodeModulesFolder);
         m.insert("Trash", Icon::TrashFolder);
