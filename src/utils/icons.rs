@@ -16,18 +16,18 @@ pub enum Icon {
     CacheFolder = '\u{f163f}' as isize,
     GitHubFolder = '\u{f408}' as isize,
     HomeFolder = '\u{f015}' as isize,
-    NodeModulesFolder = '\u{ed0d}' as isize,
+    NodeModulesFolder = '\u{f0399}' as isize,
     SecurityFolder = '\u{f084}' as isize,
     TrashFolder = '\u{ea81}' as isize,
     VsCodeFolder = '\u{f0a1e}' as isize,
 
     // specific file types
+    CompactDiscFile = '\u{e271}' as isize,
     ConfigFile = '\u{f013}' as isize,
     CssFile = '\u{e749}' as isize,
     DatabaseFile = '\u{e706}' as isize,
     DebianFile = '\u{f306}' as isize,
     DockerFile = '\u{f21f}' as isize,
-    // FontFile = '\u{f031}' as isize,
     FontFile = '\u{e659}' as isize,
     GitFile = '\u{f1d3}' as isize,
     HistoryFile = '\u{f1da}' as isize,
@@ -44,6 +44,7 @@ pub enum Icon {
     ReactFile = '\u{e7ba}' as isize,
     RubyFile = '\u{e23e}' as isize,
     RustFile = '\u{e7a8}' as isize,
+    SassFile = '\u{e603}' as isize,
     SwapFile = '\u{f0fb4}' as isize,
     TerminalFile = '\u{ea85}' as isize,
     TextFile = '\u{f15c}' as isize,
@@ -92,6 +93,7 @@ fn folder_icons() -> &'static HashMap<&'static str, Icon> {
         m.insert(".pyenv", Icon::PythonFile);
         m.insert(".rbenv", Icon::RubyFile);
         m.insert(".npm", Icon::NodeModulesFolder);
+        m.insert(".yarn", Icon::NodeModulesFolder);
         m.insert(".cargo", Icon::RustFile);
         m.insert(".rustup", Icon::RustFile);
         m.insert(".gnupg", Icon::SecurityFolder);
@@ -115,6 +117,9 @@ fn file_name_icons() -> &'static HashMap<&'static str, Icon> {
         m.insert("swapfile", Icon::SwapFile);
         m.insert("docker-compose.yml", Icon::DockerFile);
         m.insert("Dockerfile", Icon::DockerFile);
+        m.insert("LICENSE", Icon::TextFile);
+        m.insert("Rakefile", Icon::RubyFile);
+        m.insert("Gemfile", Icon::RubyFile);
 
         m
     })
@@ -134,23 +139,27 @@ fn file_type_icons() -> &'static HashMap<&'static str, Icon> {
                 &["conf", "cfg", "ini", "pylintrc", "yaml", "yml", "yarnrc"],
                 Icon::ConfigFile,
             ),
-            (&["gitignore", "gitconfig", "gitattributes"], Icon::GitFile),
+            (
+                &["gitignore", "gitconfig", "gitattributes", "gitmodules"],
+                Icon::GitFile,
+            ),
             (&["env"], Icon::WrenchFile),
             (&["json"], Icon::JsonFile),
             (&["md"], Icon::MarkdownFile),
             (&["toml"], Icon::TomlFile),
             (&["xml"], Icon::XmlFile),
             (&["db", "sqlite", "sql"], Icon::DatabaseFile),
-            (&["py"], Icon::PythonFile),
+            (&["py", "whl"], Icon::PythonFile),
             (&["jsx", "tsx"], Icon::ReactFile),
-            (&["rb", "gemrc"], Icon::RubyFile),
+            (&["rb", "gemrc", "rspec"], Icon::RubyFile),
             (&["rs"], Icon::RustFile),
             (&["ts"], Icon::TypeScriptFile),
             (&["lua"], Icon::LuaFile),
             (&["pl"], Icon::PerlFile),
             (&["css"], Icon::CssFile),
+            (&["scss", "sass"], Icon::SassFile),
             (&["html", "htm"], Icon::HtmlFile),
-            (&["js"], Icon::JavaScriptFile),
+            (&["js", "cjs"], Icon::JavaScriptFile),
             (&["jpg", "png", "svg"], Icon::PictureFile),
             (
                 &[
@@ -164,7 +173,17 @@ fn file_type_icons() -> &'static HashMap<&'static str, Icon> {
                 Icon::HistoryFile,
             ),
             (&["deb"], Icon::DebianFile),
-            (&["tar.gz", "tgz", "gz", "zip", "rar"], Icon::ZipFile),
+            (
+                &[
+                    "gz", "tgz", "zip", "rar", "xz", "tar", "7z", "bz2",
+                    "bz2", "z", "Z", "arj", "lzh", "cab",
+                ],
+                Icon::ZipFile,
+            ),
+            (
+                &["iso", "bin", "dmg", "img", "qcow", "vdi", "vmdk"],
+                Icon::CompactDiscFile,
+            ),
             (&["lock"], Icon::LockFile),
             (
                 &[
