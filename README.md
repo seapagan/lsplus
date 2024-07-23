@@ -38,6 +38,9 @@ for your terminal. You can find a great selection of Nerd Fonts
 My personal favourite is `MesoLG Nerd Font`, but there are many others to choose
 from. You will also need to set up your terminal to use that font.
 
+If you **DO NOT** want to install a Nerd Font, pass the `--no-icons` switch to 
+the program.
+
 ## Installation
 
 ### Latest Release
@@ -81,6 +84,7 @@ Curently, only a sub-set of the standard `ls` options are supported. These are:
 - `-l` / `--long` - Show long format listing
 - `-h` / `--human-readable` - Human readable file sizes
 - `-D` / `--sort-dirs` - Sort directories first
+- `-no-icons` - don't show file or folder icons
 
 Many of the remaining options are planned to be implemented in the future. 
 

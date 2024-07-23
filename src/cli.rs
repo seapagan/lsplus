@@ -37,6 +37,9 @@ pub struct Flags {
     #[arg(short = 'D', long = "sort-dirs", action = ArgAction::SetTrue, help = "Sort directories first")]
     pub dirs_first: bool,
 
+    #[arg(long="no-icons", action = ArgAction::SetTrue, help = "Do not display file or folder icons")]
+    pub no_icons: bool,
+
     #[arg(
         long = "version",
         short = 'V',

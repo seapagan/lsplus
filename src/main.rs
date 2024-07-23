@@ -16,6 +16,7 @@ struct Params {
     almost_all: bool,
     long_format: bool,
     human_readable: bool,
+    no_icons: bool,
 }
 
 fn main() -> io::Result<()> {
@@ -33,6 +34,7 @@ fn main() -> io::Result<()> {
         almost_all: args.almost_all,
         long_format: args.long,
         human_readable: args.human_readable,
+        no_icons: args.no_icons,
     };
     let path = args.path;
 
@@ -94,20 +96,26 @@ fn main() -> io::Result<()> {
             let (display_size, units) =
                 utils::format::show_size(size, params.human_readable);
 
-            let mut row_cells = vec![
-                Cell::new(&format!("{}{} ", file_type, mode)),
-                Cell::new(&nlink.to_string()),
-                Cell::new(&format!(" {color_cyan}{}", user)),
-                Cell::new(&format!("{color_green}{} ", group)),
-                Cell::new(&display_size).style_spec("r"),
-                Cell::new(&format!(" {color_yellow}{} ", mtime)),
-                Cell::new(&format!("{}", item_icon)),
-                Cell::new(&format!(" {}", display_name)),
-            ];
+            let mut row_cells = Vec::with_capacity(9);
+
+            row_cells.push(Cell::new(&format!("{}{} ", file_type, mode)));
+            row_cells.push(Cell::new(&nlink.to_string()));
+            row_cells.push(Cell::new(&format!(" {color_cyan}{}", user)));
+            row_cells.push(Cell::new(&format!("{color_green}{} ", group)));
+            row_cells.push(Cell::new(&display_size).style_spec("r"));
 
             if !units.is_empty() {
-                row_cells.insert(5, Cell::new(units));
+                row_cells.push(Cell::new(units));
             }
+
+            row_cells.push(Cell::new(&format!(" {color_yellow}{} ", mtime)));
+
+            if !params.no_icons {
+                row_cells.push(Cell::new(&format!("{} ", item_icon)));
+            }
+
+            row_cells.push(Cell::new(&display_name.to_string()));
+
             table.add_row(Row::new(row_cells));
         }
         table.printstd();
