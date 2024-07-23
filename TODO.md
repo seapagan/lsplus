@@ -18,4 +18,6 @@ whether it is a directory, file, or symlink.
 - [ ] add icon to specific file NAMES (not just extensions) - e.g. `Cargo.toml`,
 `Makefile`, `Dockerfile`, `swapfile` etc. Also partials like `TODO.*`, 
 `LICENSE.*` and more.
-- [ ] option to color files in the `.gitignore` as grayed out
+- [ ] option to  grey-out files in the `.gitignore`.
+- [ ] once the config file is implemented, allow extending the existing file and
+folder mapping, or deleting specific maps.
