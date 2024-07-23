@@ -10,37 +10,56 @@ This is currently a very simple (though functional) clone of the Unix 'ls'
 command written in Rust. It is a learning project for me to learn Rust so 
 probably contains many inefficiencies and bad practices. I'll get better :grin:
 
-> [!IMPORTANT]
-> This project is currently only compatible with Unix-like systems (Linux, 
+![lsp output](./docs/src/images/screenshot.png)
+
+<!-- vim-markdown-toc GFM -->
+
+- [Compatibility](#compatibility)
+- [Nerd Fonts](#nerd-fonts)
+- [Installation](#installation)
+  - [Latest Release](#latest-release)
+  - [From Source](#from-source)
+- [Usage](#usage)
+  - [Aliases](#aliases)
+- [Future Plans](#future-plans)
+
+<!-- vim-markdown-toc -->
+
+## Compatibility
+This project is currently only compatible with Unix-like systems (Linux,
 MacOs, etc.). Windows support is planned to be added very soon.
 
-![lsp output](./docs/src/images/screenshot.png)
+## Nerd Fonts
+
+To display the folder and file icons, you need to first install a 'Nerd Font' 
+for your terminal. You can find a great selection of Nerd Fonts
+[here](https://www.nerdfonts.com/)
+
+My personal favourite is `MesoLG Nerd Font`, but there are many others to choose
+from. You will also need to set up your terminal to use that font.
 
 ## Installation
 
-To install the latest release of this package, you can use the following command:
-
 ### Latest Release
+
+To install the latest release of this package, you can use the following command:
 
 ```bash
 cargo install lsplus
-``` 
+```
 
 This will install the `lsp` binary into your `~/.cargo/bin` directory. Make 
 sure that this directory is in your `PATH` environment variable so that you 
 can run the `lsp` command from anywhere.
 
-## From Source
+### From Source
 
-You can also install the package from source by cloning the repository and 
-running the following command:
+You can also install the package from the GitHub repository by running the 
+following command:
 
 ```bash
-git clone https://github.com/seapagan/lsplus.git
-cd lsplus
-cargo install --path .
+cargo install --git https://github.com/seapagan/lsplus.git
 ```
-
 
 ## Usage
 
@@ -68,8 +87,10 @@ Many of the remaining options are planned to be implemented in the future.
 The long-format listing is colorized by default and cannot be disabled, but 
 there will be an option to disable colors in the future.
 
-Icons are added to folders and links, this will be improved to show relevant
-icons for other file types in the future.
+Icons are added to folders, files, and links. There is only a limited set of
+mappings implemented at the moment, but more will be added in the future. Add
+an issue if you have a specific icon you would like to see - even better, add
+a Pull Request implementing it! :grin: 
 
 ### Aliases
 
@@ -92,3 +113,7 @@ alias ls='lsp -laph'
 This will show a long format listing with hidden files, append a '/' to
 directories, and show human readable file sizes, as in the image above.
 
+## Future Plans
+
+I am planning to add many more features to this project in the future. Check out
+the [TODO](./TODO.md) file for a list of planned features and improvements.

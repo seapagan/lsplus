@@ -16,4 +16,3 @@ whether it is a directory, file, or symlink.
 'last year', '2 years ago', etc.
 - [ ] colorize the short-form output same as the long-form output.
 - [ ] make file/folder icons optional and default to off.
-- [ ] note in README that a `Nerd Font` is required for the icons to display

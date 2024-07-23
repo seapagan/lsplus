@@ -106,7 +106,7 @@ fn main() -> io::Result<()> {
             ];
 
             if !units.is_empty() {
-                row_cells.insert(5, Cell::new(units)); //.style_spec("l"));
+                row_cells.insert(5, Cell::new(units));
             }
             table.add_row(Row::new(row_cells));
         }

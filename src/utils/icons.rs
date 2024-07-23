@@ -70,7 +70,7 @@ impl fmt::Display for UnicodeChar {
     }
 }
 
-// map extensions to icons
+// map file extensions to icons
 fn file_icons() -> &'static HashMap<&'static str, UnicodeChar> {
     static FILE_ICONS: OnceLock<HashMap<&'static str, UnicodeChar>> =
         OnceLock::new();
