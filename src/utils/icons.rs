@@ -4,7 +4,6 @@ use std::path::Path;
 use std::sync::OnceLock;
 use std::{fmt, fs};
 
-#[allow(dead_code)] // This is a temporary solution to avoid warnings
 #[derive(Debug, Clone, Copy)]
 pub enum Icon {
     // we define all the possible icons we can use. This will be a growing
@@ -14,10 +13,10 @@ pub enum Icon {
     GenericFile = '\u{f15b}' as isize,
 
     // specific folder types
-    SshFolder = '\u{f084}' as isize,
     GitHubFolder = '\u{f408}' as isize,
     HomeFolder = '\u{f015}' as isize,
     NodeModulesFolder = '\u{ed0d}' as isize,
+    SecurityFolder = '\u{f084}' as isize,
     TrashFolder = '\u{ea81}' as isize,
     VsCodeFolder = '\u{f0a1e}' as isize,
 
@@ -26,6 +25,9 @@ pub enum Icon {
     CssFile = '\u{e749}' as isize,
     DatabaseFile = '\u{e706}' as isize,
     DebianFile = '\u{f306}' as isize,
+    DockerFile = '\u{f21f}' as isize,
+    // FontFile = '\u{f031}' as isize,
+    FontFile = '\u{e659}' as isize,
     GitFile = '\u{f1d3}' as isize,
     HistoryFile = '\u{f1da}' as isize,
     HtmlFile = '\u{e736}' as isize,
@@ -46,6 +48,7 @@ pub enum Icon {
     TextFile = '\u{f15c}' as isize,
     TomlFile = '\u{e6b2}' as isize,
     TypeScriptFile = '\u{e628}' as isize,
+    WrenchFile = '\u{f0ad}' as isize,
     XmlFile = '\u{e619}' as isize,
     ZipFile = '\u{f1c6}' as isize,
 }
@@ -76,91 +79,106 @@ fn folder_icons() -> &'static HashMap<&'static str, Icon> {
         let mut m = HashMap::new();
         m.insert(".config", Icon::ConfigFile);
         m.insert(".github", Icon::GitHubFolder);
-        m.insert(".ssh", Icon::SshFolder);
+        m.insert(".ssh", Icon::SecurityFolder);
         m.insert(".git", Icon::GitFile);
         m.insert(".vscode", Icon::VsCodeFolder);
         m.insert("node_modules", Icon::NodeModulesFolder);
         m.insert("Trash", Icon::TrashFolder);
         m.insert("home", Icon::HomeFolder);
+        m.insert("root", Icon::SecurityFolder);
+        m.insert("venv", Icon::PythonFile);
+        m.insert(".venv", Icon::PythonFile);
+        m.insert(".pyenv", Icon::PythonFile);
+        m.insert(".rbenv", Icon::RubyFile);
+        m.insert(".npm", Icon::NodeModulesFolder);
+        m.insert(".cargo", Icon::RustFile);
+        m.insert(".rustup", Icon::RustFile);
+        m.insert(".gnupg", Icon::SecurityFolder);
+        m.insert(".docker", Icon::DockerFile);
+        m.insert(".cpan", Icon::PerlFile);
+        m.insert(".cpanm", Icon::PerlFile);
 
         m
     })
 }
 
-// map file extensions to icons
-fn file_icons() -> &'static HashMap<&'static str, Icon> {
+// map file NAME extensions to icons
+fn file_name_icons() -> &'static HashMap<&'static str, Icon> {
+    // these are specifc exact file names that we want to map to icons.
+    static FILE_NAME_ICONS: OnceLock<HashMap<&'static str, Icon>> =
+        OnceLock::new();
+
+    FILE_NAME_ICONS.get_or_init(|| {
+        let mut m = HashMap::new();
+        m.insert("swapfile", Icon::SwapFile);
+        m.insert("docker-compose.yml", Icon::DockerFile);
+        m.insert("Dockerfile", Icon::DockerFile);
+
+        m
+    })
+}
+
+// map file EXTENSIONS to icons
+fn file_type_icons() -> &'static HashMap<&'static str, Icon> {
     static FILE_ICONS: OnceLock<HashMap<&'static str, Icon>> = OnceLock::new();
 
+    // this one is done a bit differently since there may be many extensions
+    // sharing the same icon
     FILE_ICONS.get_or_init(|| {
+        let icon_groups: Vec<(&[&str], Icon)> = vec![
+            (&["txt"], Icon::LogFile),
+            (&["log"], Icon::TextFile),
+            (
+                &["conf", "cfg", "ini", "yaml", "yml", "yarnrc"],
+                Icon::ConfigFile,
+            ),
+            (&["gitignore", "gitconfig", "gitattributes"], Icon::GitFile),
+            (&["env"], Icon::WrenchFile),
+            (&["json"], Icon::JsonFile),
+            (&["md"], Icon::MarkdownFile),
+            (&["toml"], Icon::TomlFile),
+            (&["xml"], Icon::XmlFile),
+            (&["db", "sqlite", "sql"], Icon::DatabaseFile),
+            (&["py"], Icon::PythonFile),
+            (&["jsx", "tsx"], Icon::ReactFile),
+            (&["rb", "gemrc"], Icon::RubyFile),
+            (&["rs"], Icon::RustFile),
+            (&["ts"], Icon::TypeScriptFile),
+            (&["lua"], Icon::LuaFile),
+            (&["pl"], Icon::PerlFile),
+            (&["css"], Icon::CssFile),
+            (&["html", "htm"], Icon::HtmlFile),
+            (&["js"], Icon::JavaScriptFile),
+            (&["jpg", "png", "svg"], Icon::PictureFile),
+            (
+                &[
+                    "sh", "bash", "bashrc", "zsh", "zshrc", "fish", "profile",
+                    "zprofile",
+                ],
+                Icon::TerminalFile,
+            ),
+            (
+                &["bash_history", "zsh_history", "psql_history"],
+                Icon::HistoryFile,
+            ),
+            (&["deb"], Icon::DebianFile),
+            (&["tar.gz", "tgz"], Icon::ZipFile),
+            (&["lock"], Icon::LockFile),
+            (
+                &[
+                    "ttf", "otf", "woff", "woff2", "eot", "pfb", "pfm", "fon",
+                    "dfont", "pfa", "pcf", "bdf", "snf",
+                ],
+                Icon::FontFile,
+            ),
+        ];
+
         let mut m = HashMap::new();
-        m.insert("log", Icon::LogFile);
-        m.insert("txt", Icon::TextFile);
-
-        // config files
-        m.insert("conf", Icon::ConfigFile);
-        m.insert("cfg", Icon::ConfigFile);
-        m.insert("ini", Icon::ConfigFile);
-        m.insert("gitignore", Icon::GitFile);
-        m.insert("gitconfig", Icon::GitFile);
-
-        // formatted text files
-        m.insert("json", Icon::JsonFile);
-        m.insert("md", Icon::MarkdownFile);
-        m.insert("toml", Icon::TomlFile);
-        m.insert("xml", Icon::XmlFile);
-        m.insert("yaml", Icon::ConfigFile);
-        m.insert("yml", Icon::ConfigFile);
-
-        // database files
-        m.insert("db", Icon::DatabaseFile);
-        m.insert("sqlite", Icon::DatabaseFile);
-        m.insert("sql", Icon::DatabaseFile);
-
-        // coding related files
-        m.insert("py", Icon::PythonFile);
-        m.insert("jsx", Icon::ReactFile);
-        m.insert("tsx", Icon::ReactFile);
-        m.insert("rb", Icon::RubyFile);
-        m.insert("gemrc", Icon::RubyFile);
-        m.insert("rs", Icon::RustFile);
-        m.insert("ts", Icon::TypeScriptFile);
-        m.insert("lua", Icon::LuaFile);
-        m.insert("pl", Icon::PerlFile);
-
-        // web-dev related files
-        m.insert("css", Icon::CssFile);
-        m.insert("html", Icon::HtmlFile);
-        m.insert("htm", Icon::HtmlFile);
-        m.insert("js", Icon::JavaScriptFile);
-
-        // picture files
-        m.insert("jpg", Icon::PictureFile);
-        m.insert("png", Icon::PictureFile);
-        m.insert("svg", Icon::PictureFile);
-
-        // shell-related files
-        m.insert("sh", Icon::TerminalFile);
-        m.insert("bash", Icon::TerminalFile);
-        m.insert("bashrc", Icon::TerminalFile);
-        m.insert("zsh", Icon::TerminalFile);
-        m.insert("zshrc", Icon::TerminalFile);
-        m.insert("fish", Icon::TerminalFile);
-        m.insert("profile", Icon::TerminalFile);
-        m.insert("zprofile", Icon::TerminalFile);
-
-        // history files
-        m.insert("bash_history", Icon::HistoryFile);
-        m.insert("zsh_history", Icon::HistoryFile);
-        m.insert("psql_history", Icon::HistoryFile);
-
-        // archive or simiar
-        m.insert("deb", Icon::DebianFile);
-        m.insert("tar.gz", Icon::ZipFile);
-        m.insert("tgz", Icon::ZipFile);
-
-        // lock files
-        m.insert("lock", Icon::LockFile);
-
+        for (extensions, icon) in icon_groups {
+            for &ext in extensions {
+                m.insert(ext, icon);
+            }
+        }
         m
     })
 }
@@ -169,22 +187,12 @@ fn known_extensions() -> &'static HashSet<&'static str> {
     // Return a set of all known extensions, from the keys of the file_icons
     // hashmap
     static KNOWN_EXTENSIONS: OnceLock<HashSet<&'static str>> = OnceLock::new();
-    KNOWN_EXTENSIONS.get_or_init(|| file_icons().keys().cloned().collect())
+    KNOWN_EXTENSIONS
+        .get_or_init(|| file_type_icons().keys().cloned().collect())
 }
 
 fn get_folder_icon(folder_name: &str) -> Icon {
-    // Use Path to get the folder name
-    let path = Path::new(folder_name);
-    let folder_name_trimmed = path
-        .file_name()
-        .unwrap_or(path.as_os_str())
-        .to_str()
-        .unwrap_or(folder_name);
-
-    // Return the icon for the folder based on its trimmed name
-    *folder_icons()
-        .get(folder_name_trimmed)
-        .unwrap_or(&Icon::Folder)
+    *folder_icons().get(folder_name).unwrap_or(&Icon::Folder)
 }
 
 fn get_file_icon(file_name: &str) -> Icon {
@@ -196,10 +204,23 @@ fn get_file_icon(file_name: &str) -> Icon {
         .max_by_key(|ext| ext.len())
         .unwrap_or(&"");
 
-    *file_icons().get(*extension).unwrap_or(&Icon::GenericFile)
+    *file_type_icons()
+        .get(*extension)
+        .unwrap_or(&Icon::GenericFile)
 }
 
-pub fn get_item_icon(metadata: &fs::Metadata, file_name: &str) -> Icon {
+fn get_filename_icon(file_name: &str) -> Option<Icon> {
+    // Return the icon for the filename based on its name if found
+    file_name_icons().get(file_name).cloned()
+}
+
+pub fn get_item_icon(metadata: &fs::Metadata, file_path: &str) -> Icon {
+    // Extract just the file name without the path
+    let file_name = Path::new(file_path)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
+
     // Return the icon for the item based on its metadata and name
     if metadata.is_dir() {
         // Icon::Folder
@@ -207,7 +228,7 @@ pub fn get_item_icon(metadata: &fs::Metadata, file_name: &str) -> Icon {
     } else if metadata.is_symlink() {
         Icon::Symlink
     } else {
-        // UnicodeChar::GenericFile
-        get_file_icon(file_name)
+        get_filename_icon(file_name)
+            .unwrap_or_else(|| get_file_icon(file_name))
     }
 }
