@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::path::Path;
 use std::sync::OnceLock;
 use std::{fmt, fs};
 
@@ -13,7 +14,7 @@ pub enum Icon {
     GenericFile = '\u{f15b}' as isize,
 
     // specific folder types
-    ConfigFolder = '\u{e5fc}' as isize,
+    SshFolder = '\u{f084}' as isize,
     GitHubFolder = '\u{f408}' as isize,
     HomeFolder = '\u{f015}' as isize,
     NodeModulesFolder = '\u{ed0d}' as isize,
@@ -35,10 +36,12 @@ pub enum Icon {
     LuaFile = '\u{e620}' as isize,
     MarkdownFile = '\u{e73e}' as isize,
     PictureFile = '\u{f03e}' as isize,
+    PerlFile = '\u{e67e}' as isize,
     PythonFile = '\u{e606}' as isize,
     ReactFile = '\u{e7ba}' as isize,
     RubyFile = '\u{e23e}' as isize,
     RustFile = '\u{e7a8}' as isize,
+    SwapFile = '\u{f0fb4}' as isize,
     TerminalFile = '\u{ea85}' as isize,
     TextFile = '\u{f15c}' as isize,
     TomlFile = '\u{e6b2}' as isize,
@@ -53,6 +56,7 @@ impl Icon {
     // by multiple names without Enum errors. We need this to use the same icon
     // for a folder and a file, for example.
     pub const GitFolder: Icon = Icon::GitFile;
+    pub const ConfigFolder: Icon = Icon::ConfigFile;
 
     fn as_char(self) -> char {
         char::from_u32(self as u32).unwrap()
@@ -68,6 +72,26 @@ impl fmt::Display for Icon {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.as_string())
     }
+}
+
+// map folder names to icons
+fn folder_icons() -> &'static HashMap<&'static str, Icon> {
+    static FOLDER_ICONS: OnceLock<HashMap<&'static str, Icon>> =
+        OnceLock::new();
+
+    FOLDER_ICONS.get_or_init(|| {
+        let mut m = HashMap::new();
+        m.insert(".config", Icon::ConfigFolder);
+        m.insert(".github", Icon::GitHubFolder);
+        m.insert(".ssh", Icon::SshFolder);
+        m.insert(".git", Icon::GitFolder);
+        m.insert(".vscode", Icon::VsCodeFolder);
+        m.insert("node_modules", Icon::NodeModulesFolder);
+        m.insert("Trash", Icon::TrashFolder);
+        m.insert("home", Icon::HomeFolder);
+
+        m
+    })
 }
 
 // map file extensions to icons
@@ -108,6 +132,7 @@ fn file_icons() -> &'static HashMap<&'static str, Icon> {
         m.insert("rs", Icon::RustFile);
         m.insert("ts", Icon::TypeScriptFile);
         m.insert("lua", Icon::LuaFile);
+        m.insert("pl", Icon::PerlFile);
 
         // web-dev related files
         m.insert("css", Icon::CssFile);
@@ -154,6 +179,21 @@ fn known_extensions() -> &'static HashSet<&'static str> {
     KNOWN_EXTENSIONS.get_or_init(|| file_icons().keys().cloned().collect())
 }
 
+fn get_folder_icon(folder_name: &str) -> Icon {
+    // Use Path to get the folder name
+    let path = Path::new(folder_name);
+    let folder_name_trimmed = path
+        .file_name()
+        .unwrap_or(path.as_os_str())
+        .to_str()
+        .unwrap_or(folder_name);
+
+    // Return the icon for the folder based on its trimmed name
+    *folder_icons()
+        .get(folder_name_trimmed)
+        .unwrap_or(&Icon::Folder)
+}
+
 fn get_file_icon(file_name: &str) -> Icon {
     // Find the longest known extension from the end of the filename and return
     // the icon for that extension
@@ -169,7 +209,8 @@ fn get_file_icon(file_name: &str) -> Icon {
 pub fn get_item_icon(metadata: &fs::Metadata, file_name: &str) -> Icon {
     // Return the icon for the item based on its metadata and name
     if metadata.is_dir() {
-        Icon::Folder
+        // Icon::Folder
+        get_folder_icon(file_name)
     } else if metadata.is_symlink() {
         Icon::Symlink
     } else {

@@ -15,4 +15,6 @@ whether it is a directory, file, or symlink.
 - [ ] add option for 'fuzzy' dates, e.g. 'yesterday', 'last week', 'last month',
 'last year', '2 years ago', etc.
 - [ ] colorize the short-form output same as the long-form output.
-- [ ] make file/folder icons optional and default to off.
+- [ ] add icon to specific file NAMES (not just extensions) - e.g. `Cargo.toml`,
+`Makefile`, `Dockerfile`, `swapfile` etc. Also partials like `TODO.*`, 
+`LICENSE.*` and more.
