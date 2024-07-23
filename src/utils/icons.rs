@@ -5,7 +5,7 @@ use std::{fmt, fs};
 
 #[allow(dead_code)] // This is a temporary solution to avoid warnings
 #[derive(Debug, Clone, Copy)]
-pub enum UnicodeChar {
+pub enum Icon {
     // we define all the possible icons we can use. This will be a growing
     // list as we decode more file types.
     Folder = '\u{f07c}' as isize,
@@ -48,11 +48,11 @@ pub enum UnicodeChar {
 }
 #[allow(non_upper_case_globals)] // needed to keep constant names consistent
 #[allow(dead_code)] // This is a temporary solution to avoid warnings
-impl UnicodeChar {
+impl Icon {
     // these constants are used to make it easier to reference the icons
     // by multiple names without Enum errors. We need this to use the same icon
     // for a folder and a file, for example.
-    pub const GitFolder: UnicodeChar = UnicodeChar::GitFile;
+    pub const GitFolder: Icon = Icon::GitFile;
 
     fn as_char(self) -> char {
         char::from_u32(self as u32).unwrap()
@@ -63,7 +63,7 @@ impl UnicodeChar {
     }
 }
 
-impl fmt::Display for UnicodeChar {
+impl fmt::Display for Icon {
     // implement the Display trait so we can print the icons as strings easily
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.as_string())
@@ -71,78 +71,77 @@ impl fmt::Display for UnicodeChar {
 }
 
 // map file extensions to icons
-fn file_icons() -> &'static HashMap<&'static str, UnicodeChar> {
-    static FILE_ICONS: OnceLock<HashMap<&'static str, UnicodeChar>> =
-        OnceLock::new();
+fn file_icons() -> &'static HashMap<&'static str, Icon> {
+    static FILE_ICONS: OnceLock<HashMap<&'static str, Icon>> = OnceLock::new();
 
     FILE_ICONS.get_or_init(|| {
         let mut m = HashMap::new();
-        m.insert("log", UnicodeChar::LogFile);
-        m.insert("txt", UnicodeChar::TextFile);
+        m.insert("log", Icon::LogFile);
+        m.insert("txt", Icon::TextFile);
 
         // config files
-        m.insert("conf", UnicodeChar::ConfigFile);
-        m.insert("cfg", UnicodeChar::ConfigFile);
-        m.insert("ini", UnicodeChar::ConfigFile);
-        m.insert("gitignore", UnicodeChar::GitFile);
-        m.insert("gitconfig", UnicodeChar::GitFile);
+        m.insert("conf", Icon::ConfigFile);
+        m.insert("cfg", Icon::ConfigFile);
+        m.insert("ini", Icon::ConfigFile);
+        m.insert("gitignore", Icon::GitFile);
+        m.insert("gitconfig", Icon::GitFile);
 
         // formatted text files
-        m.insert("json", UnicodeChar::JsonFile);
-        m.insert("md", UnicodeChar::MarkdownFile);
-        m.insert("toml", UnicodeChar::TomlFile);
-        m.insert("xml", UnicodeChar::XmlFile);
-        m.insert("yaml", UnicodeChar::ConfigFile);
-        m.insert("yml", UnicodeChar::ConfigFile);
+        m.insert("json", Icon::JsonFile);
+        m.insert("md", Icon::MarkdownFile);
+        m.insert("toml", Icon::TomlFile);
+        m.insert("xml", Icon::XmlFile);
+        m.insert("yaml", Icon::ConfigFile);
+        m.insert("yml", Icon::ConfigFile);
 
         // database files
-        m.insert("db", UnicodeChar::DatabaseFile);
-        m.insert("sqlite", UnicodeChar::DatabaseFile);
-        m.insert("sql", UnicodeChar::DatabaseFile);
+        m.insert("db", Icon::DatabaseFile);
+        m.insert("sqlite", Icon::DatabaseFile);
+        m.insert("sql", Icon::DatabaseFile);
 
         // coding related files
-        m.insert("py", UnicodeChar::PythonFile);
-        m.insert("jsx", UnicodeChar::ReactFile);
-        m.insert("tsx", UnicodeChar::ReactFile);
-        m.insert("rb", UnicodeChar::RubyFile);
-        m.insert("gemrc", UnicodeChar::RubyFile);
-        m.insert("rs", UnicodeChar::RustFile);
-        m.insert("ts", UnicodeChar::TypeScriptFile);
-        m.insert("lua", UnicodeChar::LuaFile);
+        m.insert("py", Icon::PythonFile);
+        m.insert("jsx", Icon::ReactFile);
+        m.insert("tsx", Icon::ReactFile);
+        m.insert("rb", Icon::RubyFile);
+        m.insert("gemrc", Icon::RubyFile);
+        m.insert("rs", Icon::RustFile);
+        m.insert("ts", Icon::TypeScriptFile);
+        m.insert("lua", Icon::LuaFile);
 
         // web-dev related files
-        m.insert("css", UnicodeChar::CssFile);
-        m.insert("html", UnicodeChar::HtmlFile);
-        m.insert("htm", UnicodeChar::HtmlFile);
-        m.insert("js", UnicodeChar::JavaScriptFile);
+        m.insert("css", Icon::CssFile);
+        m.insert("html", Icon::HtmlFile);
+        m.insert("htm", Icon::HtmlFile);
+        m.insert("js", Icon::JavaScriptFile);
 
         // picture files
-        m.insert("jpg", UnicodeChar::PictureFile);
-        m.insert("png", UnicodeChar::PictureFile);
-        m.insert("svg", UnicodeChar::PictureFile);
+        m.insert("jpg", Icon::PictureFile);
+        m.insert("png", Icon::PictureFile);
+        m.insert("svg", Icon::PictureFile);
 
         // shell-related files
-        m.insert("sh", UnicodeChar::TerminalFile);
-        m.insert("bash", UnicodeChar::TerminalFile);
-        m.insert("bashrc", UnicodeChar::TerminalFile);
-        m.insert("zsh", UnicodeChar::TerminalFile);
-        m.insert("zshrc", UnicodeChar::TerminalFile);
-        m.insert("fish", UnicodeChar::TerminalFile);
-        m.insert("profile", UnicodeChar::TerminalFile);
-        m.insert("zprofile", UnicodeChar::TerminalFile);
+        m.insert("sh", Icon::TerminalFile);
+        m.insert("bash", Icon::TerminalFile);
+        m.insert("bashrc", Icon::TerminalFile);
+        m.insert("zsh", Icon::TerminalFile);
+        m.insert("zshrc", Icon::TerminalFile);
+        m.insert("fish", Icon::TerminalFile);
+        m.insert("profile", Icon::TerminalFile);
+        m.insert("zprofile", Icon::TerminalFile);
 
         // history files
-        m.insert("bash_history", UnicodeChar::HistoryFile);
-        m.insert("zsh_history", UnicodeChar::HistoryFile);
-        m.insert("psql_history", UnicodeChar::HistoryFile);
+        m.insert("bash_history", Icon::HistoryFile);
+        m.insert("zsh_history", Icon::HistoryFile);
+        m.insert("psql_history", Icon::HistoryFile);
 
         // archive or simiar
-        m.insert("deb", UnicodeChar::DebianFile);
-        m.insert("tar.gz", UnicodeChar::ZipFile);
-        m.insert("tgz", UnicodeChar::ZipFile);
+        m.insert("deb", Icon::DebianFile);
+        m.insert("tar.gz", Icon::ZipFile);
+        m.insert("tgz", Icon::ZipFile);
 
         // lock files
-        m.insert("lock", UnicodeChar::LockFile);
+        m.insert("lock", Icon::LockFile);
 
         m
     })
@@ -155,7 +154,7 @@ fn known_extensions() -> &'static HashSet<&'static str> {
     KNOWN_EXTENSIONS.get_or_init(|| file_icons().keys().cloned().collect())
 }
 
-fn get_file_icon(file_name: &str) -> UnicodeChar {
+fn get_file_icon(file_name: &str) -> Icon {
     // Find the longest known extension from the end of the filename and return
     // the icon for that extension
     let extension = known_extensions()
@@ -164,17 +163,15 @@ fn get_file_icon(file_name: &str) -> UnicodeChar {
         .max_by_key(|ext| ext.len())
         .unwrap_or(&"");
 
-    *file_icons()
-        .get(*extension)
-        .unwrap_or(&UnicodeChar::GenericFile)
+    *file_icons().get(*extension).unwrap_or(&Icon::GenericFile)
 }
 
-pub fn get_item_icon(metadata: &fs::Metadata, file_name: &str) -> UnicodeChar {
+pub fn get_item_icon(metadata: &fs::Metadata, file_name: &str) -> Icon {
     // Return the icon for the item based on its metadata and name
     if metadata.is_dir() {
-        UnicodeChar::Folder
+        Icon::Folder
     } else if metadata.is_symlink() {
-        UnicodeChar::Symlink
+        Icon::Symlink
     } else {
         // UnicodeChar::GenericFile
         get_file_icon(file_name)
