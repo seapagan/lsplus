@@ -6,13 +6,13 @@ project since the first release.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [Unreleased](https://github.com/seapagan/lsplus/tree/HEAD)
+## [0.2.0](https://github.com/seapagan/lsplus/releases/tag/0.2.0) (2024-07-23)
 
 **New Features**
 
 - Add file and folder icons, make them optional ([#14](https://github.com/seapagan/lsplus/pull/14)) by [seapagan](https://github.com/seapagan)
 
-[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.1.0...HEAD) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.1.0...HEAD.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.1.0...HEAD.patch)
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.1.0...0.2.0) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.1.0...0.2.0.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.1.0...0.2.0.patch)
 
 ## [0.1.0](https://github.com/seapagan/lsplus/releases/tag/0.1.0) (2024-07-22)
 
