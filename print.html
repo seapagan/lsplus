@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="intro.html">Introduction</a></li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="intro.html">Introduction</a></li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li class="chapter-item expanded "><a href="todo.html"><strong aria-hidden="true">3.</strong> Future Plans</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -179,6 +179,17 @@
 command written in Rust. It is a learning project for me to learn Rust so
 probably contains many inefficiencies and bad practices. I'll get better 😁</p>
 <p><img src="./images/screenshot.png" alt="lsp output" /></p>
+<h2 id="compatibility"><a class="header" href="#compatibility">Compatibility</a></h2>
+<p>This project is currently only compatible with Unix-like systems (Linux,
+MacOs, etc.). Windows support is planned to be added very soon.</p>
+<h2 id="nerd-fonts"><a class="header" href="#nerd-fonts">Nerd Fonts</a></h2>
+<p>To display the folder and file icons, you need to first install a 'Nerd Font'
+for your terminal. You can find a great selection of Nerd Fonts
+<a href="https://www.nerdfonts.com/">here</a></p>
+<p>My personal favourite is <code>MesoLG Nerd Font</code>, but there are many others to choose
+from. You will also need to set up your terminal to use that font.</p>
+<p>If you <strong>DO NOT</strong> want to install a Nerd Font, pass the <code>--no-icons</code> switch to
+the program.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="installation"><a class="header" href="#installation">Installation</a></h1>
 <p>To install the latest release of this package, you can use the following command:</p>
 <h2 id="latest-release"><a class="header" href="#latest-release">Latest Release</a></h2>
@@ -190,9 +201,7 @@ can run the <code>lsp</code> command from anywhere.</p>
 <h2 id="from-source"><a class="header" href="#from-source">From Source</a></h2>
 <p>You can also install the package from source by cloning the repository and
 running the following command:</p>
-<pre><code class="language-bash">git clone https://github.com/seapagan/lsplus.git
-cd lsplus
-cargo install --path .
+<pre><code class="language-bash">cargo install --git https://github.com/seapagan/lsplus.git
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="usage"><a class="header" href="#usage">Usage</a></h1>
 <p>Run this command in your terminal to list files in the current directory:</p>
@@ -209,12 +218,19 @@ be used which are similar to the <code>ls</code> command.</p>
 <li><code>-l</code> / <code>--long</code> - Show long format listing</li>
 <li><code>-h</code> / <code>--human-readable</code> - Human readable file sizes</li>
 <li><code>-D</code> / <code>--sort-dirs</code> - Sort directories first</li>
+<li><code>-no-icons</code> - don't show file or folder icons</li>
 </ul>
-<p>Many of the remaining options are planned to be implemented in the future.</p>
-<p>The long-format listing is colorized by default and cannot be disabled, but
-there will be an option to disable colors in the future.</p>
-<p>Icons are added to folders and links, this will be improved to show relevant
-icons for other file types in the future.</p>
+<p>You can combine the short options together, e.g. <code>-laph</code> will show a long format
+listing with hidden files, append a '/' to directories, and show human-readable
+file sizes.</p>
+<p>Use the <code>--help</code> option to see the full list of options.</p>
+<p>The long-format listing is currently colorized by default and cannot be
+disabled. This will be made configurable in the future along with adding more
+of the original <code>ls</code> options.</p>
+<p>Icons are added to folders, files, and links. There is only a limited set of
+mappings implemented at the moment, but more will be added in the future. Add
+an issue if you have a specific icon you would like to see - even better, add
+a Pull Request implementing it! :grin:</p>
 <h2 id="aliases"><a class="header" href="#aliases">Aliases</a></h2>
 <p>The <code>lsp</code> command can be aliased to <code>ls</code> by adding the following line to your
 <code>.bashrc</code>, <code>.zshrc</code> or similar file:</p>
@@ -230,6 +246,44 @@ directories, and show human readable file sizes.</p>
 <p><img src="./images/screenshot.png" alt="lsp output" /></p>
 <p>If you add the '-D' option to the command, directories will be sorted first:</p>
 <p><img src="./images/screenshot2.png" alt="lsp output" /></p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="future-plans"><a class="header" href="#future-plans">Future Plans</a></h1>
+<p>Below is the content of the project's TODO.md file.</p>
+<p>If you have any suggestions for features or improvements, please open an issue
+on the project's GitHub page.</p>
+<h1 id="todo"><a class="header" href="#todo">TODO</a></h1>
+<ul>
+<li><input disabled="" type="checkbox"/>
+in short mode when <code>-p</code> is specified, show a '*' or something if the file
+is a symlink.</li>
+<li><input disabled="" type="checkbox"/>
+add colorization for different file types, folders and symlinks. Make it
+customizable and theme-able. Make it default but allow an option to disable it.
+(or vice-versa). Files that have a known extension should all be colored the same
+way, and different to unknown file tipes.</li>
+<li><input disabled="" type="checkbox"/>
+add configuration file to set options. Use TOML format by default,
+maybe adding YAML later. Store in the correct <code>.config</code> directory depending on
+the OS.</li>
+<li><input disabled="" type="checkbox"/>
+for a symlink, color the name as it is, but color the target depending on
+whether it is a directory, file, or symlink.</li>
+<li><input disabled="" type="checkbox"/>
+show executable files as bold.</li>
+<li><input disabled="" type="checkbox"/>
+add option for 'fuzzy' dates, e.g. 'yesterday', 'last week', 'last month',
+'last year', '2 years ago', etc.</li>
+<li><input disabled="" type="checkbox"/>
+colorize the short-form output same as the long-form output.</li>
+<li><input disabled="" type="checkbox"/>
+add icon to specific file NAMES (not just extensions) - e.g. <code>Cargo.toml</code>,
+<code>Makefile</code>, <code>Dockerfile</code>, <code>swapfile</code> etc. Also partials like <code>TODO.*</code>,
+<code>LICENSE.*</code> and more.</li>
+<li><input disabled="" type="checkbox"/>
+option to  grey-out files in the <code>.gitignore</code>.</li>
+<li><input disabled="" type="checkbox"/>
+once the config file is implemented, allow extending the existing file and
+folder mapping, or deleting specific maps.</li>
+</ul>
 
                     </main>
 

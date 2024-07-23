@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Usage - LSPlus</title>
+        <title>Future Plans - LSPlus</title>
 
 
         <!-- Custom HTML head -->
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="intro.html">Introduction</a></li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="usage.html" class="active"><strong aria-hidden="true">2.</strong> Usage</a></li><li class="chapter-item expanded "><a href="todo.html"><strong aria-hidden="true">3.</strong> Future Plans</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="intro.html">Introduction</a></li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li class="chapter-item expanded "><a href="todo.html" class="active"><strong aria-hidden="true">3.</strong> Future Plans</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -173,61 +173,53 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="usage"><a class="header" href="#usage">Usage</a></h1>
-<p>Run this command in your terminal to list files in the current directory:</p>
-<pre><code class="language-sh">lsp &lt;options&gt; &lt;path | file&gt;
-</code></pre>
-<p>Both the options and the path are optional. If no path is provided, the current
-directory will be listed. If no options are provided, the default options will
-be used which are similar to the <code>ls</code> command.</p>
-<p>Curently, only a sub-set of the standard <code>ls</code> options are supported. These are:</p>
+                        <h1 id="future-plans"><a class="header" href="#future-plans">Future Plans</a></h1>
+<p>Below is the content of the project's TODO.md file.</p>
+<p>If you have any suggestions for features or improvements, please open an issue
+on the project's GitHub page.</p>
+<h1 id="todo"><a class="header" href="#todo">TODO</a></h1>
 <ul>
-<li><code>-a</code> / <code>--all</code> - Show hidden files</li>
-<li><code>-A</code> / <code>--almost-all</code> - Show hidden files, but don't show <code>.</code> and `..</li>
-<li><code>-p</code> / <code>--slash-dirs</code> - Append a '/' to directories</li>
-<li><code>-l</code> / <code>--long</code> - Show long format listing</li>
-<li><code>-h</code> / <code>--human-readable</code> - Human readable file sizes</li>
-<li><code>-D</code> / <code>--sort-dirs</code> - Sort directories first</li>
-<li><code>-no-icons</code> - don't show file or folder icons</li>
+<li><input disabled="" type="checkbox"/>
+in short mode when <code>-p</code> is specified, show a '*' or something if the file
+is a symlink.</li>
+<li><input disabled="" type="checkbox"/>
+add colorization for different file types, folders and symlinks. Make it
+customizable and theme-able. Make it default but allow an option to disable it.
+(or vice-versa). Files that have a known extension should all be colored the same
+way, and different to unknown file tipes.</li>
+<li><input disabled="" type="checkbox"/>
+add configuration file to set options. Use TOML format by default,
+maybe adding YAML later. Store in the correct <code>.config</code> directory depending on
+the OS.</li>
+<li><input disabled="" type="checkbox"/>
+for a symlink, color the name as it is, but color the target depending on
+whether it is a directory, file, or symlink.</li>
+<li><input disabled="" type="checkbox"/>
+show executable files as bold.</li>
+<li><input disabled="" type="checkbox"/>
+add option for 'fuzzy' dates, e.g. 'yesterday', 'last week', 'last month',
+'last year', '2 years ago', etc.</li>
+<li><input disabled="" type="checkbox"/>
+colorize the short-form output same as the long-form output.</li>
+<li><input disabled="" type="checkbox"/>
+add icon to specific file NAMES (not just extensions) - e.g. <code>Cargo.toml</code>,
+<code>Makefile</code>, <code>Dockerfile</code>, <code>swapfile</code> etc. Also partials like <code>TODO.*</code>,
+<code>LICENSE.*</code> and more.</li>
+<li><input disabled="" type="checkbox"/>
+option to  grey-out files in the <code>.gitignore</code>.</li>
+<li><input disabled="" type="checkbox"/>
+once the config file is implemented, allow extending the existing file and
+folder mapping, or deleting specific maps.</li>
 </ul>
-<p>You can combine the short options together, e.g. <code>-laph</code> will show a long format
-listing with hidden files, append a '/' to directories, and show human-readable
-file sizes.</p>
-<p>Use the <code>--help</code> option to see the full list of options.</p>
-<p>The long-format listing is currently colorized by default and cannot be
-disabled. This will be made configurable in the future along with adding more
-of the original <code>ls</code> options.</p>
-<p>Icons are added to folders, files, and links. There is only a limited set of
-mappings implemented at the moment, but more will be added in the future. Add
-an issue if you have a specific icon you would like to see - even better, add
-a Pull Request implementing it! :grin:</p>
-<h2 id="aliases"><a class="header" href="#aliases">Aliases</a></h2>
-<p>The <code>lsp</code> command can be aliased to <code>ls</code> by adding the following line to your
-<code>.bashrc</code>, <code>.zshrc</code> or similar file:</p>
-<pre><code class="language-sh">alias ls='lsp'
-</code></pre>
-<p>You will need to restart your shell or source your configuration file for the
-alias to take effect.</p>
-<p>The example below shows an alias for ls that uses many of the current options:</p>
-<pre><code class="language-sh">alias ll='lsp -laph'
-</code></pre>
-<p>This will show a long format listing with hidden files, append a '/' to
-directories, and show human readable file sizes.</p>
-<p><img src="./images/screenshot.png" alt="lsp output" /></p>
-<p>If you add the '-D' option to the command, directories will be sorted first:</p>
-<p><img src="./images/screenshot2.png" alt="lsp output" /></p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="installation.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="usage.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="todo.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
-                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -235,13 +227,10 @@ directories, and show human readable file sizes.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="installation.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="usage.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="todo.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
-                    </a>
             </nav>
 
         </div>
