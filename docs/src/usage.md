@@ -18,14 +18,22 @@ Curently, only a sub-set of the standard `ls` options are supported. These are:
 - `-l` / `--long` - Show long format listing
 - `-h` / `--human-readable` - Human readable file sizes
 - `-D` / `--sort-dirs` - Sort directories first
+- `-no-icons` - don't show file or folder icons
 
-Many of the remaining options are planned to be implemented in the future. 
+You can combine the short options together, e.g. `-laph` will show a long format
+listing with hidden files, append a '/' to directories, and show human-readable
+file sizes.
 
-The long-format listing is colorized by default and cannot be disabled, but 
-there will be an option to disable colors in the future.
+Use the `--help` option to see the full list of options.
 
-Icons are added to folders and links, this will be improved to show relevant
-icons for other file types in the future.
+The long-format listing is currently colorized by default and cannot be
+disabled. This will be made configurable in the future along with adding more
+of the original `ls` options.
+
+Icons are added to folders, files, and links. There is only a limited set of
+mappings implemented at the moment, but more will be added in the future. Add
+an issue if you have a specific icon you would like to see - even better, add
+a Pull Request implementing it! :grin: 
 
 ## Aliases
 

@@ -6,7 +6,7 @@ To install the latest release of this package, you can use the following command
 
 ```bash
 cargo install lsplus
-``` 
+```
 
 This will install the `lsp` binary into your `~/.cargo/bin` directory. Make 
 sure that this directory is in your `PATH` environment variable so that you 
@@ -18,7 +18,5 @@ You can also install the package from source by cloning the repository and
 running the following command:
 
 ```bash
-git clone https://github.com/seapagan/lsplus.git
-cd lsplus
-cargo install --path .
+cargo install --git https://github.com/seapagan/lsplus.git
 ```
