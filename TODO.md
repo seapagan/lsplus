@@ -2,8 +2,6 @@
 
 - [ ] in short mode when `-p` is specified, show a '*' or something if the file
 is a symlink.
-- [ ] add more icons for different file types. Implement a module that simply
-maps icons to file-types, and file file-types to extensions.
 - [ ] add colorization for different file types, folders and symlinks. Make it
 customizable and theme-able. Make it default but allow an option to disable it.
 (or vice-versa). Files that have a known extension should all be colored the same
@@ -17,3 +15,5 @@ whether it is a directory, file, or symlink.
 - [ ] add option for 'fuzzy' dates, e.g. 'yesterday', 'last week', 'last month',
 'last year', '2 years ago', etc.
 - [ ] colorize the short-form output same as the long-form output.
+- [ ] make file/folder icons optional and default to off.
+- [ ] note in README that a `Nerd Font` is required for the icons to display
