@@ -13,6 +13,7 @@ pub enum Icon {
     GenericFile = '\u{f15b}' as isize,
 
     // specific folder types
+    CacheFolder = '\u{f163f}' as isize,
     GitHubFolder = '\u{f408}' as isize,
     HomeFolder = '\u{f015}' as isize,
     NodeModulesFolder = '\u{ed0d}' as isize,
@@ -97,6 +98,7 @@ fn folder_icons() -> &'static HashMap<&'static str, Icon> {
         m.insert(".docker", Icon::DockerFile);
         m.insert(".cpan", Icon::PerlFile);
         m.insert(".cpanm", Icon::PerlFile);
+        m.insert(".cache", Icon::CacheFolder);
 
         m
     })
@@ -129,7 +131,7 @@ fn file_type_icons() -> &'static HashMap<&'static str, Icon> {
             (&["txt"], Icon::LogFile),
             (&["log"], Icon::TextFile),
             (
-                &["conf", "cfg", "ini", "yaml", "yml", "yarnrc"],
+                &["conf", "cfg", "ini", "pylintrc", "yaml", "yml", "yarnrc"],
                 Icon::ConfigFile,
             ),
             (&["gitignore", "gitconfig", "gitattributes"], Icon::GitFile),
@@ -162,7 +164,7 @@ fn file_type_icons() -> &'static HashMap<&'static str, Icon> {
                 Icon::HistoryFile,
             ),
             (&["deb"], Icon::DebianFile),
-            (&["tar.gz", "tgz"], Icon::ZipFile),
+            (&["tar.gz", "tgz", "gz", "zip", "rar"], Icon::ZipFile),
             (&["lock"], Icon::LockFile),
             (
                 &[
@@ -198,9 +200,16 @@ fn get_folder_icon(folder_name: &str) -> Icon {
 fn get_file_icon(file_name: &str) -> Icon {
     // Find the longest known extension from the end of the filename and return
     // the icon for that extension
+
+    // Helper function to check if a file name ends with an extension
+    fn has_extension(file_name: &str, ext: &str) -> bool {
+        file_name.ends_with(ext)
+            && file_name[file_name.len() - ext.len() - 1..].starts_with('.')
+    }
+
     let extension = known_extensions()
         .iter()
-        .filter(|&ext| file_name.ends_with(ext))
+        .filter(|&&ext| has_extension(file_name, ext))
         .max_by_key(|ext| ext.len())
         .unwrap_or(&"");
 

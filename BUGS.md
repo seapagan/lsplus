@@ -10,5 +10,3 @@ derivatives will show both
 - wild-cards for the path are not supported and will cause the program to crash.
 - when sorting, dot files should come before non-dot files with the same sorting
 ie `.changelog` should come before `changelog` etc.
-- the extension handling needs looking at, files that end with (at least) are 
-getting matched for an extension even without the dot before them.
