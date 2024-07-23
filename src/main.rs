@@ -50,7 +50,10 @@ fn main() -> io::Result<()> {
                 PathBuf::from(file_name.clone())
             };
             let metadata = fs::symlink_metadata(&full_path)?;
-            let item_icon = utils::icons::get_item_icon(&metadata);
+            let item_icon = utils::icons::get_item_icon(
+                &metadata,
+                &full_path.to_string_lossy(),
+            );
             let (file_type, mode, nlink, size, mtime, user, group) =
                 utils::file::get_file_details(&metadata);
 
@@ -98,7 +101,7 @@ fn main() -> io::Result<()> {
                 Cell::new(&format!("{color_green}{} ", group)),
                 Cell::new(&display_size).style_spec("r"),
                 Cell::new(&format!(" {color_yellow}{} ", mtime)),
-                Cell::new(&item_icon),
+                Cell::new(&format!("{}", item_icon)),
                 Cell::new(&format!(" {}", display_name)),
             ];
 
