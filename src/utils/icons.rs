@@ -30,6 +30,7 @@ pub enum UnicodeChar {
     HtmlFile = '\u{e736}' as isize,
     JavaScriptFile = '\u{e74e}' as isize,
     JsonFile = '\u{e60b}' as isize,
+    LockFile = '\u{f0221}' as isize,
     LogFile = '\u{f18d}' as isize,
     LuaFile = '\u{e620}' as isize,
     MarkdownFile = '\u{e73e}' as isize,
@@ -138,18 +139,26 @@ fn file_icons() -> &'static HashMap<&'static str, UnicodeChar> {
         // archive or simiar
         m.insert("deb", UnicodeChar::DebianFile);
         m.insert("tar.gz", UnicodeChar::ZipFile);
+        m.insert("tgz", UnicodeChar::ZipFile);
+
+        // lock files
+        m.insert("lock", UnicodeChar::LockFile);
 
         m
     })
 }
 
-fn get_file_icon(file_name: &str) -> UnicodeChar {
-    // Get the known extensions from the file_icons HashMap
-    let known_extensions: HashSet<&str> =
-        file_icons().keys().cloned().collect();
+fn known_extensions() -> &'static HashSet<&'static str> {
+    // Return a set of all known extensions, from the keys of the file_icons
+    // hashmap
+    static KNOWN_EXTENSIONS: OnceLock<HashSet<&'static str>> = OnceLock::new();
+    KNOWN_EXTENSIONS.get_or_init(|| file_icons().keys().cloned().collect())
+}
 
-    // Find the longest known extension from the end of the filename
-    let extension = known_extensions
+fn get_file_icon(file_name: &str) -> UnicodeChar {
+    // Find the longest known extension from the end of the filename and return
+    // the icon for that extension
+    let extension = known_extensions()
         .iter()
         .filter(|&ext| file_name.ends_with(ext))
         .max_by_key(|ext| ext.len())
@@ -160,22 +169,8 @@ fn get_file_icon(file_name: &str) -> UnicodeChar {
         .unwrap_or(&UnicodeChar::GenericFile)
 }
 
-// fn get_file_icon(file_name: &str) -> UnicodeChar {
-//     let extension = file_name.split('.').last().unwrap_or("");
-//     *file_icons()
-//         .get(extension)
-//         .unwrap_or(&UnicodeChar::GenericFile)
-// }
-
-// fn get_file_icon(file_name: &str) -> UnicodeChar {
-//     let extension =
-//         file_name.split_once('.').map(|(_, ext)| ext).unwrap_or("");
-//     *file_icons()
-//         .get(extension)
-//         .unwrap_or(&UnicodeChar::GenericFile)
-// }
-
 pub fn get_item_icon(metadata: &fs::Metadata, file_name: &str) -> UnicodeChar {
+    // Return the icon for the item based on its metadata and name
     if metadata.is_dir() {
         UnicodeChar::Folder
     } else if metadata.is_symlink() {
