@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
+use std::sync::OnceLock;
 use std::{fmt, fs};
 
 #[allow(dead_code)] // This is a temporary solution to avoid warnings
@@ -22,6 +24,7 @@ pub enum UnicodeChar {
     ConfigFile = '\u{f013}' as isize,
     CssFile = '\u{e749}' as isize,
     DatabaseFile = '\u{e706}' as isize,
+    DebianFile = '\u{f306}' as isize,
     GitFile = '\u{f1d3}' as isize,
     HistoryFile = '\u{f1da}' as isize,
     HtmlFile = '\u{e736}' as isize,
@@ -40,6 +43,7 @@ pub enum UnicodeChar {
     TomlFile = '\u{e6b2}' as isize,
     TypeScriptFile = '\u{e628}' as isize,
     XmlFile = '\u{e619}' as isize,
+    ZipFile = '\u{f1c6}' as isize,
 }
 #[allow(non_upper_case_globals)] // needed to keep constant names consistent
 #[allow(dead_code)] // This is a temporary solution to avoid warnings
@@ -65,71 +69,112 @@ impl fmt::Display for UnicodeChar {
     }
 }
 
-// Define a function that maps file names to icons
-fn get_file_icon(file_name: &str) -> UnicodeChar {
-    let mut map = HashMap::new();
-    map.insert("log", UnicodeChar::LogFile);
-    map.insert("txt", UnicodeChar::TextFile);
+// map extensions to icons
+fn file_icons() -> &'static HashMap<&'static str, UnicodeChar> {
+    static FILE_ICONS: OnceLock<HashMap<&'static str, UnicodeChar>> =
+        OnceLock::new();
 
-    // config files
-    map.insert("conf", UnicodeChar::ConfigFile);
-    map.insert("cfg", UnicodeChar::ConfigFile);
-    map.insert("ini", UnicodeChar::ConfigFile);
-    map.insert("gitignore", UnicodeChar::GitFile);
-    map.insert("gitconfig", UnicodeChar::GitFile);
+    FILE_ICONS.get_or_init(|| {
+        let mut m = HashMap::new();
+        m.insert("log", UnicodeChar::LogFile);
+        m.insert("txt", UnicodeChar::TextFile);
 
-    //formatted text files
-    map.insert("json", UnicodeChar::JsonFile);
-    map.insert("md", UnicodeChar::MarkdownFile);
-    map.insert("toml", UnicodeChar::TomlFile);
-    map.insert("xml", UnicodeChar::XmlFile);
-    map.insert("yaml", UnicodeChar::ConfigFile);
-    map.insert("yml", UnicodeChar::ConfigFile);
+        // config files
+        m.insert("conf", UnicodeChar::ConfigFile);
+        m.insert("cfg", UnicodeChar::ConfigFile);
+        m.insert("ini", UnicodeChar::ConfigFile);
+        m.insert("gitignore", UnicodeChar::GitFile);
+        m.insert("gitconfig", UnicodeChar::GitFile);
 
-    // database files
-    map.insert("db", UnicodeChar::DatabaseFile);
-    map.insert("sqlite", UnicodeChar::DatabaseFile);
-    map.insert("sql", UnicodeChar::DatabaseFile);
+        // formatted text files
+        m.insert("json", UnicodeChar::JsonFile);
+        m.insert("md", UnicodeChar::MarkdownFile);
+        m.insert("toml", UnicodeChar::TomlFile);
+        m.insert("xml", UnicodeChar::XmlFile);
+        m.insert("yaml", UnicodeChar::ConfigFile);
+        m.insert("yml", UnicodeChar::ConfigFile);
 
-    // coding related files
-    map.insert("py", UnicodeChar::PythonFile);
-    map.insert("jsx", UnicodeChar::ReactFile);
-    map.insert("tsx", UnicodeChar::ReactFile);
-    map.insert("rb", UnicodeChar::RubyFile);
-    map.insert("gemrc", UnicodeChar::RubyFile);
-    map.insert("rs", UnicodeChar::RustFile);
-    map.insert("ts", UnicodeChar::TypeScriptFile);
-    map.insert("lua", UnicodeChar::LuaFile);
+        // database files
+        m.insert("db", UnicodeChar::DatabaseFile);
+        m.insert("sqlite", UnicodeChar::DatabaseFile);
+        m.insert("sql", UnicodeChar::DatabaseFile);
 
-    // we-dev related files
-    map.insert("css", UnicodeChar::CssFile);
-    map.insert("html", UnicodeChar::HtmlFile);
-    map.insert("htm", UnicodeChar::HtmlFile);
-    map.insert("js", UnicodeChar::JavaScriptFile);
+        // coding related files
+        m.insert("py", UnicodeChar::PythonFile);
+        m.insert("jsx", UnicodeChar::ReactFile);
+        m.insert("tsx", UnicodeChar::ReactFile);
+        m.insert("rb", UnicodeChar::RubyFile);
+        m.insert("gemrc", UnicodeChar::RubyFile);
+        m.insert("rs", UnicodeChar::RustFile);
+        m.insert("ts", UnicodeChar::TypeScriptFile);
+        m.insert("lua", UnicodeChar::LuaFile);
 
-    // picture files
-    map.insert("jpg", UnicodeChar::PictureFile);
-    map.insert("png", UnicodeChar::PictureFile);
-    map.insert("svg", UnicodeChar::PictureFile);
+        // web-dev related files
+        m.insert("css", UnicodeChar::CssFile);
+        m.insert("html", UnicodeChar::HtmlFile);
+        m.insert("htm", UnicodeChar::HtmlFile);
+        m.insert("js", UnicodeChar::JavaScriptFile);
 
-    // shell-related files
-    map.insert("sh", UnicodeChar::TerminalFile);
-    map.insert("bash", UnicodeChar::TerminalFile);
-    map.insert("bashrc", UnicodeChar::TerminalFile);
-    map.insert("zsh", UnicodeChar::TerminalFile);
-    map.insert("zshrc", UnicodeChar::TerminalFile);
-    map.insert("fish", UnicodeChar::TerminalFile);
-    map.insert("profile", UnicodeChar::TerminalFile);
-    map.insert("zprofile", UnicodeChar::TerminalFile);
+        // picture files
+        m.insert("jpg", UnicodeChar::PictureFile);
+        m.insert("png", UnicodeChar::PictureFile);
+        m.insert("svg", UnicodeChar::PictureFile);
 
-    // history files
-    map.insert("bash_history", UnicodeChar::HistoryFile);
-    map.insert("zsh_history", UnicodeChar::HistoryFile);
+        // shell-related files
+        m.insert("sh", UnicodeChar::TerminalFile);
+        m.insert("bash", UnicodeChar::TerminalFile);
+        m.insert("bashrc", UnicodeChar::TerminalFile);
+        m.insert("zsh", UnicodeChar::TerminalFile);
+        m.insert("zshrc", UnicodeChar::TerminalFile);
+        m.insert("fish", UnicodeChar::TerminalFile);
+        m.insert("profile", UnicodeChar::TerminalFile);
+        m.insert("zprofile", UnicodeChar::TerminalFile);
 
-    let extension = file_name.split('.').last().unwrap_or("");
-    // Return the icon or default to GenericFile if not found
-    *map.get(extension).unwrap_or(&UnicodeChar::GenericFile)
+        // history files
+        m.insert("bash_history", UnicodeChar::HistoryFile);
+        m.insert("zsh_history", UnicodeChar::HistoryFile);
+        m.insert("psql_history", UnicodeChar::HistoryFile);
+
+        // archive or simiar
+        m.insert("deb", UnicodeChar::DebianFile);
+        m.insert("tar.gz", UnicodeChar::ZipFile);
+
+        m
+    })
 }
+
+fn get_file_icon(file_name: &str) -> UnicodeChar {
+    // Get the known extensions from the file_icons HashMap
+    let known_extensions: HashSet<&str> =
+        file_icons().keys().cloned().collect();
+
+    // Find the longest known extension from the end of the filename
+    let extension = known_extensions
+        .iter()
+        .filter(|&ext| file_name.ends_with(ext))
+        .max_by_key(|ext| ext.len())
+        .unwrap_or(&"");
+
+    *file_icons()
+        .get(*extension)
+        .unwrap_or(&UnicodeChar::GenericFile)
+}
+
+// fn get_file_icon(file_name: &str) -> UnicodeChar {
+//     let extension = file_name.split('.').last().unwrap_or("");
+//     *file_icons()
+//         .get(extension)
+//         .unwrap_or(&UnicodeChar::GenericFile)
+// }
+
+// fn get_file_icon(file_name: &str) -> UnicodeChar {
+//     let extension =
+//         file_name.split_once('.').map(|(_, ext)| ext).unwrap_or("");
+//     *file_icons()
+//         .get(extension)
+//         .unwrap_or(&UnicodeChar::GenericFile)
+// }
+
 pub fn get_item_icon(metadata: &fs::Metadata, file_name: &str) -> UnicodeChar {
     if metadata.is_dir() {
         UnicodeChar::Folder
