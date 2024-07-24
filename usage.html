@@ -188,7 +188,8 @@ be used which are similar to the <code>ls</code> command.</p>
 <li><code>-l</code> / <code>--long</code> - Show long format listing</li>
 <li><code>-h</code> / <code>--human-readable</code> - Human readable file sizes</li>
 <li><code>-D</code> / <code>--sort-dirs</code> - Sort directories first</li>
-<li><code>-no-icons</code> - don't show file or folder icons</li>
+<li><code>--no-icons</code> - don't show file or folder icons</li>
+<li><code>-Z</code> / <code>--fuzzy-time</code> - Show fuzzy time for file modification times</li>
 </ul>
 <p>You can combine the short options together, e.g. <code>-laph</code> will show a long format
 listing with hidden files, append a '/' to directories, and show human-readable
@@ -197,10 +198,16 @@ file sizes.</p>
 <p>The long-format listing is currently colorized by default and cannot be
 disabled. This will be made configurable in the future along with adding more
 of the original <code>ls</code> options.</p>
+<h2 id="fuzzy-time"><a class="header" href="#fuzzy-time">Fuzzy Time</a></h2>
+<p>The <code>-Z</code> option will show a fuzzy time for file modification times. This will
+show the time in a human-readable format, e.g. '2 hours ago', 'yesterday', etc.</p>
+<p><img src="./images/screenshot3.png" alt="fuzzy date output" /></p>
+<h2 id="icons"><a class="header" href="#icons">Icons</a></h2>
 <p>Icons are added to folders, files, and links. There is only a limited set of
 mappings implemented at the moment, but more will be added in the future. Add
 an issue if you have a specific icon you would like to see - even better, add
 a Pull Request implementing it! :grin:</p>
+<p>You can disable the icons by using the <code>-no-icons</code> option.</p>
 <h2 id="aliases"><a class="header" href="#aliases">Aliases</a></h2>
 <p>The <code>lsp</code> command can be aliased to <code>ls</code> by adding the following line to your
 <code>.bashrc</code>, <code>.zshrc</code> or similar file:</p>
