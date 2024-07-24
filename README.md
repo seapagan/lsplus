@@ -21,6 +21,8 @@ probably contains many inefficiencies and bad practices. I'll get better :grin:
   - [Latest Release](#latest-release)
   - [From Source](#from-source)
 - [Usage](#usage)
+  - [Fuzzy Time](#fuzzy-time)
+  - [Icons](#icons)
   - [Aliases](#aliases)
 - [Future Plans](#future-plans)
 
@@ -86,7 +88,8 @@ Curently, only a sub-set of the standard `ls` options are supported. These are:
 - `-l` / `--long` - Show long format listing
 - `-h` / `--human-readable` - Human readable file sizes
 - `-D` / `--sort-dirs` - Sort directories first
-- `-no-icons` - don't show file or folder icons
+- `--no-icons` - don't show file or folder icons
+- `-Z` / `--fuzzy-time` - Show fuzzy time for file modification times
 
 You can combine the short options together, e.g. `-laph` will show a long format
 listing with hidden files, append a '/' to directories, and show human-readable
@@ -98,10 +101,21 @@ The long-format listing is currently colorized by default and cannot be
 disabled. This will be made configurable in the future along with adding more
 of the original `ls` options.
 
+### Fuzzy Time
+
+The `-Z` option will show a fuzzy time for file modification times. This will
+show the time in a human-readable format, e.g. '2 hours ago', 'yesterday', etc.
+
+![fuzzy date output](./docs/src/images/screenshot3.png)
+
+### Icons
+
 Icons are added to folders, files, and links. There is only a limited set of
 mappings implemented at the moment, but more will be added in the future. Add
 an issue if you have a specific icon you would like to see - even better, add
 a Pull Request implementing it! :grin: 
+
+You can disable the icons by using the `-no-icons` option.
 
 ### Aliases
 

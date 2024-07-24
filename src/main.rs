@@ -2,11 +2,13 @@ use clap::Parser;
 use inline_colorization::*;
 use prettytable::{Cell, Row};
 // use std::error::Error;
+use chrono::{DateTime, Local};
 use std::fs;
 use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::exit;
+
 mod cli;
 mod utils;
 
@@ -18,6 +20,7 @@ struct Params {
     long_format: bool,
     human_readable: bool,
     no_icons: bool,
+    fuzzy_time: bool,
 }
 
 fn main() {
@@ -35,6 +38,7 @@ fn main() {
         long_format: args.long,
         human_readable: args.human_readable,
         no_icons: args.no_icons,
+        fuzzy_time: args.fuzzy_time,
     };
     if let Err(e) = run(args.path, &params) {
         let error_message = match e.kind() {
@@ -114,6 +118,13 @@ fn display_long_format(path: &String, params: &Params) -> io::Result<()> {
             display_name = format!("{color_blue}{}", file_name);
         }
 
+        let display_time: String = if params.fuzzy_time {
+            utils::fuzzy_time(mtime).to_string()
+        } else {
+            let datetime: DateTime<Local> = DateTime::from(mtime);
+            datetime.format("%c").to_string()
+        };
+
         let (display_size, units) =
             utils::format::show_size(size, params.human_readable);
 
@@ -129,7 +140,10 @@ fn display_long_format(path: &String, params: &Params) -> io::Result<()> {
             row_cells.push(Cell::new(units));
         }
 
-        row_cells.push(Cell::new(&format!(" {color_yellow}{} ", mtime)));
+        row_cells.push(
+            Cell::new(&format!(" {color_yellow}{} ", display_time))
+                .style_spec("r"),
+        );
 
         if !params.no_icons {
             row_cells.push(Cell::new(&format!("{} ", item_icon)));

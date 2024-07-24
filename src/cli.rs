@@ -48,6 +48,14 @@ pub struct Flags {
         global = true
     )]
     pub version: bool,
+
+    #[arg(
+        long = "fuzzy-time",
+        short = 'Z',
+        action = ArgAction::SetTrue,
+        help = "Use fuzzy time format"
+    )]
+    pub fuzzy_time: bool,
 }
 
 pub fn version_info() -> String {
