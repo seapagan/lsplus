@@ -1,9 +1,9 @@
-use chrono::{DateTime, Local};
 use nix::unistd::{Group, User};
 use std::fs;
 use std::io;
 use std::os::unix::fs::MetadataExt;
 use std::os::unix::fs::PermissionsExt;
+use std::time::SystemTime;
 
 use crate::utils::format;
 use crate::{Params, PathBuf};
@@ -22,7 +22,7 @@ pub fn get_file_name_with_slash(
 
 pub fn get_file_details(
     metadata: &fs::Metadata,
-) -> (String, String, u64, u64, String, String, String) {
+) -> (String, String, u64, u64, SystemTime, String, String) {
     let file_type = if metadata.is_dir() {
         "d"
     } else if metadata.is_file() {
@@ -44,9 +44,7 @@ pub fn get_file_details(
     let user = get_username(metadata.uid());
     let group = get_groupname(metadata.gid());
 
-    let modified_time = metadata.modified().unwrap();
-    let datetime: DateTime<Local> = DateTime::from(modified_time);
-    let mtime = datetime.format("%c").to_string();
+    let mtime = metadata.modified().unwrap();
 
     (file_type, rwx_mode, nlink, size, mtime, user, group)
 }
