@@ -18,55 +18,31 @@ enum FuzzyTime {
 
 impl fmt::Display for FuzzyTime {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fn format_unit(unit: &str, n: u64) -> String {
+            format!("{} {}{}", n, unit, if n == 1 { "" } else { "s" })
+        }
+
         match self {
             FuzzyTime::SecondsAgo(n) => {
-                if *n == 1 {
-                    write!(f, "1 second ago")
-                } else {
-                    write!(f, "{} seconds ago", n)
-                }
+                write!(f, "{} ago", format_unit("second", *n))
             }
             FuzzyTime::MinutesAgo(n) => {
-                if *n == 1 {
-                    write!(f, "1 minute ago")
-                } else {
-                    write!(f, "{} minutes ago", n)
-                }
+                write!(f, "{} ago", format_unit("minute", *n))
             }
             FuzzyTime::HoursAgo(n) => {
-                if *n == 1 {
-                    write!(f, "1 hour ago")
-                } else {
-                    write!(f, "{} hours ago", n)
-                }
+                write!(f, "{} ago", format_unit("hour", *n))
             }
             FuzzyTime::DaysAgo(n) => {
-                if *n == 1 {
-                    write!(f, "yesterday")
-                } else {
-                    write!(f, "{} days ago", n)
-                }
+                write!(f, "{} ago", format_unit("day", *n))
             }
             FuzzyTime::WeeksAgo(n) => {
-                if *n == 1 {
-                    write!(f, "1 week ago")
-                } else {
-                    write!(f, "{} weeks ago", n)
-                }
+                write!(f, "{} ago", format_unit("week", *n))
             }
             FuzzyTime::MonthsAgo(n) => {
-                if *n == 1 {
-                    write!(f, "1 month ago")
-                } else {
-                    write!(f, "{} months ago", n)
-                }
+                write!(f, "{} ago", format_unit("month", *n))
             }
             FuzzyTime::YearsAgo(n) => {
-                if *n == 1 {
-                    write!(f, "1 year ago")
-                } else {
-                    write!(f, "{} years ago", n)
-                }
+                write!(f, "{} ago", format_unit("year", *n))
             }
             FuzzyTime::LastWeek => write!(f, "last week"),
             FuzzyTime::LastMonth => write!(f, "last month"),
@@ -76,12 +52,7 @@ impl fmt::Display for FuzzyTime {
     }
 }
 
-pub fn fuzzy_time(time: SystemTime) -> String {
-    let now = SystemTime::now();
-    let duration = now
-        .duration_since(time)
-        .unwrap_or_else(|_| Duration::from_secs(0));
-
+fn get_fuzzy_time(duration: Duration) -> FuzzyTime {
     let seconds = duration.as_secs();
     let minutes = seconds / 60;
     let hours = minutes / 60;
@@ -90,29 +61,25 @@ pub fn fuzzy_time(time: SystemTime) -> String {
     let months = days / 30;
     let years = days / 365;
 
-    let fuzzy_time = if seconds < 60 {
-        FuzzyTime::SecondsAgo(seconds)
-    } else if minutes < 60 {
-        FuzzyTime::MinutesAgo(minutes)
-    } else if hours < 24 {
-        FuzzyTime::HoursAgo(hours)
-    } else if days == 1 {
-        FuzzyTime::Yesterday
-    } else if days < 7 {
-        FuzzyTime::DaysAgo(days)
-    } else if days < 14 {
-        FuzzyTime::LastWeek
-    } else if days < 30 {
-        FuzzyTime::WeeksAgo(weeks)
-    } else if days < 60 {
-        FuzzyTime::LastMonth
-    } else if days < 365 {
-        FuzzyTime::MonthsAgo(months)
-    } else if days < 730 {
-        FuzzyTime::LastYear
-    } else {
-        FuzzyTime::YearsAgo(years)
-    };
+    match seconds {
+        s if s < 60 => FuzzyTime::SecondsAgo(s),
+        _ if minutes < 60 => FuzzyTime::MinutesAgo(minutes),
+        _ if hours < 24 => FuzzyTime::HoursAgo(hours),
+        _ if days == 1 => FuzzyTime::Yesterday,
+        _ if days < 7 => FuzzyTime::DaysAgo(days),
+        _ if days < 14 => FuzzyTime::LastWeek,
+        _ if days < 30 => FuzzyTime::WeeksAgo(weeks),
+        _ if days < 60 => FuzzyTime::LastMonth,
+        _ if days < 365 => FuzzyTime::MonthsAgo(months),
+        _ if days < 730 => FuzzyTime::LastYear,
+        _ => FuzzyTime::YearsAgo(years),
+    }
+}
 
-    fuzzy_time.to_string()
+pub fn fuzzy_time(time: SystemTime) -> String {
+    let now = SystemTime::now();
+    let duration = now
+        .duration_since(time)
+        .unwrap_or_else(|_| Duration::from_secs(0));
+    get_fuzzy_time(duration).to_string()
 }
