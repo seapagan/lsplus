@@ -1,10 +1,9 @@
 # LSPlus - an 'ls' clone written in Rust
 
 [![Rust](https://github.com/seapagan/lsplus/actions/workflows/rust.yml/badge.svg)](https://github.com/seapagan/lsplus/actions/workflows/rust.yml)
-[![pages-build-deployment](https://github.com/seapagan/lsplus/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/seapagan/lsplus/actions/workflows/pages/pages-build-deployment)
+[![GitHub issues](https://img.shields.io/github/issues/seapagan/lsplus)](https://github.com/seapagan/lsplus/issues)
 ![Crates.io License](https://img.shields.io/crates/l/lsplus)
 [![Crates.io Version](https://img.shields.io/crates/v/lsplus?link=https%3A%2F%2Fcrates.io%2Fcrates%2Flsplus)](https://crates.io/crates/lsplus)
-[![GitHub issues](https://img.shields.io/github/issues/seapagan/lsplus)](https://github.com/seapagan/lsplus/issues)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/73f67c2ab44548298e0660ca73308729)](https://app.codacy.com/gh/seapagan/lsplus/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 This is currently a very simple (though functional) clone of the Unix 'ls' 
