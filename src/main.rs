@@ -1,8 +1,7 @@
+use chrono::{DateTime, Local};
 use clap::Parser;
 use inline_colorization::*;
 use prettytable::{Cell, Row};
-// use std::error::Error;
-use chrono::{DateTime, Local};
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -83,7 +82,7 @@ fn display_long_format(path: &String, params: &Params) -> io::Result<()> {
             &metadata,
             &full_path.to_string_lossy(),
         );
-        let (file_type, mode, nlink, size, mtime, user, group) =
+        let (file_type, mode, nlink, size, mtime, user, group, executable) =
             utils::file::get_file_details(&metadata);
 
         let mut display_name = file_name.clone();
@@ -116,6 +115,10 @@ fn display_long_format(path: &String, params: &Params) -> io::Result<()> {
             }
         } else if metadata.is_dir() {
             display_name = format!("{color_blue}{}", file_name);
+        } else if executable {
+            // this is an executable file, but not a folder or symlink
+            display_name =
+                format!("{style_bold}{color_green}{}", display_name);
         }
 
         let display_time: String = if params.fuzzy_time {

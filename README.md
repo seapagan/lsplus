@@ -9,7 +9,8 @@
 
 This is currently a very simple (though functional) clone of the Unix 'ls' 
 command written in Rust. It is a learning project for me to learn Rust so 
-probably contains many inefficiencies and bad practices. I'll get better :grin:
+probably contains many inefficiencies and bad practices. I'll get better
+with time! 😁
 
 ![lsp output](./docs/src/images/screenshot.png)
 
@@ -113,7 +114,7 @@ show the time in a human-readable format, e.g. '2 hours ago', 'yesterday', etc.
 Icons are added to folders, files, and links. There is only a limited set of
 mappings implemented at the moment, but more will be added in the future. Add
 an issue if you have a specific icon you would like to see - even better, add
-a Pull Request implementing it! :grin: 
+a Pull Request implementing it! 😁
 
 You can disable the icons by using the `-no-icons` option.
 

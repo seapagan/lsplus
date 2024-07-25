@@ -22,7 +22,7 @@ pub fn get_file_name_with_slash(
 
 pub fn get_file_details(
     metadata: &fs::Metadata,
-) -> (String, String, u64, u64, SystemTime, String, String) {
+) -> (String, String, u64, u64, SystemTime, String, String, bool) {
     let file_type = if metadata.is_dir() {
         "d"
     } else if metadata.is_file() {
@@ -46,7 +46,16 @@ pub fn get_file_details(
 
     let mtime = metadata.modified().unwrap();
 
-    (file_type, rwx_mode, nlink, size, mtime, user, group)
+    #[cfg(unix)]
+    let executable = metadata.permissions().mode() & 0o111 != 0;
+
+    // for now just return false under windows
+    #[cfg(windows)]
+    let executable = false;
+
+    (
+        file_type, rwx_mode, nlink, size, mtime, user, group, executable,
+    )
 }
 
 pub fn calculate_max_name_length(file_names: &[String]) -> usize {
@@ -63,11 +72,7 @@ pub fn collect_file_names(
 
     if !path_metadata.is_dir() {
         // If it's a file or symlink, add it directly to the file_names vector
-        let file_name = PathBuf::from(path)
-            // .file_name()
-            // .unwrap()
-            .to_string_lossy()
-            .into_owned();
+        let file_name = PathBuf::from(path).to_string_lossy().into_owned();
         file_names.push(file_name);
     } else {
         // If it's a directory, read its entries
