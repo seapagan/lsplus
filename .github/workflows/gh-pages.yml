@@ -1,11 +1,11 @@
-name: Deploy mdBook to GitHub Pages
+name: Build Docs 
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'docs/**' # only need this to run if changes to the actual docs
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'docs/**' # only need this to run if changes to the actual docs
   workflow_dispatch:
 
 jobs:

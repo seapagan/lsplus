@@ -6,6 +6,16 @@ project since the first release.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased](https://github.com/seapagan/lsplus/tree/HEAD)
+
+**New Features**
+
+- Show executable files as green and bold under unix systems ([#19](https://github.com/seapagan/lsplus/pull/19)) by [seapagan](https://github.com/seapagan)
+- Add a '--fuzzy-time' option for file modified time ([#17](https://github.com/seapagan/lsplus/pull/17)) by [seapagan](https://github.com/seapagan)
+- Implement error handling for main function ([#16](https://github.com/seapagan/lsplus/pull/16)) by [seapagan](https://github.com/seapagan)
+
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.2.0...HEAD) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.2.0...HEAD.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.2.0...HEAD.patch)
+
 ## [0.2.0](https://github.com/seapagan/lsplus/releases/tag/0.2.0) (2024-07-23)
 
 **New Features**

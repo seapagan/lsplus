@@ -5,6 +5,7 @@
 ![Crates.io License](https://img.shields.io/crates/l/lsplus)
 [![Crates.io Version](https://img.shields.io/crates/v/lsplus?link=https%3A%2F%2Fcrates.io%2Fcrates%2Flsplus)](https://crates.io/crates/lsplus)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/73f67c2ab44548298e0660ca73308729)](https://app.codacy.com/gh/seapagan/lsplus/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![Build Docs](https://github.com/seapagan/lsplus/actions/workflows/gh-pages.yml/badge.svg)](https://github.com/seapagan/lsplus/actions/workflows/gh-pages.yml)
 
 This is currently a very simple (though functional) clone of the Unix 'ls' 
 command written in Rust. It is a learning project for me to learn Rust so 
