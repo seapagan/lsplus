@@ -6,20 +6,8 @@ use std::os::unix::fs::PermissionsExt;
 use std::time::SystemTime;
 
 use crate::utils::format;
-use crate::{Params, PathBuf};
+use crate::Params;
 use std::path::Path;
-
-pub fn get_file_name_with_slash(
-    metadata: &fs::Metadata,
-    file_name: &str,
-    append_slash: bool,
-) -> String {
-    if metadata.is_dir() && append_slash {
-        format!("{}/", file_name)
-    } else {
-        file_name.to_string()
-    }
-}
 
 pub fn get_file_details(
     metadata: &fs::Metadata,
@@ -59,10 +47,6 @@ pub fn get_file_details(
     )
 }
 
-pub fn calculate_max_name_length(file_names: &[String]) -> usize {
-    file_names.iter().map(|name| name.len()).max().unwrap_or(0) + 2 // Adding space between columns
-}
-
 pub fn collect_file_names(
     path: &Path,
     params: &Params,
@@ -73,7 +57,11 @@ pub fn collect_file_names(
 
     if !path_metadata.is_dir() {
         // If it's a file or symlink, add it directly to the file_names vector
-        let file_name = PathBuf::from(path).to_string_lossy().into_owned();
+        let file_name = path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .into_owned();
         file_names.push(file_name);
     } else {
         // If it's a directory, read its entries
@@ -96,13 +84,13 @@ pub fn collect_file_names(
         entries.sort_by(|a, b| {
             let a_name = a
                 .file_name()
-                .into_string()
+                .to_str()
                 .unwrap()
                 .trim_start_matches('.')
                 .to_lowercase();
             let b_name = b
                 .file_name()
-                .into_string()
+                .to_str()
                 .unwrap()
                 .trim_start_matches('.')
                 .to_lowercase();
@@ -120,22 +108,12 @@ pub fn collect_file_names(
         }
 
         if !params.almost_all && params.show_all {
-            if params.append_slash {
-                file_names = vec!["./".to_string(), "../".to_string()];
-            } else {
-                file_names = vec![".".to_string(), "..".to_string()];
-            }
+            file_names.push(".".to_string());
+            file_names.push("..".to_string());
         }
 
         for entry in entries {
-            let metadata = fs::symlink_metadata(entry.path())?;
-            let mut file_name = entry.file_name().into_string().unwrap();
-            file_name = get_file_name_with_slash(
-                &metadata,
-                &file_name,
-                params.append_slash,
-            );
-            file_names.push(file_name);
+            file_names.push(entry.file_name().to_string_lossy().into_owned())
         }
     }
     Ok(file_names)
