@@ -56,6 +56,14 @@ pub struct Flags {
         help = "Use fuzzy time format"
     )]
     pub fuzzy_time: bool,
+
+    #[arg(
+        long = "gitignore",
+        // short = 'g',
+        help = "Show .gitignore'd files as greyed out",
+        action = ArgAction::SetTrue,
+    )]
+    pub gitignore: bool,
 }
 
 pub fn version_info() -> String {
