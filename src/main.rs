@@ -39,27 +39,28 @@ fn main() {
         no_icons: args.no_icons,
         fuzzy_time: args.fuzzy_time,
     };
-
-    let pattern = &args.path;
-    let paths: Vec<PathBuf> = match glob(pattern) {
-        Ok(entries) => entries.filter_map(Result::ok).collect(),
-        Err(e) => {
-            eprintln!("Failed to read glob pattern: {}", e);
-            exit(1);
-        }
+    let patterns = if args.paths.is_empty() {
+        vec![String::from(".")]
+    } else {
+        args.paths
     };
 
-    if paths.is_empty() {
-        // If no files match, just run with the original pattern
-        // This allows the program to handle errors for non-existent paths
-        if let Err(e) = run(pattern, &params) {
-            handle_error(pattern, e);
-        }
-    } else {
-        for path in paths {
-            if let Err(e) = run(&path.to_string_lossy(), &params) {
-                handle_error(&path.to_string_lossy(), e);
+    for pattern in patterns {
+        match glob(&pattern) {
+            Ok(entries) => {
+                let paths: Vec<PathBuf> =
+                    entries.filter_map(Result::ok).collect();
+                if paths.is_empty() {
+                    eprintln!("lsp: {}: No such file or directory", pattern);
+                } else {
+                    for path in paths {
+                        if let Err(e) = run(&path.to_string_lossy(), &params) {
+                            handle_error(&path.to_string_lossy(), e);
+                        }
+                    }
+                }
             }
+            Err(e) => eprintln!("Failed to read glob pattern: {}", e),
         }
     }
 }
