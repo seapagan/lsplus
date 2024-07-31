@@ -7,6 +7,7 @@ use std::time::SystemTime;
 
 use crate::utils::format;
 use crate::{Params, PathBuf};
+use std::path::Path;
 
 pub fn get_file_name_with_slash(
     metadata: &fs::Metadata,
@@ -63,7 +64,7 @@ pub fn calculate_max_name_length(file_names: &[String]) -> usize {
 }
 
 pub fn collect_file_names(
-    path: &String,
+    path: &Path,
     params: &Params,
 ) -> io::Result<Vec<String>> {
     let mut file_names = Vec::new();

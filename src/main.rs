@@ -1,5 +1,6 @@
 use chrono::{DateTime, Local};
 use clap::Parser;
+use glob::glob;
 use inline_colorization::*;
 use prettytable::{Cell, Row};
 use std::fs;
@@ -7,7 +8,6 @@ use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::exit;
-
 mod cli;
 mod utils;
 
@@ -39,33 +39,57 @@ fn main() {
         no_icons: args.no_icons,
         fuzzy_time: args.fuzzy_time,
     };
-    if let Err(e) = run(args.path, &params) {
-        let error_message = match e.kind() {
-            io::ErrorKind::PermissionDenied => "Permission denied",
-            io::ErrorKind::NotFound => "No such file or directory",
-            _ => &e.to_string(),
-        };
-        eprintln!("lsp: {}", error_message);
-        exit(1);
+
+    let pattern = &args.path;
+    let paths: Vec<PathBuf> = match glob(pattern) {
+        Ok(entries) => entries.filter_map(Result::ok).collect(),
+        Err(e) => {
+            eprintln!("Failed to read glob pattern: {}", e);
+            exit(1);
+        }
+    };
+
+    if paths.is_empty() {
+        // If no files match, just run with the original pattern
+        // This allows the program to handle errors for non-existent paths
+        if let Err(e) = run(pattern, &params) {
+            handle_error(pattern, e);
+        }
+    } else {
+        for path in paths {
+            if let Err(e) = run(&path.to_string_lossy(), &params) {
+                handle_error(&path.to_string_lossy(), e);
+            }
+        }
     }
 }
 
-fn run(path: String, params: &Params) -> io::Result<()> {
-    if !Path::new(&path).exists() {
+fn handle_error(path: &str, e: io::Error) {
+    let error_message = match e.kind() {
+        io::ErrorKind::PermissionDenied => "Permission denied",
+        io::ErrorKind::NotFound => "No such file or directory",
+        _ => &e.to_string(),
+    };
+    eprintln!("lsp: {}: {}", path, error_message);
+}
+
+fn run(path: &str, params: &Params) -> io::Result<()> {
+    let path = Path::new(path);
+    if !path.exists() {
         return Err(io::Error::new(
             io::ErrorKind::NotFound,
-            format!("'{}': No such file or directory", path),
+            format!("'{}': No such file or directory", path.display()),
         ));
     }
 
     if params.long_format {
-        display_long_format(&path, params)
+        display_long_format(path, params)
     } else {
-        display_short_format(&path, params)
+        display_short_format(path, params)
     }
 }
 
-fn display_long_format(path: &String, params: &Params) -> io::Result<()> {
+fn display_long_format(path: &Path, params: &Params) -> io::Result<()> {
     let mut table = utils::table::create_table(0);
     let file_names = utils::file::collect_file_names(path, params)?;
 
@@ -160,7 +184,7 @@ fn display_long_format(path: &String, params: &Params) -> io::Result<()> {
     Ok(())
 }
 
-fn display_short_format(path: &String, params: &Params) -> io::Result<()> {
+fn display_short_format(path: &Path, params: &Params) -> io::Result<()> {
     let file_names = utils::file::collect_file_names(path, params)?;
     let max_name_length = utils::file::calculate_max_name_length(&file_names);
     let terminal_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
