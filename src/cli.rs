@@ -29,7 +29,7 @@ pub struct Flags {
     pub human_readable: bool,
 
     #[arg(default_value = ".", help = "The path to list")]
-    pub path: String,
+    pub paths: Vec<String>,
 
     #[arg(short = 'p', long = "slash-dirs", action = ArgAction::SetTrue, help = "Append a slash to directories")]
     pub slash: bool,
