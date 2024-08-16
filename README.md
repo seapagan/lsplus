@@ -12,11 +12,6 @@ command written in Rust. It is a learning project for me to learn Rust so
 probably contains many inefficiencies and bad practices. I'll get better
 with time! 😁
 
->[!WARNING]
-> The command will not yet accept wildcards or multiple paths, which is kinda
-> a big limitation. This will be fixed very soon.
-
-
 ![lsp output](./docs/src/images/screenshot.png)
 
 <!-- vim-markdown-toc GFM -->
