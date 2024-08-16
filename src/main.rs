@@ -25,7 +25,7 @@ struct Params {
     no_icons: bool,
     fuzzy_time: bool,
 }
-
+#[derive(Debug)]
 struct FileInfo {
     file_type: String,
     mode: String,
@@ -78,7 +78,10 @@ fn run_multi(patterns: &[String], params: &Params) -> io::Result<()> {
                 let paths: Vec<PathBuf> =
                     entries.filter_map(Result::ok).collect();
                 if paths.is_empty() {
-                    eprintln!("lsp: {}: No such file or directory", pattern);
+                    eprintln!(
+                        "lsplus: {}: No such file or directory",
+                        pattern
+                    );
                 } else {
                     for path in paths {
                         let file_info = collect_file_info(&path, params)?;
@@ -115,6 +118,7 @@ fn collect_file_info(
 
     if metadata.is_dir() {
         let file_names = utils::file::collect_file_names(path, params)?;
+
         for file_name in file_names {
             let full_path = path.join(&file_name);
             if let Ok(info) = create_file_info(&full_path, params) {
@@ -238,7 +242,13 @@ fn display_long_format(
             row_cells.push(Cell::new(&format!("{} ", icon)));
         }
 
-        row_cells.push(Cell::new(&info.display_name));
+        let display_name = match &info.full_path.to_string_lossy() {
+            p if p.ends_with("/.") => format!("{color_blue}."),
+            p if p.ends_with("/..") => format!("{color_blue}.."),
+            _ => info.display_name.to_string(),
+        };
+
+        row_cells.push(Cell::new(&display_name));
 
         table.add_row(Row::new(row_cells));
     }
