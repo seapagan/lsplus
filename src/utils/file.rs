@@ -1,13 +1,16 @@
 use nix::unistd::{Group, User};
 use std::fs;
 use std::io;
-use std::os::unix::fs::MetadataExt;
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
+use std::path::Path;
 use std::time::SystemTime;
 
+use inline_colorization::*;
+
+use crate::structs::FileInfo;
+use crate::utils;
 use crate::utils::format;
 use crate::Params;
-use std::path::Path;
 
 pub fn get_file_details(
     metadata: &fs::Metadata,
@@ -130,5 +133,107 @@ pub fn get_groupname(gid: u32) -> String {
     match Group::from_gid(gid.into()) {
         Ok(Some(group)) => group.name,
         _ => gid.to_string(),
+    }
+}
+
+pub fn collect_file_info(
+    path: &Path,
+    params: &Params,
+) -> io::Result<Vec<FileInfo>> {
+    let mut file_info = Vec::new();
+    let metadata = fs::symlink_metadata(path)?;
+
+    if metadata.is_dir() {
+        let file_names = utils::file::collect_file_names(path, params)?;
+
+        for file_name in file_names {
+            let full_path = path.join(&file_name);
+            if let Ok(info) = create_file_info(&full_path, params) {
+                file_info.push(info);
+            }
+        }
+    } else if let Ok(info) = create_file_info(path, params) {
+        file_info.push(info);
+    }
+    Ok(file_info)
+}
+
+pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
+    let metadata = fs::symlink_metadata(path)?;
+    let item_icon = if params.no_icons {
+        None
+    } else {
+        Some(utils::icons::get_item_icon(
+            &metadata,
+            &path.to_string_lossy(),
+        ))
+    };
+    let (file_type, mode, nlink, size, mtime, user, group, executable) =
+        utils::file::get_file_details(&metadata);
+
+    let mut file_name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| path.to_string_lossy().into_owned());
+
+    if file_name.starts_with("./") {
+        file_name = file_name.replacen("./", "", 1);
+    }
+
+    if params.append_slash && metadata.is_dir() {
+        file_name.push('/');
+    }
+
+    let display_name = if metadata.is_symlink() {
+        match fs::read_link(path) {
+            Ok(target) => {
+                let target_path = if target.is_relative() {
+                    path.parent().unwrap_or(Path::new("")).join(target)
+                } else {
+                    target
+                };
+                if target_path.exists() {
+                    format!(
+                        "{color_cyan}{} -> {}",
+                        file_name,
+                        target_path.display()
+                    )
+                } else {
+                    format!(
+                        "{color_cyan}{} -> {} {color_red}[Broken Link]",
+                        file_name,
+                        target_path.display()
+                    )
+                }
+            }
+            Err(_) => format!("{color_red}{} -> (unreadable)", file_name),
+        }
+    } else if metadata.is_dir() {
+        format!("{color_blue}{}", file_name)
+    } else if executable {
+        format!("{style_bold}{color_green}{}", file_name)
+    } else {
+        file_name.clone()
+    };
+
+    Ok(FileInfo {
+        file_type,
+        mode,
+        nlink,
+        user,
+        group,
+        size,
+        mtime,
+        item_icon,
+        display_name,
+        full_path: path.to_path_buf(),
+    })
+}
+
+pub fn check_display_name(info: &FileInfo) -> String {
+    match &info.full_path.to_string_lossy() {
+        p if p.ends_with("/.") => format!("{color_blue}."),
+        p if p.ends_with("/..") => format!("{color_blue}.."),
+        _ => info.display_name.to_string(),
     }
 }

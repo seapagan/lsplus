@@ -3,41 +3,16 @@ use clap::Parser;
 use glob::glob;
 use inline_colorization::*;
 use prettytable::{Cell, Row};
-use std::fs;
 use std::io;
-use std::path::Path;
 use std::path::PathBuf;
 use std::process::exit;
-use std::time::SystemTime;
 
 mod cli;
+mod structs;
 mod utils;
 
-use utils::icons::Icon;
-
-struct Params {
-    show_all: bool,
-    append_slash: bool,
-    dirs_first: bool,
-    almost_all: bool,
-    long_format: bool,
-    human_readable: bool,
-    no_icons: bool,
-    fuzzy_time: bool,
-}
-#[derive(Debug)]
-struct FileInfo {
-    file_type: String,
-    mode: String,
-    nlink: u64,
-    user: String,
-    group: String,
-    size: u64,
-    mtime: SystemTime,
-    item_icon: Option<Icon>,
-    display_name: String,
-    full_path: PathBuf,
-}
+use structs::{FileInfo, Params};
+use utils::file::{check_display_name, collect_file_info};
 
 fn main() {
     let args = cli::Flags::parse();
@@ -109,108 +84,6 @@ fn run_multi(patterns: &[String], params: &Params) -> io::Result<()> {
 //     eprintln!("lsp: {}: {}", path, error_message);
 // }
 
-fn collect_file_info(
-    path: &Path,
-    params: &Params,
-) -> io::Result<Vec<FileInfo>> {
-    let mut file_info = Vec::new();
-    let metadata = fs::symlink_metadata(path)?;
-
-    if metadata.is_dir() {
-        let file_names = utils::file::collect_file_names(path, params)?;
-
-        for file_name in file_names {
-            let full_path = path.join(&file_name);
-            if let Ok(info) = create_file_info(&full_path, params) {
-                file_info.push(info);
-            }
-        }
-    } else if let Ok(info) = create_file_info(path, params) {
-        file_info.push(info);
-    }
-    Ok(file_info)
-}
-
-fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
-    let metadata = fs::symlink_metadata(path)?;
-    let item_icon = if params.no_icons {
-        None
-    } else {
-        Some(utils::icons::get_item_icon(
-            &metadata,
-            &path.to_string_lossy(),
-        ))
-    };
-    let (file_type, mode, nlink, size, mtime, user, group, executable) =
-        utils::file::get_file_details(&metadata);
-
-    let mut file_name = path
-        .file_name()
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_else(|| path.to_string_lossy().into_owned());
-
-    if file_name.starts_with("./") {
-        file_name = file_name.replacen("./", "", 1);
-    }
-
-    if params.append_slash && metadata.is_dir() {
-        file_name.push('/');
-    }
-
-    let display_name = if metadata.is_symlink() {
-        match fs::read_link(path) {
-            Ok(target) => {
-                let target_path = if target.is_relative() {
-                    path.parent().unwrap_or(Path::new("")).join(target)
-                } else {
-                    target
-                };
-                if target_path.exists() {
-                    format!(
-                        "{color_cyan}{} -> {}",
-                        file_name,
-                        target_path.display()
-                    )
-                } else {
-                    format!(
-                        "{color_cyan}{} -> {} {color_red}[Broken Link]",
-                        file_name,
-                        target_path.display()
-                    )
-                }
-            }
-            Err(_) => format!("{color_red}{} -> (unreadable)", file_name),
-        }
-    } else if metadata.is_dir() {
-        format!("{color_blue}{}", file_name)
-    } else if executable {
-        format!("{style_bold}{color_green}{}", file_name)
-    } else {
-        file_name.clone()
-    };
-
-    Ok(FileInfo {
-        file_type,
-        mode,
-        nlink,
-        user,
-        group,
-        size,
-        mtime,
-        item_icon,
-        display_name,
-        full_path: path.to_path_buf(),
-    })
-}
-
-fn get_display_name(info: &FileInfo) -> String {
-    match &info.full_path.to_string_lossy() {
-        p if p.ends_with("/.") => format!("{color_blue}."),
-        p if p.ends_with("/..") => format!("{color_blue}.."),
-        _ => info.display_name.to_string(),
-    }
-}
-
 fn display_long_format(
     file_info: &[FileInfo],
     params: &Params,
@@ -250,7 +123,7 @@ fn display_long_format(
             row_cells.push(Cell::new(&format!("{} ", icon)));
         }
 
-        let display_name = get_display_name(info);
+        let display_name = check_display_name(info);
 
         row_cells.push(Cell::new(&display_name));
 
@@ -280,7 +153,7 @@ fn display_short_format(
     for chunk in file_info.chunks(num_columns) {
         let mut row = Row::empty();
         for info in chunk {
-            let display_name = get_display_name(info);
+            let display_name = check_display_name(info);
 
             let mut cell_content = String::new();
             if let Some(icon) = &info.item_icon {
