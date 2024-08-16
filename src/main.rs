@@ -203,6 +203,14 @@ fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
     })
 }
 
+fn get_display_name(info: &FileInfo) -> String {
+    match &info.full_path.to_string_lossy() {
+        p if p.ends_with("/.") => format!("{color_blue}."),
+        p if p.ends_with("/..") => format!("{color_blue}.."),
+        _ => info.display_name.to_string(),
+    }
+}
+
 fn display_long_format(
     file_info: &[FileInfo],
     params: &Params,
@@ -242,11 +250,7 @@ fn display_long_format(
             row_cells.push(Cell::new(&format!("{} ", icon)));
         }
 
-        let display_name = match &info.full_path.to_string_lossy() {
-            p if p.ends_with("/.") => format!("{color_blue}."),
-            p if p.ends_with("/..") => format!("{color_blue}.."),
-            _ => info.display_name.to_string(),
-        };
+        let display_name = get_display_name(info);
 
         row_cells.push(Cell::new(&display_name));
 
@@ -276,7 +280,7 @@ fn display_short_format(
     for chunk in file_info.chunks(num_columns) {
         let mut row = Row::empty();
         for info in chunk {
-            let display_name = info.display_name.clone();
+            let display_name = get_display_name(info);
 
             let mut cell_content = String::new();
             if let Some(icon) = &info.item_icon {
