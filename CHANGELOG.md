@@ -6,7 +6,7 @@ project since the first release.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [0.3.0](https://github.com/seapagan/lsplus/releases/tag/0.3.0) (2024-08-16)
+## [0.3.1](https://github.com/seapagan/lsplus/releases/tag/0.3.1) (2024-08-16)
 
 **New Features**
 
@@ -21,7 +21,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Bump clap from 4.5.11 to 4.5.13 ([#23](https://github.com/seapagan/lsplus/pull/23)) by [dependabot[bot]](https://github.com/apps/dependabot)
 - Bump clap from 4.5.9 to 4.5.11 ([#20](https://github.com/seapagan/lsplus/pull/20)) by [dependabot[bot]](https://github.com/apps/dependabot)
 
-[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.2.0...0.3.0) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.2.0...0.3.0.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.2.0...0.3.0.patch)
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.2.0...0.3.1) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.2.0...0.3.1.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.2.0...0.3.1.patch)
 
 ## [0.2.0](https://github.com/seapagan/lsplus/releases/tag/0.2.0) (2024-07-23)
 
