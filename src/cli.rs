@@ -15,29 +15,46 @@ use clap::{Arg, ArgAction, Parser};
             .help("Print help information")
     )
 )]
+#[derive(Debug)]
 pub struct Flags {
-    #[arg(short ='a', long = "all", action = ArgAction::SetTrue, help = "Do not ignore entries starting with .")]
+    #[arg(
+        short = 'a',
+        long = "all",
+        help = "Do not ignore entries starting with ."
+    )]
     pub show_all: bool,
 
-    #[arg(short ='A', long = "almost-all", action = ArgAction::SetTrue, help = "Do not list implied . and ..")]
+    #[arg(
+        short = 'A',
+        long = "almost-all",
+        help = "Do not list implied . and .."
+    )]
     pub almost_all: bool,
 
-    #[arg(short='l', long="long", action = ArgAction::SetTrue, help = "Display detailed information")]
+    #[arg(short = 'l', long = "long", help = "Display detailed information")]
     pub long: bool,
 
-    #[arg(short='h', long="human-readable", action = ArgAction::SetTrue, help = "with -l, print sizes like 1K 234M 2G etc.")]
+    #[arg(
+        short = 'h',
+        long = "human-readable",
+        help = "with -l, print sizes like 1K 234M 2G etc."
+    )]
     pub human_readable: bool,
 
     #[arg(default_value = ".", help = "The path to list")]
     pub paths: Vec<String>,
 
-    #[arg(short = 'p', long = "slash-dirs", action = ArgAction::SetTrue, help = "Append a slash to directories")]
+    #[arg(
+        short = 'p',
+        long = "slash-dirs",
+        help = "Append a slash to directories"
+    )]
     pub slash: bool,
 
-    #[arg(short = 'D', long = "sort-dirs", action = ArgAction::SetTrue, help = "Sort directories first")]
+    #[arg(short = 'D', long = "sort-dirs", help = "Sort directories first")]
     pub dirs_first: bool,
 
-    #[arg(long="no-icons", action = ArgAction::SetTrue, help = "Do not display file or folder icons")]
+    #[arg(long = "no-icons", help = "Do not display file or folder icons")]
     pub no_icons: bool,
 
     #[arg(
@@ -49,12 +66,7 @@ pub struct Flags {
     )]
     pub version: bool,
 
-    #[arg(
-        long = "fuzzy-time",
-        short = 'Z',
-        action = ArgAction::SetTrue,
-        help = "Use fuzzy time format"
-    )]
+    #[arg(long = "fuzzy-time", short = 'Z', help = "Use fuzzy time format")]
     pub fuzzy_time: bool,
 }
 

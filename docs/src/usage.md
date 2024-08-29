@@ -43,7 +43,7 @@ show the time in a human-readable format, e.g. '2 hours ago', 'yesterday', etc.
 Icons are added to folders, files, and links. There is only a limited set of
 mappings implemented at the moment, but more will be added in the future. Add
 an issue if you have a specific icon you would like to see - even better, add
-a Pull Request implementing it! :grin: 
+a Pull Request implementing it! :grin:
 
 You can disable the icons by using the `-no-icons` option.
 
@@ -67,6 +67,8 @@ alias ll='lsp -laph'
 
 This will show a long format listing with hidden files, append a '/' to
 directories, and show human readable file sizes.
+
+You can also use the configuration file to set the default options you want.
 
 ![lsp output](./images/screenshot.png)
 

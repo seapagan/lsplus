@@ -1,7 +1,21 @@
 use super::utils::icons::Icon;
+use config::Config;
+use serde::Deserialize;
+use std::convert::From;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
+macro_rules! config_to_params {
+    ($settings:expr, $params:ident, $( $field:ident ),* ) => {
+        $(
+            if let Ok(value) = $settings.get_bool(stringify!($field)) {
+                $params.$field = value;
+            }
+        )*
+    };
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Params {
     pub show_all: bool,
     pub append_slash: bool,
@@ -12,6 +26,43 @@ pub struct Params {
     pub no_icons: bool,
     pub fuzzy_time: bool,
 }
+
+impl Default for Params {
+    fn default() -> Self {
+        Params {
+            show_all: false,
+            append_slash: false,
+            dirs_first: false,
+            almost_all: false,
+            long_format: false,
+            human_readable: false,
+            no_icons: false,
+            fuzzy_time: false,
+        }
+    }
+}
+
+impl From<Config> for Params {
+    fn from(settings: Config) -> Self {
+        let mut params = Params::default();
+
+        config_to_params!(
+            settings,
+            params,
+            show_all,
+            append_slash,
+            dirs_first,
+            almost_all,
+            long_format,
+            human_readable,
+            no_icons,
+            fuzzy_time
+        );
+
+        params
+    }
+}
+
 #[derive(Debug)]
 pub struct FileInfo {
     pub file_type: String,

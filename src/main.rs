@@ -10,9 +10,38 @@ use std::process::exit;
 mod cli;
 mod structs;
 mod utils;
+use config::{Config, File, FileFormat};
+use dirs_next::home_dir;
 
 use structs::{FileInfo, Params};
 use utils::file::{check_display_name, collect_file_info};
+
+fn load_config() -> Params {
+    let mut config_path = PathBuf::new();
+
+    // Get the home directory and construct the path
+    if let Some(home_dir) = home_dir() {
+        config_path.push(home_dir);
+        config_path.push(".config/lsplus/config.toml");
+    }
+
+    let settings = Config::builder()
+        .add_source(File::new(config_path.to_str().unwrap(), FileFormat::Toml))
+        .build();
+
+    match settings {
+        Ok(config) => config.into(), // Convert Config into Params using the From trait
+        Err(e) => {
+            // If the error is related to the file not being found, return default Params
+            if e.to_string().contains("not found") {
+                Params::default()
+            } else {
+                eprintln!("Error loading config: {}", e);
+                Params::default()
+            }
+        }
+    }
+}
 
 fn main() {
     let args = cli::Flags::parse();
@@ -21,15 +50,18 @@ fn main() {
         exit(0);
     }
 
+    // Load config values
+    let config = load_config();
+
     let params = Params {
-        show_all: args.show_all,
-        append_slash: args.slash,
-        dirs_first: args.dirs_first,
-        almost_all: args.almost_all,
-        long_format: args.long,
-        human_readable: args.human_readable,
-        no_icons: args.no_icons,
-        fuzzy_time: args.fuzzy_time,
+        show_all: args.show_all || config.show_all,
+        append_slash: args.slash || config.append_slash,
+        dirs_first: args.dirs_first || config.dirs_first,
+        almost_all: args.almost_all || config.almost_all,
+        long_format: args.long || config.long_format,
+        human_readable: args.human_readable || config.human_readable,
+        no_icons: args.no_icons || config.no_icons,
+        fuzzy_time: args.fuzzy_time || config.fuzzy_time,
     };
 
     let patterns = if args.paths.is_empty() {
