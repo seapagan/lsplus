@@ -1,3 +1,4 @@
+# documentation written using 'mdbook'
 [book]
 authors = ["Grant Ramsay"]
 language = "en"
