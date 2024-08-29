@@ -26,3 +26,4 @@ prettytable = "0.10.0"
 term_size = "0.3.2"
 config = "0.14.0"
 serde = { version = "1.0.209", features = ["derive"] }
+dirs-next = "2.0.0"

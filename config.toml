@@ -1,8 +1,0 @@
-[lsplus]
-long_format = true
-show_all = true 
-append_slash = true
-dirs_first = true
-human_readable = true
-fuzzy_time = true
-no_icons = false

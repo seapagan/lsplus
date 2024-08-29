@@ -518,6 +518,7 @@ dependencies = [
  "chrono",
  "clap",
  "config",
+ "dirs-next",
  "glob",
  "inline_colorization",
  "nix",

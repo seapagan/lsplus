@@ -11,20 +11,29 @@ mod cli;
 mod structs;
 mod utils;
 use config::{Config, File, FileFormat};
+use dirs_next::home_dir;
 
 use structs::{FileInfo, Params};
 use utils::file::{check_display_name, collect_file_info};
 
-fn load_config(file_path: &str) -> Params {
+fn load_config() -> Params {
+    let mut config_path = PathBuf::new();
+
+    // Get the home directory and construct the path
+    if let Some(home_dir) = home_dir() {
+        config_path.push(home_dir);
+        config_path.push(".config/lsplus/config.toml");
+    }
+
     let settings = Config::builder()
-        .add_source(File::new(file_path, FileFormat::Toml))
+        .add_source(File::new(config_path.to_str().unwrap(), FileFormat::Toml))
         .build();
 
     match settings {
         Ok(config) => config.into(), // Convert Config into Params using the From trait
         Err(e) => {
             // If the error is related to the file not being found, return default Params
-            if e.to_string().contains("No such file or directory") {
+            if e.to_string().contains("not found") {
                 Params::default()
             } else {
                 eprintln!("Error loading config: {}", e);
@@ -42,7 +51,7 @@ fn main() {
     }
 
     // Load config values
-    let config = load_config("config.toml");
+    let config = load_config();
 
     let params = Params {
         show_all: args.show_all || config.show_all,
