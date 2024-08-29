@@ -10,9 +10,29 @@ use std::process::exit;
 mod cli;
 mod structs;
 mod utils;
+use config::{Config, File, FileFormat};
 
 use structs::{FileInfo, Params};
 use utils::file::{check_display_name, collect_file_info};
+
+fn load_config(file_path: &str) -> Params {
+    let settings = Config::builder()
+        .add_source(File::new(file_path, FileFormat::Toml))
+        .build();
+
+    match settings {
+        Ok(config) => config.into(), // Convert Config into Params using the From trait
+        Err(e) => {
+            // If the error is related to the file not being found, return default Params
+            if e.to_string().contains("No such file or directory") {
+                Params::default()
+            } else {
+                eprintln!("Error loading config: {}", e);
+                Params::default()
+            }
+        }
+    }
+}
 
 fn main() {
     let args = cli::Flags::parse();
@@ -21,15 +41,18 @@ fn main() {
         exit(0);
     }
 
+    // Load config values
+    let config = load_config("config.toml");
+
     let params = Params {
-        show_all: args.show_all,
-        append_slash: args.slash,
-        dirs_first: args.dirs_first,
-        almost_all: args.almost_all,
-        long_format: args.long,
-        human_readable: args.human_readable,
-        no_icons: args.no_icons,
-        fuzzy_time: args.fuzzy_time,
+        show_all: args.show_all.unwrap_or(config.show_all),
+        append_slash: args.slash.unwrap_or(config.append_slash),
+        dirs_first: args.dirs_first.unwrap_or(config.dirs_first),
+        almost_all: args.almost_all.unwrap_or(config.almost_all),
+        long_format: args.long.unwrap_or(config.long_format),
+        human_readable: args.human_readable.unwrap_or(config.human_readable),
+        no_icons: args.no_icons.unwrap_or(config.no_icons),
+        fuzzy_time: args.fuzzy_time.unwrap_or(config.fuzzy_time),
     };
 
     let patterns = if args.paths.is_empty() {

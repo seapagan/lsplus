@@ -17,28 +17,28 @@ use clap::{Arg, ArgAction, Parser};
 )]
 pub struct Flags {
     #[arg(short ='a', long = "all", action = ArgAction::SetTrue, help = "Do not ignore entries starting with .")]
-    pub show_all: bool,
+    pub show_all: Option<bool>,
 
     #[arg(short ='A', long = "almost-all", action = ArgAction::SetTrue, help = "Do not list implied . and ..")]
-    pub almost_all: bool,
+    pub almost_all: Option<bool>,
 
     #[arg(short='l', long="long", action = ArgAction::SetTrue, help = "Display detailed information")]
-    pub long: bool,
+    pub long: Option<bool>,
 
     #[arg(short='h', long="human-readable", action = ArgAction::SetTrue, help = "with -l, print sizes like 1K 234M 2G etc.")]
-    pub human_readable: bool,
+    pub human_readable: Option<bool>,
 
     #[arg(default_value = ".", help = "The path to list")]
     pub paths: Vec<String>,
 
     #[arg(short = 'p', long = "slash-dirs", action = ArgAction::SetTrue, help = "Append a slash to directories")]
-    pub slash: bool,
+    pub slash: Option<bool>,
 
     #[arg(short = 'D', long = "sort-dirs", action = ArgAction::SetTrue, help = "Sort directories first")]
-    pub dirs_first: bool,
+    pub dirs_first: Option<bool>,
 
     #[arg(long="no-icons", action = ArgAction::SetTrue, help = "Do not display file or folder icons")]
-    pub no_icons: bool,
+    pub no_icons: Option<bool>,
 
     #[arg(
         long = "version",
@@ -55,7 +55,7 @@ pub struct Flags {
         action = ArgAction::SetTrue,
         help = "Use fuzzy time format"
     )]
-    pub fuzzy_time: bool,
+    pub fuzzy_time: Option<bool>,
 }
 
 pub fn version_info() -> String {
