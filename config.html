@@ -3,8 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>LSPlus</title>
-        <meta name="robots" content="noindex">
+        <title>Configuration File - LSPlus</title>
 
 
         <!-- Custom HTML head -->
@@ -89,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="intro.html">Introduction</a></li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li class="chapter-item expanded "><a href="config.html"><strong aria-hidden="true">3.</strong> Configuration File</a></li><li class="chapter-item expanded "><a href="todo.html"><strong aria-hidden="true">4.</strong> Future Plans</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="intro.html">Introduction</a></li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li class="chapter-item expanded "><a href="config.html" class="active"><strong aria-hidden="true">3.</strong> Configuration File</a></li><li class="chapter-item expanded "><a href="todo.html"><strong aria-hidden="true">4.</strong> Future Plans</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -174,89 +173,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="an-ls-replacement-written-in-rust"><a class="header" href="#an-ls-replacement-written-in-rust">An <code>ls</code> replacement written in <code>Rust</code></a></h1>
-<p>This is currently a very simple (though functional) clone of the Unix 'ls'
-command written in Rust. It is a learning project for me to learn Rust so
-probably contains many inefficiencies and bad practices. I'll get better 😁</p>
-<p><img src="./images/screenshot.png" alt="lsp output" /></p>
-<h2 id="compatibility"><a class="header" href="#compatibility">Compatibility</a></h2>
-<p>This project is currently only compatible with Unix-like systems (Linux,
-MacOs, etc.). Windows support is planned to be added very soon.</p>
-<h2 id="nerd-fonts"><a class="header" href="#nerd-fonts">Nerd Fonts</a></h2>
-<p>To display the folder and file icons, you need to first install a 'Nerd Font'
-for your terminal. You can find a great selection of Nerd Fonts
-<a href="https://www.nerdfonts.com/">here</a></p>
-<p>My personal favourite is <code>MesoLG Nerd Font</code>, but there are many others to choose
-from. You will also need to set up your terminal to use that font.</p>
-<p>If you <strong>DO NOT</strong> want to install a Nerd Font, pass the <code>--no-icons</code> switch to
-the program.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="installation"><a class="header" href="#installation">Installation</a></h1>
-<p>To install the latest release of this package, you can use the following command:</p>
-<h2 id="latest-release"><a class="header" href="#latest-release">Latest Release</a></h2>
-<pre><code class="language-bash">cargo install lsplus
-</code></pre>
-<p>This will install the <code>lsp</code> binary into your <code>~/.cargo/bin</code> directory. Make
-sure that this directory is in your <code>PATH</code> environment variable so that you
-can run the <code>lsp</code> command from anywhere.</p>
-<h2 id="from-source"><a class="header" href="#from-source">From Source</a></h2>
-<p>You can also install the package from source by cloning the repository and
-running the following command:</p>
-<pre><code class="language-bash">cargo install --git https://github.com/seapagan/lsplus.git
-</code></pre>
-<p>This may allow you to access the latest features and bug fixes that have not
-yet been released.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="usage"><a class="header" href="#usage">Usage</a></h1>
-<p>Run this command in your terminal to list files in the current directory:</p>
-<pre><code class="language-sh">lsp &lt;options&gt; &lt;path | file&gt;
-</code></pre>
-<p>Both the options and the path are optional. If no path is provided, the current
-directory will be listed. If no options are provided, the default options will
-be used which are similar to the <code>ls</code> command.</p>
-<p>Curently, only a sub-set of the standard <code>ls</code> options are supported. These are:</p>
-<ul>
-<li><code>-a</code> / <code>--all</code> - Show hidden files</li>
-<li><code>-A</code> / <code>--almost-all</code> - Show hidden files, but don't show <code>.</code> and `..</li>
-<li><code>-p</code> / <code>--slash-dirs</code> - Append a '/' to directories</li>
-<li><code>-l</code> / <code>--long</code> - Show long format listing</li>
-<li><code>-h</code> / <code>--human-readable</code> - Human readable file sizes</li>
-<li><code>-D</code> / <code>--sort-dirs</code> - Sort directories first</li>
-<li><code>--no-icons</code> - don't show file or folder icons</li>
-<li><code>-Z</code> / <code>--fuzzy-time</code> - Show fuzzy time for file modification times</li>
-</ul>
-<p>You can combine the short options together, e.g. <code>-laph</code> will show a long format
-listing with hidden files, append a '/' to directories, and show human-readable
-file sizes.</p>
-<p>Use the <code>--help</code> option to see the full list of options.</p>
-<p>The long-format listing is currently colorized by default and cannot be
-disabled. This will be made configurable in the future along with adding more
-of the original <code>ls</code> options.</p>
-<h2 id="fuzzy-time"><a class="header" href="#fuzzy-time">Fuzzy Time</a></h2>
-<p>The <code>-Z</code> option will show a fuzzy time for file modification times. This will
-show the time in a human-readable format, e.g. '2 hours ago', 'yesterday', etc.</p>
-<p><img src="./images/screenshot3.png" alt="fuzzy date output" /></p>
-<h2 id="icons"><a class="header" href="#icons">Icons</a></h2>
-<p>Icons are added to folders, files, and links. There is only a limited set of
-mappings implemented at the moment, but more will be added in the future. Add
-an issue if you have a specific icon you would like to see - even better, add
-a Pull Request implementing it! :grin:</p>
-<p>You can disable the icons by using the <code>-no-icons</code> option.</p>
-<h2 id="aliases"><a class="header" href="#aliases">Aliases</a></h2>
-<p>The <code>lsp</code> command can be aliased to <code>ls</code> by adding the following line to your
-<code>.bashrc</code>, <code>.zshrc</code> or similar file:</p>
-<pre><code class="language-sh">alias ls='lsp'
-</code></pre>
-<p>You will need to restart your shell or source your configuration file for the
-alias to take effect.</p>
-<p>The example below shows an alias for ls that uses many of the current options:</p>
-<pre><code class="language-sh">alias ll='lsp -laph'
-</code></pre>
-<p>This will show a long format listing with hidden files, append a '/' to
-directories, and show human readable file sizes.</p>
-<p>You can also use the configuration file to set the default options you want.</p>
-<p><img src="./images/screenshot.png" alt="lsp output" /></p>
-<p>If you add the '-D' option to the command, directories will be sorted first:</p>
-<p><img src="./images/screenshot2.png" alt="lsp output" /></p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-file"><a class="header" href="#configuration-file">Configuration File</a></h1>
+                        <h1 id="configuration-file"><a class="header" href="#configuration-file">Configuration File</a></h1>
 <p>It is possible to configure <code>lsplus</code> using a configuration file. The
 configuration file is a simple <strong><code>TOML</code></strong> file that is placed in the following
 location:</p>
@@ -334,41 +251,18 @@ dirs_first = true
 human_readable = true
 fuzzy_time = true
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="future-plans"><a class="header" href="#future-plans">Future Plans</a></h1>
-<p>Below is the content of the project's TODO.md file.</p>
-<p>If you have any suggestions for features or improvements, please open an issue
-on the project's GitHub page.</p>
-<h1 id="todo"><a class="header" href="#todo">TODO</a></h1>
-<ul>
-<li><input disabled="" type="checkbox"/>
-add testing.</li>
-<li><input disabled="" type="checkbox"/>
-in short mode when <code>-p</code> is specified, show a '*' or something if the file
-is a symlink.</li>
-<li><input disabled="" type="checkbox"/>
-add colorization for different file types, folders and symlinks. Make it
-customizable and theme-able. Make it default but allow an option to disable it.
-(or vice-versa). Files that have a known extension should all be colored the
-same way, and different to unknown file tipes.</li>
-<li><input disabled="" type="checkbox"/>
-for a symlink, color the name as it is, but color the target depending on
-whether it is a directory, file, or symlink.</li>
-<li><input disabled="" type="checkbox"/>
-colorize the short-form output same as the long-form output.</li>
-<li><input disabled="" type="checkbox"/>
-Add icons for partials like <code>TODO.*</code>, <code>LICENSE.*</code> and more.</li>
-<li><input disabled="" type="checkbox"/>
-option to  grey-out files in the <code>.gitignore</code>.</li>
-<li><input disabled="" type="checkbox"/>
-using the config file, allow extending the existing file and
-folder mapping, or deleting specific maps.</li>
-</ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="usage.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
+                            <a rel="next prefetch" href="todo.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -376,7 +270,13 @@ folder mapping, or deleting specific maps.</li>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="usage.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
 
+                    <a rel="next prefetch" href="todo.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
             </nav>
 
         </div>
@@ -399,11 +299,6 @@ folder mapping, or deleting specific maps.</li>
 
         <!-- Custom JS scripts -->
 
-        <script>
-        window.addEventListener('load', function() {
-            window.setTimeout(window.print, 100);
-        });
-        </script>
 
     </div>
     </body>

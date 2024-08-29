@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="intro.html">Introduction</a></li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li class="chapter-item expanded "><a href="todo.html" class="active"><strong aria-hidden="true">3.</strong> Future Plans</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="intro.html">Introduction</a></li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Usage</a></li><li class="chapter-item expanded "><a href="config.html"><strong aria-hidden="true">3.</strong> Configuration File</a></li><li class="chapter-item expanded "><a href="todo.html" class="active"><strong aria-hidden="true">4.</strong> Future Plans</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -180,35 +180,26 @@ on the project's GitHub page.</p>
 <h1 id="todo"><a class="header" href="#todo">TODO</a></h1>
 <ul>
 <li><input disabled="" type="checkbox"/>
+add testing.</li>
+<li><input disabled="" type="checkbox"/>
 in short mode when <code>-p</code> is specified, show a '*' or something if the file
 is a symlink.</li>
 <li><input disabled="" type="checkbox"/>
 add colorization for different file types, folders and symlinks. Make it
 customizable and theme-able. Make it default but allow an option to disable it.
-(or vice-versa). Files that have a known extension should all be colored the same
-way, and different to unknown file tipes.</li>
-<li><input disabled="" type="checkbox"/>
-add configuration file to set options. Use TOML format by default,
-maybe adding YAML later. Store in the correct <code>.config</code> directory depending on
-the OS.</li>
+(or vice-versa). Files that have a known extension should all be colored the
+same way, and different to unknown file tipes.</li>
 <li><input disabled="" type="checkbox"/>
 for a symlink, color the name as it is, but color the target depending on
 whether it is a directory, file, or symlink.</li>
 <li><input disabled="" type="checkbox"/>
-show executable files as bold.</li>
-<li><input disabled="" type="checkbox"/>
-add option for 'fuzzy' dates, e.g. 'yesterday', 'last week', 'last month',
-'last year', '2 years ago', etc.</li>
-<li><input disabled="" type="checkbox"/>
 colorize the short-form output same as the long-form output.</li>
 <li><input disabled="" type="checkbox"/>
-add icon to specific file NAMES (not just extensions) - e.g. <code>Cargo.toml</code>,
-<code>Makefile</code>, <code>Dockerfile</code>, <code>swapfile</code> etc. Also partials like <code>TODO.*</code>,
-<code>LICENSE.*</code> and more.</li>
+Add icons for partials like <code>TODO.*</code>, <code>LICENSE.*</code> and more.</li>
 <li><input disabled="" type="checkbox"/>
 option to  grey-out files in the <code>.gitignore</code>.</li>
 <li><input disabled="" type="checkbox"/>
-once the config file is implemented, allow extending the existing file and
+using the config file, allow extending the existing file and
 folder mapping, or deleting specific maps.</li>
 </ul>
 
@@ -216,7 +207,7 @@ folder mapping, or deleting specific maps.</li>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="usage.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="config.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
@@ -227,7 +218,7 @@ folder mapping, or deleting specific maps.</li>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="usage.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="config.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
