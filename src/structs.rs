@@ -42,22 +42,6 @@ impl Default for Params {
     }
 }
 
-// impl From<Config> for Params {
-//     fn from(settings: Config) -> Self {
-//         Params {
-//             show_all: settings.get_bool("show_all").unwrap_or(false),
-//             append_slash: settings.get_bool("append_slash").unwrap_or(false),
-//             dirs_first: settings.get_bool("dirs_first").unwrap_or(false),
-//             almost_all: settings.get_bool("almost_all").unwrap_or(false),
-//             long_format: settings.get_bool("long_format").unwrap_or(false),
-//             human_readable: settings
-//                 .get_bool("human_readable")
-//                 .unwrap_or(false),
-//             no_icons: settings.get_bool("no_icons").unwrap_or(false),
-//             fuzzy_time: settings.get_bool("fuzzy_time").unwrap_or(false),
-//         }
-//     }
-// }
 impl From<Config> for Params {
     fn from(settings: Config) -> Self {
         let mut params = Params::default();

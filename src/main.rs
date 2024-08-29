@@ -45,14 +45,14 @@ fn main() {
     let config = load_config("config.toml");
 
     let params = Params {
-        show_all: args.show_all.unwrap_or(config.show_all),
-        append_slash: args.slash.unwrap_or(config.append_slash),
-        dirs_first: args.dirs_first.unwrap_or(config.dirs_first),
-        almost_all: args.almost_all.unwrap_or(config.almost_all),
-        long_format: args.long.unwrap_or(config.long_format),
-        human_readable: args.human_readable.unwrap_or(config.human_readable),
-        no_icons: args.no_icons.unwrap_or(config.no_icons),
-        fuzzy_time: args.fuzzy_time.unwrap_or(config.fuzzy_time),
+        show_all: args.show_all || config.show_all,
+        append_slash: args.slash || config.append_slash,
+        dirs_first: args.dirs_first || config.dirs_first,
+        almost_all: args.almost_all || config.almost_all,
+        long_format: args.long || config.long_format,
+        human_readable: args.human_readable || config.human_readable,
+        no_icons: args.no_icons || config.no_icons,
+        fuzzy_time: args.fuzzy_time || config.fuzzy_time,
     };
 
     let patterns = if args.paths.is_empty() {
