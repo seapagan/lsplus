@@ -216,15 +216,27 @@ fn get_folder_icon(folder_name: &str) -> Icon {
     *folder_icons().get(folder_name).unwrap_or(&Icon::Folder)
 }
 
+// Helper function to check if a file name ends with an extension
+fn has_extension(file_name: &str, ext: &str) -> bool {
+    // Guard against empty extension
+    if ext.is_empty() {
+        return false;
+    }
+
+    // Guard against special dot cases
+    if file_name == "." || file_name == ".." {
+        return false;
+    }
+
+    file_name.ends_with(ext)
+        && file_name.len() > ext.len()
+        && file_name[..file_name.len() - ext.len()].ends_with('.')
+        && file_name.trim_start_matches('.').len() > ext.len() + 1
+}
+
 fn get_file_icon(file_name: &str) -> Icon {
     // Find the longest known extension from the end of the filename and return
     // the icon for that extension
-
-    // Helper function to check if a file name ends with an extension
-    fn has_extension(file_name: &str, ext: &str) -> bool {
-        file_name.ends_with(ext)
-            && file_name[file_name.len() - ext.len() - 1..].starts_with('.')
-    }
 
     let extension = known_extensions()
         .iter()
@@ -258,5 +270,41 @@ pub fn get_item_icon(metadata: &fs::Metadata, file_path: &str) -> Icon {
     } else {
         get_filename_icon(file_name)
             .unwrap_or_else(|| get_file_icon(file_name))
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_has_extension() {
+        // Standard cases - should match
+        assert!(has_extension("test.txt", "txt"));
+        assert!(has_extension("path/to/file.rs", "rs"));
+        assert!(has_extension(".hidden.conf", "conf"));
+        assert!(has_extension("multiple.dots.md", "md"));
+
+        // Standard cases - should not match
+        assert!(!has_extension("text", "txt"));
+        assert!(!has_extension("notanexe", "exe"));
+        assert!(!has_extension(".gitignore", "git"));
+        assert!(!has_extension("Makefile", "file"));
+
+        // Edge cases - should not match
+        assert!(!has_extension("", "txt")); // empty string
+        assert!(!has_extension(".", "")); // just a dot
+        assert!(!has_extension("..", ".")); // double dot
+        assert!(!has_extension("txt", "txt")); // filename equals extension
+        assert!(!has_extension(".txt", "txt")); // hidden file equals extension
+
+        // Extension-like cases - should not match
+        assert!(!has_extension("txt.bak", "txt")); // extension in middle
+        assert!(!has_extension("mytxt", "txt")); // suffix but no dot
+        assert!(!has_extension(".txt.swp", "txt")); // hidden with different ext
+
+        // Special characters
+        assert!(has_extension("test.t.x.t", "t"));
+        assert!(has_extension("$^#@.bin", "bin"));
+        assert!(has_extension("spaces in name.doc", "doc"));
     }
 }
