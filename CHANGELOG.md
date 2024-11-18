@@ -6,6 +6,27 @@ project since the first release.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.5.0](https://github.com/seapagan/lsplus/releases/tag/0.5.0) (2024-11-18)
+
+**Closed Issues**
+
+- Panic if a file named exactly the same as a registered extension exists in the folder ([#36](https://github.com/seapagan/lsplus/issues/36)) by [seapagan](https://github.com/seapagan)
+
+**Bug Fixes**
+
+- Fix bug causing panic if file named as extension exists ([#38](https://github.com/seapagan/lsplus/pull/38)) by [seapagan](https://github.com/seapagan)
+
+**Dependency Updates**
+
+- Bump serde from 1.0.210 to 1.0.215 ([#37](https://github.com/seapagan/lsplus/pull/37)) by [dependabot[bot]](https://github.com/apps/dependabot)
+- Bump config from 0.14.0 to 0.14.1 ([#35](https://github.com/seapagan/lsplus/pull/35)) by [dependabot[bot]](https://github.com/apps/dependabot)
+- Bump clap from 4.5.18 to 4.5.20 ([#33](https://github.com/seapagan/lsplus/pull/33)) by [dependabot[bot]](https://github.com/apps/dependabot)
+- Bump clap from 4.5.17 to 4.5.18 ([#31](https://github.com/seapagan/lsplus/pull/31)) by [dependabot[bot]](https://github.com/apps/dependabot)
+- Bump clap from 4.5.15 to 4.5.17 ([#30](https://github.com/seapagan/lsplus/pull/30)) by [dependabot[bot]](https://github.com/apps/dependabot)
+- Bump serde from 1.0.209 to 1.0.210 ([#29](https://github.com/seapagan/lsplus/pull/29)) by [dependabot[bot]](https://github.com/apps/dependabot)
+
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.4.0...0.5.0) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.4.0...0.5.0.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.4.0...0.5.0.patch)
+
 ## [0.4.0](https://github.com/seapagan/lsplus/releases/tag/0.4.0) (2024-08-29)
 
 **New Features**
