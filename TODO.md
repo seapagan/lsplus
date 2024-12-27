@@ -14,3 +14,6 @@ whether it is a directory, file, or symlink.
 - [ ] option to  grey-out files in the `.gitignore`.
 - [ ] using the config file, allow extending the existing file and
 folder mapping, or deleting specific maps.
+- [ ] add a -R flag to recursively list files in a directory.
+- [ ] don't show link targets in short mode.
+- [ ] tidy up the short mode, the columns are sometimes not aligned.
