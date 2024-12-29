@@ -207,14 +207,22 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
                         )
                     }
                 } else {
-                    format!("{color_cyan}{}", file_name)
+                    format!(
+                        "{color_cyan}{}{}",
+                        file_name,
+                        if params.append_slash { "*" } else { "" }
+                    )
                 }
             }
             Err(_) => {
                 if params.long_format {
                     format!("{color_red}{} -> (unreadable)", file_name)
                 } else {
-                    format!("{color_cyan}{}", file_name)
+                    format!(
+                        "{color_cyan}{}{}",
+                        file_name,
+                        if params.append_slash { "*" } else { "" }
+                    )
                 }
             }
         }
