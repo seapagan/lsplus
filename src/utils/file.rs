@@ -192,21 +192,31 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
                 } else {
                     target
                 };
-                if target_path.exists() {
-                    format!(
-                        "{color_cyan}{} -> {}",
-                        file_name,
-                        target_path.display()
-                    )
+                if params.long_format {
+                    if target_path.exists() {
+                        format!(
+                            "{color_cyan}{} -> {}",
+                            file_name,
+                            target_path.display()
+                        )
+                    } else {
+                        format!(
+                            "{color_cyan}{} -> {} {color_red}[Broken Link]",
+                            file_name,
+                            target_path.display()
+                        )
+                    }
                 } else {
-                    format!(
-                        "{color_cyan}{} -> {} {color_red}[Broken Link]",
-                        file_name,
-                        target_path.display()
-                    )
+                    format!("{color_cyan}{}", file_name)
                 }
             }
-            Err(_) => format!("{color_red}{} -> (unreadable)", file_name),
+            Err(_) => {
+                if params.long_format {
+                    format!("{color_red}{} -> (unreadable)", file_name)
+                } else {
+                    format!("{color_cyan}{}", file_name)
+                }
+            }
         }
     } else if metadata.is_dir() {
         format!("{color_blue}{}", file_name)
