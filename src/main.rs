@@ -13,6 +13,7 @@ mod utils;
 use config::{Config, File, FileFormat};
 use dirs_next::home_dir;
 
+use strip_ansi_escapes::strip_str;
 use structs::{FileInfo, Params};
 use utils::file::{check_display_name, collect_file_info};
 
@@ -170,9 +171,15 @@ fn display_short_format(
     file_info: &[FileInfo],
     _params: &Params,
 ) -> io::Result<()> {
+    // Strip ANSI codes when calculating length
     let max_name_length = file_info
         .iter()
-        .map(|info| info.display_name.len())
+        .map(|info| {
+            let display_name = check_display_name(info);
+            // Remove ANSI escape sequences for length calculation
+            let clean_name = strip_str(&display_name);
+            clean_name.len()
+        })
         .max()
         .unwrap_or(0)
         + 2; // Adding space between columns
@@ -186,13 +193,11 @@ fn display_short_format(
         let mut row = Row::empty();
         for info in chunk {
             let display_name = check_display_name(info);
-
             let mut cell_content = String::new();
             if let Some(icon) = &info.item_icon {
                 cell_content.push_str(&format!("{} ", icon));
             }
             cell_content.push_str(&display_name);
-
             row.add_cell(Cell::new(&cell_content));
         }
         table.add_row(row);
