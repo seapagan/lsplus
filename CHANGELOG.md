@@ -6,6 +6,23 @@ project since the first release.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.6.0](https://github.com/seapagan/lsplus/releases/tag/0.6.0) (2024-12-30)
+
+**Closed Issues**
+
+- Short mode should not show link targets ([#27](https://github.com/seapagan/lsplus/issues/27)) by [seapagan](https://github.com/seapagan)
+- Some icons truncated under `kitty` terminal ([#18](https://github.com/seapagan/lsplus/issues/18)) by [seapagan](https://github.com/seapagan)
+
+**New Features**
+
+- Don't show link target in short mode ([#45](https://github.com/seapagan/lsplus/pull/45)) by [seapagan](https://github.com/seapagan)
+
+**Bug Fixes**
+
+- Bugfix: inconsistent spacing in short mode ([#46](https://github.com/seapagan/lsplus/pull/46)) by [seapagan](https://github.com/seapagan)
+
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.5.0...0.6.0) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.5.0...0.6.0.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.5.0...0.6.0.patch)
+
 ## [0.5.0](https://github.com/seapagan/lsplus/releases/tag/0.5.0) (2024-11-18)
 
 **Closed Issues**
