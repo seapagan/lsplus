@@ -27,3 +27,4 @@ term_size = "0.3.2"
 config = "0.14.1"
 serde = { version = "1.0.215", features = ["derive"] }
 dirs-next = "2.0.0"
+strip-ansi-escapes = "0.2.0"

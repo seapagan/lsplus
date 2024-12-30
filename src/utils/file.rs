@@ -231,7 +231,10 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
     } else if executable {
         format!("{style_bold}{color_green}{}", file_name)
     } else {
-        file_name.clone()
+        // Regular files must have explicit color formatting (even if just reset)
+        // to ensure consistent ANSI escape sequence handling across all file types.
+        // This maintains proper alignment in table display format.
+        format!("{color_reset}{}", file_name)
     };
 
     Ok(FileInfo {
