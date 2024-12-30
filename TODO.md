@@ -13,4 +13,3 @@
 - [ ] using the config file, allow extending the existing file and folder
       mapping, or deleting specific maps.
 - [ ] add a -R flag to recursively list files in a directory.
-- [ ] tidy up the short mode, the columns are sometimes not aligned.
