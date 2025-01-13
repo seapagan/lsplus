@@ -275,6 +275,9 @@ pub fn get_item_icon(metadata: &fs::Metadata, file_path: &str) -> Icon {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::{self, File};
+    use std::io::Write;
+    use tempfile::tempdir;
 
     #[test]
     fn test_has_extension() {
@@ -306,5 +309,52 @@ mod tests {
         assert!(has_extension("test.t.x.t", "t"));
         assert!(has_extension("$^#@.bin", "bin"));
         assert!(has_extension("spaces in name.doc", "doc"));
+    }
+
+    #[test]
+    fn test_get_item_icon() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("testfile.txt");
+        let mut file = File::create(&file_path).unwrap();
+        writeln!(file, "Hello, world!").unwrap();
+
+        let metadata = fs::metadata(&file_path).unwrap();
+        let icon = get_item_icon(&metadata, file_path.to_str().unwrap());
+
+        assert_eq!(icon, Icon::LogFile);
+
+        dir.close().unwrap();
+    }
+
+    #[test]
+    fn test_get_item_icon_for_directory() {
+        let dir = tempdir().unwrap();
+        let subdir_path = dir.path().join("subdir");
+        fs::create_dir(&subdir_path).unwrap();
+
+        let metadata = fs::metadata(&subdir_path).unwrap();
+        let icon = get_item_icon(&metadata, subdir_path.to_str().unwrap());
+
+        assert_eq!(icon, Icon::Folder);
+
+        dir.close().unwrap();
+    }
+
+    #[test]
+    fn test_get_item_icon_for_symlink() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("testfile.txt");
+        let mut file = File::create(&file_path).unwrap();
+        writeln!(file, "Hello, world!").unwrap();
+
+        let symlink_path = dir.path().join("symlink");
+        std::os::unix::fs::symlink(&file_path, &symlink_path).unwrap();
+
+        let metadata = fs::symlink_metadata(&symlink_path).unwrap();
+        let icon = get_item_icon(&metadata, symlink_path.to_str().unwrap());
+
+        assert_eq!(icon, Icon::Symlink);
+
+        dir.close().unwrap();
     }
 }

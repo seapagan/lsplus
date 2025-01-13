@@ -48,3 +48,26 @@ pub fn show_size(size: u64, human_readable: bool) -> (String, &'static str) {
         (size.to_string(), "")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_show_size_human_readable() {
+        assert_eq!(show_size(1024, true), ("1.0".to_string(), "KB"));
+        assert_eq!(show_size(1048576, true), ("1.0".to_string(), "MB"));
+        assert_eq!(show_size(1073741824, true), ("1.0".to_string(), "GB"));
+        assert_eq!(show_size(1099511627776, true), ("1.0".to_string(), "TB"));
+        assert_eq!(show_size(1125899906842624, true), ("1.0".to_string(), "PB"));
+    }
+
+    #[test]
+    fn test_show_size_non_human_readable() {
+        assert_eq!(show_size(1024, false), ("1024".to_string(), ""));
+        assert_eq!(show_size(1048576, false), ("1048576".to_string(), ""));
+        assert_eq!(show_size(1073741824, false), ("1073741824".to_string(), ""));
+        assert_eq!(show_size(1099511627776, false), ("1099511627776".to_string(), ""));
+        assert_eq!(show_size(1125899906842624, false), ("1125899906842624".to_string(), ""));
+    }
+}

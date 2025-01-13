@@ -258,3 +258,45 @@ pub fn check_display_name(info: &FileInfo) -> String {
         _ => info.display_name.to_string(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::{self, File};
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_collect_file_info() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test_file.txt");
+        let mut file = File::create(&file_path).unwrap();
+        writeln!(file, "Hello, world!").unwrap();
+
+        let params = Params::default();
+        let file_info = collect_file_info(&file_path, &params).unwrap();
+
+        assert_eq!(file_info.len(), 1);
+        assert_eq!(file_info[0].display_name, "test_file.txt");
+
+        dir.close().unwrap();
+    }
+
+    #[test]
+    fn test_collect_file_info_directory() {
+        let dir = tempdir().unwrap();
+        let subdir_path = dir.path().join("subdir");
+        fs::create_dir(&subdir_path).unwrap();
+        let file_path = subdir_path.join("test_file.txt");
+        let mut file = File::create(&file_path).unwrap();
+        writeln!(file, "Hello, world!").unwrap();
+
+        let params = Params::default();
+        let file_info = collect_file_info(&subdir_path, &params).unwrap();
+
+        assert_eq!(file_info.len(), 1);
+        assert_eq!(file_info[0].display_name, "test_file.txt");
+
+        dir.close().unwrap();
+    }
+}
