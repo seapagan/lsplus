@@ -15,7 +15,7 @@ macro_rules! config_to_params {
     };
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq)]
 pub struct Params {
     pub show_all: bool,
     pub append_slash: bool,
@@ -75,4 +75,55 @@ pub struct FileInfo {
     pub item_icon: Option<Icon>,
     pub display_name: String,
     pub full_path: PathBuf,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_default_params() {
+        let params = Params::default();
+        assert!(!params.show_all);
+        assert!(!params.append_slash);
+        assert!(!params.dirs_first);
+        assert!(!params.almost_all);
+        assert!(!params.long_format);
+        assert!(!params.human_readable);
+        assert!(!params.no_icons);
+        assert!(!params.fuzzy_time);
+    }
+
+    #[test]
+    fn test_config_conversion() -> std::io::Result<()> {
+        let temp_dir = tempdir()?;
+        let config_path = temp_dir.path().join("config.toml");
+
+        let config_content = r#"
+            show_all = true
+            append_slash = true
+            dirs_first = true
+            long_format = true
+            human_readable = true
+        "#;
+
+        fs::write(&config_path, config_content)?;
+
+        let config = config::Config::builder()
+            .add_source(config::File::from(config_path))
+            .build()
+            .unwrap();
+
+        let params: Params = config.into();
+
+        assert!(params.show_all);
+        assert!(params.append_slash);
+        assert!(params.dirs_first);
+        assert!(params.long_format);
+        assert!(params.human_readable);
+
+        Ok(())
+    }
 }
