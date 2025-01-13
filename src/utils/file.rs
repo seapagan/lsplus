@@ -460,7 +460,6 @@ mod tests {
         let dir_path = Path::new("test_dir");
         let file_path = Path::new("test_file");
         let symlink_path = Path::new("test_symlink");
-        let special_path = Path::new("test_special");
 
         fs::create_dir(dir_path)?;
         File::create(file_path)?;
@@ -659,6 +658,47 @@ mod tests {
         let info = create_file_info(&symlink_path, &params)?;
         assert!(info.display_name.contains("*"));
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_large_file_size() -> io::Result<()> {
+        let temp_dir = tempdir()?;
+        let file_path = temp_dir.path().join("large_file");
+        let file = File::create(&file_path)?;
+        
+        // Set file size to 5GB using seek
+        // Note: This doesn't actually allocate disk space
+        let size = 5 * 1024 * 1024 * 1024;
+        file.set_len(size)?;
+        
+        let params = Params {
+            human_readable: true,
+            ..Params::default()
+        };
+        let info = create_file_info(&file_path, &params)?;
+        
+        // Check the actual size field
+        assert_eq!(info.size, size);
+        Ok(())
+    }
+
+    #[test]
+    fn test_circular_symlink() -> io::Result<()> {
+        let temp_dir = tempdir()?;
+        let link1_path = temp_dir.path().join("link1");
+        let link2_path = temp_dir.path().join("link2");
+        
+        std::os::unix::fs::symlink(&link2_path, &link1_path)?;
+        std::os::unix::fs::symlink(&link1_path, &link2_path)?;
+        
+        let mut params = Params::default();
+        params.long_format = true;  // Need long format to see the symlink target
+        let info = create_file_info(&link1_path, &params)?;
+        
+        // Should handle circular symlinks gracefully
+        assert_eq!(info.file_type, "l");
+        assert!(info.display_name.contains("->"));
         Ok(())
     }
 }

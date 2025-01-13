@@ -310,10 +310,6 @@ mod tests {
 
     #[test]
     fn test_get_item_icon() {
-        use std::fs::Metadata;
-        use std::os::unix::fs::MetadataExt;
-        use std::os::unix::fs::FileTypeExt;
-
         // Create a mock metadata for a file
         let metadata = fs::metadata("Cargo.toml").unwrap();
         

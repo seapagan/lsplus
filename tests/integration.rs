@@ -1,6 +1,5 @@
 use assert_cmd::Command;
 use std::fs;
-use std::path::PathBuf;
 use tempfile::tempdir;
 
 #[test]
