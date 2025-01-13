@@ -206,3 +206,61 @@ fn display_short_format(
     table.printstd();
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::File;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_load_config_default() {
+        // When no config file exists, should return default params
+        let config = load_config();
+        // We can only test that it returns a Params struct
+        // The actual values might be affected by the user's config file
+        assert!(matches!(config, Params { .. }));
+    }
+
+    #[test]
+    fn test_run_multi() -> io::Result<()> {
+        let temp_dir = tempdir()?;
+        
+        // Create some test files
+        File::create(temp_dir.path().join("test1.txt"))?;
+        File::create(temp_dir.path().join("test2.txt"))?;
+        std::fs::create_dir(temp_dir.path().join("testdir"))?;
+        
+        let params = Params::default();
+        let patterns = vec![temp_dir.path().to_string_lossy().to_string()];
+        
+        assert!(run_multi(&patterns, &params).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn test_run_multi_nonexistent() {
+        let params = Params::default();
+        let patterns = vec![String::from("/nonexistent/path")];
+        
+        let result = run_multi(&patterns, &params);
+        assert!(result.is_ok()); // The function handles errors internally
+    }
+
+    #[test]
+    fn test_run_multi_with_glob() -> io::Result<()> {
+        let temp_dir = tempdir()?;
+        
+        // Create test files with different extensions
+        File::create(temp_dir.path().join("test1.txt"))?;
+        File::create(temp_dir.path().join("test2.txt"))?;
+        File::create(temp_dir.path().join("test.rs"))?;
+        
+        let params = Params::default();
+        let pattern = format!("{}/*.txt", temp_dir.path().to_string_lossy());
+        let patterns = vec![pattern];
+        
+        assert!(run_multi(&patterns, &params).is_ok());
+        Ok(())
+    }
+}

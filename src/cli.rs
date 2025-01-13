@@ -94,3 +94,53 @@ pub fn version_info() -> String {
         version, description, authors
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_flags() {
+        let args = Flags::parse_from(["lsplus"]);
+        assert_eq!(args.paths, vec![String::from(".")]);
+        assert!(!args.show_all);
+        assert!(!args.almost_all);
+        assert!(!args.long);
+        assert!(!args.human_readable);
+    }
+
+    #[test]
+    fn test_multiple_paths() {
+        let args = Flags::parse_from(["lsplus", "path1", "path2"]);
+        assert_eq!(args.paths, vec![String::from("path1"), String::from("path2")]);
+    }
+
+    #[test]
+    fn test_all_flags() {
+        let args = Flags::parse_from([
+            "lsplus",
+            "-a",
+            "-A",
+            "-l",
+            "-h",
+            "-p",
+            "--sort-dirs",
+            "--no-icons",
+            "--fuzzy-time",
+        ]);
+        assert!(args.show_all);
+        assert!(args.almost_all);
+        assert!(args.long);
+        assert!(args.human_readable);
+        assert!(args.slash);
+        assert!(args.dirs_first);
+        assert!(args.no_icons);
+        assert!(args.fuzzy_time);
+    }
+
+    #[test]
+    fn test_version_flag() {
+        let args = Flags::parse_from(["lsplus", "--version"]);
+        assert!(args.version);
+    }
+}
