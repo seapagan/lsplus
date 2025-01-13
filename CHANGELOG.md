@@ -6,6 +6,18 @@ project since the first release.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased](https://github.com/seapagan/lsplus/tree/HEAD)
+
+**Automatic Testing**
+
+- Add test suite ([#51](https://github.com/seapagan/lsplus/pull/51)) by [seapagan](https://github.com/seapagan)
+
+**Dependency Updates**
+
+- Bump config from 0.14.1 to 0.15.4 ([#44](https://github.com/seapagan/lsplus/pull/44)) by [dependabot[bot]](https://github.com/apps/dependabot)
+
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.6.0...HEAD) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.6.0...HEAD.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.6.0...HEAD.patch)
+
 ## [0.6.0](https://github.com/seapagan/lsplus/releases/tag/0.6.0) (2024-12-30)
 
 **Closed Issues**
