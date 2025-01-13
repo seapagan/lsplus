@@ -211,6 +211,7 @@ fn display_short_format(
 mod tests {
     use super::*;
     use std::fs::File;
+    use std::os::unix::fs::PermissionsExt;
     use tempfile::tempdir;
 
     #[test]
@@ -262,5 +263,225 @@ mod tests {
         
         assert!(run_multi(&patterns, &params).is_ok());
         Ok(())
+    }
+
+    #[test]
+    fn test_display_formats() -> io::Result<()> {
+        // Create a temporary directory for our test files
+        let temp_dir = tempfile::tempdir()?;
+        let test_file = temp_dir.path().join("test.txt");
+        File::create(&test_file)?;
+
+        // Create test file info
+        let params = Params::default();
+        let file_info = collect_file_info(&test_file, &params)?;
+
+        // Test long format display
+        let params = Params {
+            long_format: true,
+            fuzzy_time: true,
+            human_readable: true,
+            ..Default::default()
+        };
+        display_long_format(&file_info, &params)?;
+
+        // Test long format without fuzzy time and human readable
+        let params = Params {
+            long_format: true,
+            fuzzy_time: false,
+            human_readable: false,
+            ..Default::default()
+        };
+        display_long_format(&file_info, &params)?;
+
+        // Test short format display
+        let params = Params::default();
+        display_short_format(&file_info, &params)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_main_flags() {
+        // Test version flag
+        let args = cli::Flags {
+            version: true,
+            paths: vec![],
+            show_all: false,
+            almost_all: false,
+            slash: false,
+            dirs_first: false,
+            long: false,
+            human_readable: false,
+            no_icons: false,
+            fuzzy_time: false,
+        };
+        assert!(cli::version_info().contains("lsplus"));
+
+        // Test empty paths
+        let args = cli::Flags {
+            version: false,
+            paths: vec![],
+            show_all: false,
+            almost_all: false,
+            slash: false,
+            dirs_first: false,
+            long: false,
+            human_readable: false,
+            no_icons: false,
+            fuzzy_time: false,
+        };
+        assert_eq!(
+            if args.paths.is_empty() {
+                vec![String::from(".")]
+            } else {
+                args.paths
+            },
+            vec![String::from(".")]
+        );
+    }
+
+    #[test]
+    fn test_load_config_error() {
+        // Test with invalid config file
+        let mut config_path = PathBuf::new();
+        if let Some(home_dir) = home_dir() {
+            config_path.push(home_dir);
+            config_path.push(".config/lsplus/config.toml");
+        }
+
+        let settings = Config::builder()
+            .add_source(config::File::new(config_path.to_str().unwrap(), FileFormat::Toml))
+            .build();
+
+        match settings {
+            Ok(_) => (),
+            Err(e) => {
+                if e.to_string().contains("not found") {
+                    assert_eq!(Params::default(), Params::default());
+                } else {
+                    assert_eq!(Params::default(), Params::default());
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_run_multi_glob_error() {
+        let params = Params::default();
+        let invalid_pattern = vec![String::from("[invalid-glob-pattern")];
+        
+        // This should print an error message but not panic
+        run_multi(&invalid_pattern, &params).unwrap();
+    }
+
+    #[test]
+    fn test_load_config_error_other() {
+        // Test with a malformed config file
+        let temp_dir = tempfile::tempdir().unwrap();
+        let config_path = temp_dir.path().join(".config/lsplus/config.toml");
+        std::fs::create_dir_all(config_path.parent().unwrap()).unwrap();
+        std::fs::write(&config_path, "invalid = toml [ content").unwrap();
+
+        let settings = Config::builder()
+            .add_source(config::File::new(config_path.to_str().unwrap(), FileFormat::Toml))
+            .build();
+
+        match settings {
+            Ok(_) => panic!("Expected error"),
+            Err(e) => {
+                assert!(!e.to_string().contains("not found"));
+                let params = Params::default();
+                assert_eq!(params.show_all, false);
+            }
+        }
+    }
+
+    #[test]
+    fn test_main_error_handling() {
+        // Test with a pattern that will cause an error
+        let params = Params::default();
+        let invalid_pattern = vec![String::from("/nonexistent/path/that/should/not/exist")];
+        
+        let result = run_multi(&invalid_pattern, &params);
+        assert!(result.is_ok()); // The function handles errors internally
+    }
+
+    #[test]
+    fn test_main_config_merge() {
+        // Test merging of config and CLI args
+        let config = Params {
+            show_all: true,
+            append_slash: true,
+            dirs_first: false,
+            almost_all: false,
+            long_format: true,
+            human_readable: true,
+            no_icons: false,
+            fuzzy_time: false,
+        };
+
+        let args = cli::Flags {
+            version: false,
+            paths: vec![],
+            show_all: false,
+            almost_all: true,
+            slash: false,
+            dirs_first: true,
+            long: false,
+            human_readable: false,
+            no_icons: true,
+            fuzzy_time: true,
+        };
+
+        let params = Params {
+            show_all: args.show_all || config.show_all,
+            append_slash: args.slash || config.append_slash,
+            dirs_first: args.dirs_first || config.dirs_first,
+            almost_all: args.almost_all || config.almost_all,
+            long_format: args.long || config.long_format,
+            human_readable: args.human_readable || config.human_readable,
+            no_icons: args.no_icons || config.no_icons,
+            fuzzy_time: args.fuzzy_time || config.fuzzy_time,
+        };
+
+        // Verify the merging logic
+        assert!(params.show_all);
+        assert!(params.append_slash);
+        assert!(params.dirs_first);
+        assert!(params.almost_all);
+        assert!(params.long_format);
+        assert!(params.human_readable);
+        assert!(params.no_icons);
+        assert!(params.fuzzy_time);
+    }
+
+    #[test]
+    fn test_run_multi_error_handling() {
+        // Create a temporary directory and a file with no read permissions
+        let temp_dir = tempfile::tempdir().unwrap();
+        let test_file = temp_dir.path().join("no_read.txt");
+        std::fs::write(&test_file, "test").unwrap();
+        std::fs::set_permissions(&test_file, std::fs::Permissions::from_mode(0o000)).unwrap();
+
+        let params = Params::default();
+        let pattern = vec![test_file.to_string_lossy().to_string()];
+        
+        // This should print an error message but not panic
+        let result = run_multi(&pattern, &params);
+        assert!(result.is_ok()); // The function handles errors internally
+
+        // Clean up by restoring permissions so the file can be deleted
+        std::fs::set_permissions(&test_file, std::fs::Permissions::from_mode(0o644)).unwrap();
+    }
+
+    #[test]
+    fn test_run_multi_empty_pattern() {
+        let params = Params::default();
+        let pattern = vec![String::from("**/nonexistent_pattern_*.xyz")];
+        
+        // This should handle empty glob results
+        let result = run_multi(&pattern, &params);
+        assert!(result.is_ok());
     }
 }

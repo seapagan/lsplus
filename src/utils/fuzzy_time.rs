@@ -83,3 +83,84 @@ pub fn fuzzy_time(time: SystemTime) -> String {
         .unwrap_or_else(|_| Duration::from_secs(0));
     get_fuzzy_time(duration).to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{Duration, SystemTime};
+
+    fn get_test_time(seconds_ago: u64) -> SystemTime {
+        SystemTime::now()
+            .checked_sub(Duration::from_secs(seconds_ago))
+            .unwrap()
+    }
+
+    #[test]
+    fn test_fuzzy_time_seconds() {
+        let time = get_test_time(30);
+        assert_eq!(fuzzy_time(time), "30 seconds ago");
+    }
+
+    #[test]
+    fn test_fuzzy_time_minutes() {
+        let time = get_test_time(5 * 60);
+        assert_eq!(fuzzy_time(time), "5 minutes ago");
+
+        let time = get_test_time(60);
+        assert_eq!(fuzzy_time(time), "1 minute ago");
+    }
+
+    #[test]
+    fn test_fuzzy_time_hours() {
+        let time = get_test_time(2 * 60 * 60);
+        assert_eq!(fuzzy_time(time), "2 hours ago");
+
+        let time = get_test_time(60 * 60);
+        assert_eq!(fuzzy_time(time), "1 hour ago");
+    }
+
+    #[test]
+    fn test_fuzzy_time_days() {
+        let time = get_test_time(2 * 24 * 60 * 60);
+        assert_eq!(fuzzy_time(time), "2 days ago");
+
+        let time = get_test_time(24 * 60 * 60);
+        assert_eq!(fuzzy_time(time), "yesterday");
+    }
+
+    #[test]
+    fn test_fuzzy_time_weeks() {
+        let time = get_test_time(2 * 7 * 24 * 60 * 60);
+        assert_eq!(fuzzy_time(time), "2 weeks ago");
+
+        let time = get_test_time(7 * 24 * 60 * 60);
+        assert_eq!(fuzzy_time(time), "last week");
+    }
+
+    #[test]
+    fn test_fuzzy_time_months() {
+        let time = get_test_time(60 * 24 * 60 * 60);
+        assert_eq!(fuzzy_time(time), "2 months ago");
+
+        let time = get_test_time(32 * 24 * 60 * 60);
+        assert_eq!(fuzzy_time(time), "last month");
+    }
+
+    #[test]
+    fn test_fuzzy_time_years() {
+        let time = get_test_time(2 * 365 * 24 * 60 * 60);
+        assert_eq!(fuzzy_time(time), "2 years ago");
+
+        let time = get_test_time(366 * 24 * 60 * 60);
+        assert_eq!(fuzzy_time(time), "last year");
+    }
+
+    #[test]
+    fn test_fuzzy_time_future() {
+        // Create a time in the future
+        let future = SystemTime::now()
+            .checked_add(Duration::from_secs(3600))
+            .unwrap();
+        assert_eq!(fuzzy_time(future), "0 seconds ago");
+    }
+}
