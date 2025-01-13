@@ -304,18 +304,6 @@ mod tests {
     #[test]
     fn test_main_flags() {
         // Test version flag
-        let args = cli::Flags {
-            version: true,
-            paths: vec![],
-            show_all: false,
-            almost_all: false,
-            slash: false,
-            dirs_first: false,
-            long: false,
-            human_readable: false,
-            no_icons: false,
-            fuzzy_time: false,
-        };
         assert!(cli::version_info().contains("lsplus"));
 
         // Test empty paths
