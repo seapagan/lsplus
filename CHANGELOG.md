@@ -8,12 +8,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/seapagan/lsplus/tree/HEAD)
 
+**Closed Issues**
+
+- Passing a link to a folder will show the link file instead of the contents ([#48](https://github.com/seapagan/lsplus/issues/48)) by [seapagan](https://github.com/seapagan)
+
+**Bug Fixes**
+
+- Properly list the contents of a symlink to folder ([#52](https://github.com/seapagan/lsplus/pull/52)) by [seapagan](https://github.com/seapagan)
+
 **Automatic Testing**
 
 - Add test suite ([#51](https://github.com/seapagan/lsplus/pull/51)) by [seapagan](https://github.com/seapagan)
 
 **Dependency Updates**
 
+- Bump clap from 4.5.23 to 4.5.26 ([#50](https://github.com/seapagan/lsplus/pull/50)) by [dependabot[bot]](https://github.com/apps/dependabot)
+- Bump config from 0.15.4 to 0.15.5 ([#49](https://github.com/seapagan/lsplus/pull/49)) by [dependabot[bot]](https://github.com/apps/dependabot)
 - Bump config from 0.14.1 to 0.15.4 ([#44](https://github.com/seapagan/lsplus/pull/44)) by [dependabot[bot]](https://github.com/apps/dependabot)
 
 [`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.6.0...HEAD) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.6.0...HEAD.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.6.0...HEAD.patch)
