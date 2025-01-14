@@ -56,7 +56,15 @@ pub fn collect_file_names(
 ) -> io::Result<Vec<String>> {
     let mut file_names = Vec::new();
 
-    let path_metadata = fs::symlink_metadata(path)?;
+    // First get the symlink metadata to check if this is a symlink
+    let symlink_metadata = fs::symlink_metadata(path)?;
+    
+    // If it's a symlink, get the actual metadata by following it
+    let path_metadata = if symlink_metadata.is_symlink() {
+        fs::metadata(path)?
+    } else {
+        symlink_metadata
+    };
 
     if !path_metadata.is_dir() {
         // If it's a file or symlink, add it directly to the file_names vector
@@ -141,7 +149,14 @@ pub fn collect_file_info(
     params: &Params,
 ) -> io::Result<Vec<FileInfo>> {
     let mut file_info = Vec::new();
-    let metadata = fs::symlink_metadata(path)?;
+    let symlink_metadata = fs::symlink_metadata(path)?;
+    
+    // If it's a symlink, get the actual metadata by following it
+    let metadata = if symlink_metadata.is_symlink() {
+        fs::metadata(path)?
+    } else {
+        symlink_metadata
+    };
 
     if metadata.is_dir() {
         let file_names = utils::file::collect_file_names(path, params)?;
@@ -699,6 +714,38 @@ mod tests {
         // Should handle circular symlinks gracefully
         assert_eq!(info.file_type, "l");
         assert!(info.display_name.contains("->"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_symlink_to_directory() -> io::Result<()> {
+        let temp_dir = tempdir()?;
+        let target_dir = temp_dir.path().join("target_dir");
+        let symlink = temp_dir.path().join("symlink_dir");
+        let file_in_dir = target_dir.join("test_file.txt");
+
+        // Create target directory and a file inside it
+        fs::create_dir(&target_dir)?;
+        fs::write(&file_in_dir, "test content")?;
+
+        // Create symlink to the directory
+        std::os::unix::fs::symlink(&target_dir, &symlink)?;
+
+        // Test collect_file_names
+        let params = Params::default();
+        let files = collect_file_names(&symlink, &params)?;
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0], "test_file.txt");
+
+        // Test collect_file_info
+        let file_info = collect_file_info(&symlink, &params)?;
+        assert_eq!(file_info.len(), 1);
+        assert!(file_info[0].display_name.contains("test_file.txt"));
+
+        // Test that we can read through the symlink
+        let content = fs::read_to_string(symlink.join("test_file.txt"))?;
+        assert_eq!(content, "test content");
+
         Ok(())
     }
 }
