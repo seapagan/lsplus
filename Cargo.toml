@@ -24,7 +24,7 @@ inline_colorization = "0.1.6"
 nix = { version = "0.29.0", features = ["user"] }
 prettytable = "0.10.0"
 term_size = "0.3.2"
-config = "0.15.5"
+config = "0.15.6"
 serde = { version = "1.0.215", features = ["derive"] }
 dirs-next = "2.0.0"
 strip-ansi-escapes = "0.2.0"
