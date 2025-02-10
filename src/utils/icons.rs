@@ -312,7 +312,7 @@ mod tests {
     fn test_get_item_icon() {
         // Create a mock metadata for a file
         let metadata = fs::metadata("Cargo.toml").unwrap();
-        
+
         // Test unknown file type returns generic icon
         let icon = get_item_icon(&metadata, "test.unknown");
         assert_eq!(icon, Icon::GenericFile);
@@ -351,7 +351,7 @@ mod tests {
         assert_eq!(icons.get("LICENSE"), Some(&Icon::TextFile));
         assert_eq!(icons.get("Rakefile"), Some(&Icon::RubyFile));
         assert_eq!(icons.get("Gemfile"), Some(&Icon::RubyFile));
-        
+
         // Test unknown filename
         assert_eq!(icons.get("unknown.txt"), None);
     }
@@ -360,9 +360,12 @@ mod tests {
     fn test_folder_icons() {
         // Test known folder names
         assert_eq!(folder_icons().get(".git"), Some(&Icon::GitFile));
-        assert_eq!(folder_icons().get("node_modules"), Some(&Icon::NodeModulesFolder));
+        assert_eq!(
+            folder_icons().get("node_modules"),
+            Some(&Icon::NodeModulesFolder)
+        );
         assert_eq!(folder_icons().get(".vscode"), Some(&Icon::VsCodeFolder));
-        
+
         // Test unknown folder name
         assert_eq!(folder_icons().get("unknown_folder"), None);
     }

@@ -58,7 +58,7 @@ pub fn collect_file_names(
 
     // First get the symlink metadata to check if this is a symlink
     let symlink_metadata = fs::symlink_metadata(path)?;
-    
+
     // If it's a symlink, get the actual metadata by following it
     let path_metadata = if symlink_metadata.is_symlink() {
         fs::metadata(path)?
@@ -150,7 +150,7 @@ pub fn collect_file_info(
 ) -> io::Result<Vec<FileInfo>> {
     let mut file_info = Vec::new();
     let symlink_metadata = fs::symlink_metadata(path)?;
-    
+
     // If it's a symlink, get the actual metadata by following it
     let metadata = if symlink_metadata.is_symlink() {
         fs::metadata(path)?
@@ -306,7 +306,7 @@ mod tests {
         // Test with directory
         let dir_path = temp_dir.path().join("testdir");
         fs::create_dir(&dir_path).unwrap();
-        
+
         let info = FileInfo {
             file_type: String::from("directory"),
             mode: String::from("drwxr-xr-x"),
@@ -344,13 +344,13 @@ mod tests {
     #[test]
     fn test_collect_file_info() -> io::Result<()> {
         let temp_dir = tempdir()?;
-        
+
         // Create test files and directories
         let file1 = temp_dir.path().join("file1.txt");
         let file2 = temp_dir.path().join("file2.txt");
         let dir1 = temp_dir.path().join("dir1");
         let hidden = temp_dir.path().join(".hidden");
-        
+
         File::create(&file1)?;
         File::create(&file2)?;
         File::create(&hidden)?;
@@ -360,7 +360,7 @@ mod tests {
         let params = Params::default();
         let info = collect_file_info(temp_dir.path(), &params)?;
         assert_eq!(info.len(), 3); // 2 files + 1 dir, hidden file not included
-        
+
         // Test show_all
         let params = Params {
             show_all: true,
@@ -381,10 +381,14 @@ mod tests {
         // Check that all directories come before files
         let first_file_idx = info.iter().position(|f| f.file_type != "d");
         if let Some(idx) = first_file_idx {
-            assert!(info[..idx].iter().all(|f| f.file_type == "d"), 
-                "All items before first file should be directories");
-            assert!(info[idx..].iter().all(|f| f.file_type != "d"), 
-                "All items after first file should not be directories");
+            assert!(
+                info[..idx].iter().all(|f| f.file_type == "d"),
+                "All items before first file should be directories"
+            );
+            assert!(
+                info[idx..].iter().all(|f| f.file_type != "d"),
+                "All items after first file should not be directories"
+            );
         }
 
         Ok(())
@@ -458,7 +462,8 @@ mod tests {
         files.sort_by(|a, b| {
             if a.file_type == "directory" && b.file_type != "directory" {
                 std::cmp::Ordering::Less
-            } else if a.file_type != "directory" && b.file_type == "directory" {
+            } else if a.file_type != "directory" && b.file_type == "directory"
+            {
                 std::cmp::Ordering::Greater
             } else {
                 a.display_name.cmp(&b.display_name)
@@ -487,7 +492,8 @@ mod tests {
 
         // Test regular file
         let metadata = fs::metadata(file_path)?;
-        let (file_type, _, _, _, _, _, _, executable) = get_file_details(&metadata);
+        let (file_type, _, _, _, _, _, _, executable) =
+            get_file_details(&metadata);
         assert_eq!(file_type, "-");
         assert!(!executable);
 
@@ -497,7 +503,10 @@ mod tests {
         assert_eq!(file_type, "l");
 
         // Test executable file
-        std::fs::set_permissions(file_path, fs::Permissions::from_mode(0o755))?;
+        std::fs::set_permissions(
+            file_path,
+            fs::Permissions::from_mode(0o755),
+        )?;
         let metadata = fs::metadata(file_path)?;
         let (_, _, _, _, _, _, _, executable) = get_file_details(&metadata);
         assert!(executable);
@@ -574,7 +583,7 @@ mod tests {
         let temp_dir = tempfile::tempdir()?;
         let dir_path = temp_dir.path().join("test_dir");
         let file_path = temp_dir.path().join("test_file");
-        
+
         fs::create_dir(&dir_path)?;
         File::create(&file_path)?;
 
@@ -594,7 +603,10 @@ mod tests {
         assert!(info.item_icon.is_none());
 
         // Test executable file
-        std::fs::set_permissions(&file_path, fs::Permissions::from_mode(0o755))?;
+        std::fs::set_permissions(
+            &file_path,
+            fs::Permissions::from_mode(0o755),
+        )?;
         let info = create_file_info(&file_path, &params)?;
         assert!(info.display_name.contains(color_green));
 
@@ -656,7 +668,7 @@ mod tests {
         let temp_dir = tempfile::tempdir()?;
         let file_path = temp_dir.path().join("test_file");
         let symlink_path = temp_dir.path().join("test_symlink");
-        
+
         // Create test file and symlink
         File::create(&file_path)?;
         std::os::unix::fs::symlink("nonexistent", &symlink_path)?;
@@ -681,18 +693,18 @@ mod tests {
         let temp_dir = tempdir()?;
         let file_path = temp_dir.path().join("large_file");
         let file = File::create(&file_path)?;
-        
+
         // Set file size to 5GB using seek
         // Note: This doesn't actually allocate disk space
         let size = 5 * 1024 * 1024 * 1024;
         file.set_len(size)?;
-        
+
         let params = Params {
             human_readable: true,
             ..Params::default()
         };
         let info = create_file_info(&file_path, &params)?;
-        
+
         // Check the actual size field
         assert_eq!(info.size, size);
         Ok(())
@@ -703,14 +715,14 @@ mod tests {
         let temp_dir = tempdir()?;
         let link1_path = temp_dir.path().join("link1");
         let link2_path = temp_dir.path().join("link2");
-        
+
         std::os::unix::fs::symlink(&link2_path, &link1_path)?;
         std::os::unix::fs::symlink(&link1_path, &link2_path)?;
-        
+
         let mut params = Params::default();
-        params.long_format = true;  // Need long format to see the symlink target
+        params.long_format = true; // Need long format to see the symlink target
         let info = create_file_info(&link1_path, &params)?;
-        
+
         // Should handle circular symlinks gracefully
         assert_eq!(info.file_type, "l");
         assert!(info.display_name.contains("->"));

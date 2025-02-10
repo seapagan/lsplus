@@ -117,7 +117,10 @@ mod tests {
     #[test]
     fn test_multiple_paths() {
         let args = Flags::parse_from(["lsplus", "path1", "path2"]);
-        assert_eq!(args.paths, vec![String::from("path1"), String::from("path2")]);
+        assert_eq!(
+            args.paths,
+            vec![String::from("path1"), String::from("path2")]
+        );
     }
 
     #[test]
@@ -173,15 +176,23 @@ mod tests {
         let info = version_info();
         assert!(info.contains("lsplus v"));
         assert!(info.contains("Released under the MIT license by"));
-        
+
         // Verify the format is correct even if env vars were empty
         let formatted = format!(
             "lsplus v{}\n\
             \n{}\n\
             \nReleased under the MIT license by {}\n",
             env!("CARGO_PKG_VERSION"),
-            if env!("CARGO_PKG_DESCRIPTION").is_empty() { "No description provided" } else { env!("CARGO_PKG_DESCRIPTION") },
-            if env!("CARGO_PKG_AUTHORS").is_empty() { "Unknown" } else { env!("CARGO_PKG_AUTHORS") }
+            if env!("CARGO_PKG_DESCRIPTION").is_empty() {
+                "No description provided"
+            } else {
+                env!("CARGO_PKG_DESCRIPTION")
+            },
+            if env!("CARGO_PKG_AUTHORS").is_empty() {
+                "Unknown"
+            } else {
+                env!("CARGO_PKG_AUTHORS")
+            }
         );
         assert_eq!(info, formatted);
     }
