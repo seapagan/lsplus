@@ -47,15 +47,11 @@ fn test_config_file() {
 #[test]
 fn test_long_format() {
     let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.arg("-l")
-        .assert()
-        .success();
+    cmd.arg("-l").assert().success();
 }
 
 #[test]
 fn test_multiple_paths() {
     let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.args([".", "Cargo.toml"])
-        .assert()
-        .success();
+    cmd.args([".", "Cargo.toml"]).assert().success();
 }

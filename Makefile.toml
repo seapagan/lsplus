@@ -1,0 +1,8 @@
+[tasks.test]
+# this needs the crates 'nextest' and 'cargo-llvm-cov' installed locally
+command = "cargo"
+args = ["llvm-cov", "nextest"]
+
+[tasks.test-html]
+command = "cargo"
+args = ["llvm-cov", "nextest", "--html"]

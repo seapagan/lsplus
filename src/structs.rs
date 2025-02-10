@@ -15,7 +15,7 @@ macro_rules! config_to_params {
     };
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Default)]
 pub struct Params {
     pub show_all: bool,
     pub append_slash: bool,
@@ -25,21 +25,6 @@ pub struct Params {
     pub human_readable: bool,
     pub no_icons: bool,
     pub fuzzy_time: bool,
-}
-
-impl Default for Params {
-    fn default() -> Self {
-        Params {
-            show_all: false,
-            append_slash: false,
-            dirs_first: false,
-            almost_all: false,
-            long_format: false,
-            human_readable: false,
-            no_icons: false,
-            fuzzy_time: false,
-        }
-    }
 }
 
 impl From<Config> for Params {

@@ -226,15 +226,15 @@ mod tests {
     #[test]
     fn test_run_multi() -> io::Result<()> {
         let temp_dir = tempdir()?;
-        
+
         // Create some test files
         File::create(temp_dir.path().join("test1.txt"))?;
         File::create(temp_dir.path().join("test2.txt"))?;
         std::fs::create_dir(temp_dir.path().join("testdir"))?;
-        
+
         let params = Params::default();
         let patterns = vec![temp_dir.path().to_string_lossy().to_string()];
-        
+
         assert!(run_multi(&patterns, &params).is_ok());
         Ok(())
     }
@@ -243,7 +243,7 @@ mod tests {
     fn test_run_multi_nonexistent() {
         let params = Params::default();
         let patterns = vec![String::from("/nonexistent/path")];
-        
+
         let result = run_multi(&patterns, &params);
         assert!(result.is_ok()); // The function handles errors internally
     }
@@ -251,16 +251,16 @@ mod tests {
     #[test]
     fn test_run_multi_with_glob() -> io::Result<()> {
         let temp_dir = tempdir()?;
-        
+
         // Create test files with different extensions
         File::create(temp_dir.path().join("test1.txt"))?;
         File::create(temp_dir.path().join("test2.txt"))?;
         File::create(temp_dir.path().join("test.rs"))?;
-        
+
         let params = Params::default();
         let pattern = format!("{}/*.txt", temp_dir.path().to_string_lossy());
         let patterns = vec![pattern];
-        
+
         assert!(run_multi(&patterns, &params).is_ok());
         Ok(())
     }
@@ -339,7 +339,10 @@ mod tests {
         }
 
         let settings = Config::builder()
-            .add_source(config::File::new(config_path.to_str().unwrap(), FileFormat::Toml))
+            .add_source(config::File::new(
+                config_path.to_str().unwrap(),
+                FileFormat::Toml,
+            ))
             .build();
 
         match settings {
@@ -358,7 +361,7 @@ mod tests {
     fn test_run_multi_glob_error() {
         let params = Params::default();
         let invalid_pattern = vec![String::from("[invalid-glob-pattern")];
-        
+
         // This should print an error message but not panic
         run_multi(&invalid_pattern, &params).unwrap();
     }
@@ -372,7 +375,10 @@ mod tests {
         std::fs::write(&config_path, "invalid = toml [ content").unwrap();
 
         let settings = Config::builder()
-            .add_source(config::File::new(config_path.to_str().unwrap(), FileFormat::Toml))
+            .add_source(config::File::new(
+                config_path.to_str().unwrap(),
+                FileFormat::Toml,
+            ))
             .build();
 
         match settings {
@@ -389,8 +395,9 @@ mod tests {
     fn test_main_error_handling() {
         // Test with a pattern that will cause an error
         let params = Params::default();
-        let invalid_pattern = vec![String::from("/nonexistent/path/that/should/not/exist")];
-        
+        let invalid_pattern =
+            vec![String::from("/nonexistent/path/that/should/not/exist")];
+
         let result = run_multi(&invalid_pattern, &params);
         assert!(result.is_ok()); // The function handles errors internally
     }
@@ -450,24 +457,32 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let test_file = temp_dir.path().join("no_read.txt");
         std::fs::write(&test_file, "test").unwrap();
-        std::fs::set_permissions(&test_file, std::fs::Permissions::from_mode(0o000)).unwrap();
+        std::fs::set_permissions(
+            &test_file,
+            std::fs::Permissions::from_mode(0o000),
+        )
+        .unwrap();
 
         let params = Params::default();
         let pattern = vec![test_file.to_string_lossy().to_string()];
-        
+
         // This should print an error message but not panic
         let result = run_multi(&pattern, &params);
         assert!(result.is_ok()); // The function handles errors internally
 
         // Clean up by restoring permissions so the file can be deleted
-        std::fs::set_permissions(&test_file, std::fs::Permissions::from_mode(0o644)).unwrap();
+        std::fs::set_permissions(
+            &test_file,
+            std::fs::Permissions::from_mode(0o644),
+        )
+        .unwrap();
     }
 
     #[test]
     fn test_run_multi_empty_pattern() {
         let params = Params::default();
         let pattern = vec![String::from("**/nonexistent_pattern_*.xyz")];
-        
+
         // This should handle empty glob results
         let result = run_multi(&pattern, &params);
         assert!(result.is_ok());

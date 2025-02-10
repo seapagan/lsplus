@@ -57,19 +57,19 @@ mod tests {
     fn test_format_size() {
         let (size, unit) = human_readable_format(0);
         assert_eq!(format!("{:.1} {}", size, unit), "0.0 B");
-        
+
         let (size, unit) = human_readable_format(1023);
         assert_eq!(format!("{:.1} {}", size, unit), "1023.0 B");
-        
+
         let (size, unit) = human_readable_format(1024);
         assert_eq!(format!("{:.1} {}", size, unit), "1.0 KB");
-        
+
         let (size, unit) = human_readable_format(1024 * 1024);
         assert_eq!(format!("{:.1} {}", size, unit), "1.0 MB");
-        
+
         let (size, unit) = human_readable_format(1024 * 1024 * 1024);
         assert_eq!(format!("{:.1} {}", size, unit), "1.0 GB");
-        
+
         let (size, unit) = human_readable_format(1024 * 1024 * 1024 * 1024);
         assert_eq!(format!("{:.1} {}", size, unit), "1.0 TB");
     }
@@ -78,10 +78,10 @@ mod tests {
     fn test_format_size_partial() {
         let (size, unit) = human_readable_format(1536);
         assert_eq!(format!("{:.1} {}", size, unit), "1.5 KB");
-        
+
         let (size, unit) = human_readable_format(1024 * 1024 * 3 / 2);
         assert_eq!(format!("{:.1} {}", size, unit), "1.5 MB");
-        
+
         let (size, unit) = human_readable_format(1024 * 1024 * 1024 * 5 / 2);
         assert_eq!(format!("{:.1} {}", size, unit), "2.5 GB");
 
@@ -105,21 +105,22 @@ mod tests {
         // Test extremely large sizes
         let (size, unit) = human_readable_format(1024 * 1024 * 1024 * 1024);
         assert_eq!(format!("{:.1} {}", size, unit), "1.0 TB");
-        
-        let (size, unit) = human_readable_format(1024 * 1024 * 1024 * 1024 * 1024);
+
+        let (size, unit) =
+            human_readable_format(1024 * 1024 * 1024 * 1024 * 1024);
         assert_eq!(format!("{:.1} {}", size, unit), "1.0 PB");
-        
+
         // Test exact boundary cases
         let (size, unit) = human_readable_format(1024);
         assert_eq!(format!("{:.1} {}", size, unit), "1.0 KB");
-        
+
         let (size, unit) = human_readable_format(1024 * 1024);
         assert_eq!(format!("{:.1} {}", size, unit), "1.0 MB");
-        
+
         // Test just under boundary cases
         let (size, unit) = human_readable_format(1023);
         assert_eq!(format!("{:.1} {}", size, unit), "1023.0 B");
-        
+
         let (size, unit) = human_readable_format(1024 * 1024 - 1);
         assert_eq!(format!("{:.1} {}", size, unit), "1024.0 KB");
     }
@@ -145,13 +146,13 @@ mod tests {
     fn test_mode_to_rwx_edge_cases() {
         // Test no permissions
         assert_eq!(mode_to_rwx(0o0000), "---------");
-        
+
         // Test all permissions
         assert_eq!(mode_to_rwx(0o0777), "rwxrwxrwx");
-        
+
         // Test write-only (unusual case)
         assert_eq!(mode_to_rwx(0o0222), "-w--w--w-");
-        
+
         // Test execute-only (unusual case)
         assert_eq!(mode_to_rwx(0o0111), "--x--x--x");
     }
