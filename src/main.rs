@@ -130,7 +130,7 @@ fn calculate_column_widths(
     let mut max_group_width = 0;
     let mut max_size_width = 0;
     let mut max_date_width = 0;
-    let mut icon_width = if params.no_icons { 0 } else { 2 }; // 2 for icon + space
+    let icon_width = if params.no_icons { 0 } else { 2 }; // 2 for icon + space
 
     for info in file_info {
         // Mode (type + permissions)
