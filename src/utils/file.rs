@@ -239,11 +239,10 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
             }
         }
     } else if metadata.is_dir() {
-        let colored_name = file_name.blue().to_string();
         if params.append_slash {
-            format!("{}/", colored_name)
+            format!("{}/", file_name).blue().to_string()
         } else {
-            colored_name
+            file_name.blue().to_string()
         }
     } else if executable {
         file_name.green().bold().to_string()
@@ -593,7 +592,7 @@ mod tests {
         let mut params = Params::default();
         params.append_slash = true;
         let info = create_file_info(&dir_path, &params)?;
-        assert!(info.display_name.ends_with('/'));
+        assert_eq!(info.display_name, "test_dir/".blue().to_string());
 
         // Test file with ./ prefix
         let info = create_file_info(&file_path, &params)?;
