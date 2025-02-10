@@ -1,7 +1,7 @@
 use chrono::{DateTime, Local};
 use clap::Parser;
+use colored::*;
 use glob::glob;
-use inline_colorization::*;
 use prettytable::{Cell, Row};
 use std::io;
 use std::path::PathBuf;
@@ -140,8 +140,8 @@ fn display_long_format(
         row_cells
             .push(Cell::new(&format!("{}{} ", info.file_type, info.mode)));
         row_cells.push(Cell::new(&info.nlink.to_string()));
-        row_cells.push(Cell::new(&format!(" {color_cyan}{}", info.user)));
-        row_cells.push(Cell::new(&format!("{color_green}{} ", info.group)));
+        row_cells.push(Cell::new(&format!(" {}", info.user.cyan())));
+        row_cells.push(Cell::new(&format!("{} ", info.group.green())));
         row_cells.push(Cell::new(&display_size).style_spec("r"));
 
         if !units.is_empty() {
@@ -149,8 +149,7 @@ fn display_long_format(
         }
 
         row_cells.push(
-            Cell::new(&format!(" {color_yellow}{} ", display_time))
-                .style_spec("r"),
+            Cell::new(&format!(" {} ", display_time.yellow())).style_spec("r"),
         );
 
         if let Some(icon) = &info.item_icon {

@@ -5,7 +5,7 @@ use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::Path;
 use std::time::SystemTime;
 
-use inline_colorization::*;
+use colored::*;
 
 use crate::structs::FileInfo;
 use crate::utils;
@@ -195,10 +195,6 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
         file_name = file_name.replacen("./", "", 1);
     }
 
-    if params.append_slash && metadata.is_dir() {
-        file_name.push('/');
-    }
-
     let display_name = if metadata.is_symlink() {
         match fs::read_link(path) {
             Ok(target) => {
@@ -210,46 +206,52 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
                 if params.long_format {
                     if target_path.exists() {
                         format!(
-                            "{color_cyan}{} -> {}",
-                            file_name,
+                            "{} -> {}",
+                            file_name.cyan(),
                             target_path.display()
                         )
                     } else {
                         format!(
-                            "{color_cyan}{} -> {} {color_red}[Broken Link]",
-                            file_name,
-                            target_path.display()
+                            "{} -> {} {}",
+                            file_name.cyan(),
+                            target_path.display(),
+                            "[Broken Link]".red()
                         )
                     }
                 } else {
                     format!(
-                        "{color_cyan}{}{}",
-                        file_name,
+                        "{}{}",
+                        file_name.cyan(),
                         if params.append_slash { "*" } else { "" }
                     )
                 }
             }
             Err(_) => {
                 if params.long_format {
-                    format!("{color_red}{} -> (unreadable)", file_name)
+                    format!("{} -> (unreadable)", file_name.red())
                 } else {
                     format!(
-                        "{color_cyan}{}{}",
-                        file_name,
+                        "{}{}",
+                        file_name.cyan(),
                         if params.append_slash { "*" } else { "" }
                     )
                 }
             }
         }
     } else if metadata.is_dir() {
-        format!("{color_blue}{}", file_name)
+        let colored_name = file_name.blue().to_string();
+        if params.append_slash {
+            format!("{}/", colored_name)
+        } else {
+            colored_name
+        }
     } else if executable {
-        format!("{style_bold}{color_green}{}", file_name)
+        file_name.green().bold().to_string()
     } else {
         // Regular files must have explicit color formatting (even if just reset)
         // to ensure consistent ANSI escape sequence handling across all file types.
         // This maintains proper alignment in table display format.
-        format!("{color_reset}{}", file_name)
+        file_name.normal().to_string()
     };
 
     Ok(FileInfo {
@@ -268,8 +270,8 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
 
 pub fn check_display_name(info: &FileInfo) -> String {
     match &info.full_path.to_string_lossy() {
-        p if p.ends_with("/.") => format!("{color_blue}."),
-        p if p.ends_with("/..") => format!("{color_blue}.."),
+        p if p.ends_with("/.") => ".".blue().to_string(),
+        p if p.ends_with("/..") => "..".blue().to_string(),
         _ => info.display_name.to_string(),
     }
 }
@@ -338,7 +340,7 @@ mod tests {
         };
 
         let result = check_display_name(&dot_info);
-        assert_eq!(result, format!("{color_blue}."));
+        assert_eq!(result, ".".blue().to_string());
     }
 
     #[test]
@@ -403,7 +405,7 @@ mod tests {
         let params = Params::default();
         let info = create_file_info(&file_path, &params)?;
 
-        assert_eq!(info.display_name, format!("{color_reset}test.txt"));
+        assert_eq!(info.display_name, "test.txt".normal().to_string());
         assert!(!info.full_path.is_dir());
         assert_eq!(info.size, 12); // "test content" is 12 bytes
         assert!(info.item_icon.is_some());
@@ -608,7 +610,9 @@ mod tests {
             fs::Permissions::from_mode(0o755),
         )?;
         let info = create_file_info(&file_path, &params)?;
-        assert!(info.display_name.contains(color_green));
+        assert!(info
+            .display_name
+            .contains(&"test_file".green().bold().to_string()));
 
         Ok(())
     }

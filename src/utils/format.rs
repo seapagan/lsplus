@@ -1,4 +1,4 @@
-use inline_colorization::*;
+use colored::*;
 
 pub fn mode_to_rwx(mode: u32) -> String {
     let mut rwx = String::new();
@@ -63,8 +63,9 @@ pub fn shorten_filename(filename: &str, max_width: usize) -> String {
     let end_chars = available_width - start_chars;
 
     format!(
-        "{}{color_red}...{color_reset}{}{}",
+        "{}{}{}{}",
         &name[..start_chars],
+        "...".red(),
         &name[name.len() - end_chars..],
         ext
     )
@@ -199,13 +200,13 @@ mod tests {
         // Test basic shortening (balanced between start and end)
         assert_eq!(
             shorten_filename("verylongfilename.txt", 15),
-            format!("very{color_red}...{color_reset}name.txt")
+            format!("very{}name.txt", "...".red())
         );
 
         // Test with no extension (balanced between start and end)
         assert_eq!(
             shorten_filename("verylongfilename", 10),
-            format!("ver{color_red}...{color_reset}name")
+            format!("ver{}name", "...".red())
         );
 
         // Test with very short max width
@@ -217,7 +218,7 @@ mod tests {
         // Test with hidden file (balanced between start and end)
         assert_eq!(
             shorten_filename(".longconfigfile.conf", 15),
-            format!(".lo{color_red}...{color_reset}file.conf")
+            format!(".lo{}file.conf", "...".red())
         );
     }
 }
