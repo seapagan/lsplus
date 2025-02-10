@@ -107,18 +107,9 @@ fn run_multi(patterns: &[String], params: &Params) -> io::Result<()> {
     if params.long_format {
         display_long_format(&all_file_info, params, terminal_width)
     } else {
-        display_short_format(&all_file_info, params, terminal_width)
+        display_short_format(&all_file_info, params)
     }
 }
-
-// fn handle_error(path: &str, e: io::Error) {
-//     let error_message = match e.kind() {
-//         io::ErrorKind::PermissionDenied => "Permission denied",
-//         io::ErrorKind::NotFound => "No such file or directory",
-//         _ => &e.to_string(),
-//     };
-//     eprintln!("lsp: {}: {}", path, error_message);
-// }
 
 fn calculate_column_widths(
     file_info: &[FileInfo],
@@ -235,8 +226,7 @@ fn display_long_format(
 
 fn display_short_format(
     file_info: &[FileInfo],
-    params: &Params,
-    terminal_width: usize,
+    _params: &Params,
 ) -> io::Result<()> {
     // Strip ANSI codes when calculating length
     let max_name_length = file_info
@@ -251,6 +241,7 @@ fn display_short_format(
         .unwrap_or(0)
         + 2; // Adding space between columns
 
+    let terminal_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
     let num_columns = terminal_width / max_name_length;
 
     let mut table = utils::table::create_table(2);
@@ -258,14 +249,14 @@ fn display_short_format(
     for chunk in file_info.chunks(num_columns) {
         let mut row = Row::empty();
         for info in chunk {
-            let mut display_name = check_display_name(info);
+            let display_name = check_display_name(info);
 
             // Shorten the filename if needed and the option is enabled
-            if params.shorten_names {
-                let max_width = max_name_length - 2; // Account for spacing
-                display_name =
-                    utils::format::shorten_filename(&display_name, max_width);
-            }
+            // if params.shorten_names {
+            //     let max_width = max_name_length - 2; // Account for spacing
+            //     display_name =
+            //         utils::format::shorten_filename(&display_name, max_width);
+            // }
 
             let mut cell_content = String::new();
             if let Some(icon) = &info.item_icon {
@@ -376,11 +367,11 @@ mod tests {
             shorten_names: true,
             ..Default::default()
         };
-        display_short_format(&file_info, &params, test_width)?;
+        display_short_format(&file_info, &params)?;
 
         // Test short format without name shortening
         let params = Params::default();
-        display_short_format(&file_info, &params, test_width)?;
+        display_short_format(&file_info, &params)?;
 
         Ok(())
     }
