@@ -25,6 +25,7 @@ pub struct Params {
     pub human_readable: bool,
     pub no_icons: bool,
     pub fuzzy_time: bool,
+    pub shorten_names: bool,
 }
 
 impl From<Config> for Params {
@@ -41,7 +42,8 @@ impl From<Config> for Params {
             long_format,
             human_readable,
             no_icons,
-            fuzzy_time
+            fuzzy_time,
+            shorten_names
         );
 
         params
@@ -79,6 +81,7 @@ mod tests {
         assert!(!params.human_readable);
         assert!(!params.no_icons);
         assert!(!params.fuzzy_time);
+        assert!(!params.shorten_names);
     }
 
     #[test]

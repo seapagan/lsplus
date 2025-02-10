@@ -63,6 +63,7 @@ fn main() {
         human_readable: args.human_readable || config.human_readable,
         no_icons: args.no_icons || config.no_icons,
         fuzzy_time: args.fuzzy_time || config.fuzzy_time,
+        shorten_names: args.shorten_names || config.shorten_names,
     };
 
     let patterns = if args.paths.is_empty() {
@@ -78,6 +79,8 @@ fn main() {
 }
 
 fn run_multi(patterns: &[String], params: &Params) -> io::Result<()> {
+    // Get terminal width once at the start
+    let terminal_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
     let mut all_file_info = Vec::new();
 
     for pattern in patterns {
@@ -102,26 +105,73 @@ fn run_multi(patterns: &[String], params: &Params) -> io::Result<()> {
     }
 
     if params.long_format {
-        display_long_format(&all_file_info, params)
+        display_long_format(&all_file_info, params, terminal_width)
     } else {
         display_short_format(&all_file_info, params)
     }
 }
 
-// fn handle_error(path: &str, e: io::Error) {
-//     let error_message = match e.kind() {
-//         io::ErrorKind::PermissionDenied => "Permission denied",
-//         io::ErrorKind::NotFound => "No such file or directory",
-//         _ => &e.to_string(),
-//     };
-//     eprintln!("lsp: {}: {}", path, error_message);
-// }
+fn calculate_column_widths(
+    file_info: &[FileInfo],
+    params: &Params,
+    terminal_width: usize,
+) -> (usize, usize) {
+    let mut max_mode_width = 0;
+    let mut max_user_width = 0;
+    let mut max_group_width = 0;
+    let mut max_size_width = 0;
+    let mut max_date_width = 0;
+    let icon_width = if params.no_icons { 0 } else { 2 }; // 2 for icon + space
+
+    for info in file_info {
+        // Mode (type + permissions)
+        max_mode_width = max_mode_width.max(info.mode.len() + 2); // +2 for type and space
+                                                                  // User
+        max_user_width = max_user_width.max(info.user.len() + 1); // +1 for space
+                                                                  // Group
+        max_group_width = max_group_width.max(info.group.len() + 1); // +1 for space
+                                                                     // Size
+        let (size, unit) =
+            utils::format::show_size(info.size, params.human_readable);
+        max_size_width = max_size_width.max(size.len() + unit.len() + 1); // +1 for space
+                                                                          // Date
+        let date_str = if params.fuzzy_time {
+            utils::fuzzy_time(info.mtime).to_string()
+        } else {
+            let datetime: DateTime<Local> = DateTime::from(info.mtime);
+            datetime.format("%c").to_string()
+        };
+        max_date_width = max_date_width.max(date_str.len() + 2); // +2 for spaces
+    }
+
+    let total_fixed_width = max_mode_width
+        + max_user_width
+        + max_group_width
+        + max_size_width
+        + max_date_width
+        + icon_width;
+
+    // Account for table borders and padding (2 chars for borders, 1 for padding on each side)
+    let table_overhead = 4;
+    // Account for column separators (1 char each)
+    let num_separators = if icon_width > 0 { 8 } else { 7 };
+    let available_width = terminal_width
+        .saturating_sub(total_fixed_width)
+        .saturating_sub(table_overhead)
+        .saturating_sub(num_separators)
+        .saturating_sub(1); // Additional adjustment for potential off-by-one errors
+
+    (total_fixed_width, available_width)
+}
 
 fn display_long_format(
     file_info: &[FileInfo],
     params: &Params,
+    terminal_width: usize,
 ) -> io::Result<()> {
     let mut table = utils::table::create_table(0);
+    let (_, available_width) =
+        calculate_column_widths(file_info, params, terminal_width);
 
     for info in file_info {
         let display_time = if params.fuzzy_time {
@@ -156,7 +206,15 @@ fn display_long_format(
             row_cells.push(Cell::new(&format!("{} ", icon)));
         }
 
-        let display_name = check_display_name(info);
+        let mut display_name = check_display_name(info);
+
+        // Shorten the filename if needed and the option is enabled
+        if params.shorten_names {
+            display_name = utils::format::shorten_filename(
+                &display_name,
+                available_width,
+            );
+        }
 
         row_cells.push(Cell::new(&display_name));
 
@@ -276,25 +334,35 @@ mod tests {
         let params = Params::default();
         let file_info = collect_file_info(&test_file, &params)?;
 
-        // Test long format display
+        // Test long format display with all features
         let params = Params {
             long_format: true,
             fuzzy_time: true,
             human_readable: true,
+            shorten_names: true,
             ..Default::default()
         };
-        display_long_format(&file_info, &params)?;
+        let test_width = 80;
+        display_long_format(&file_info, &params, test_width)?;
 
-        // Test long format without fuzzy time and human readable
+        // Test long format without optional features
         let params = Params {
             long_format: true,
             fuzzy_time: false,
             human_readable: false,
+            shorten_names: false,
             ..Default::default()
         };
-        display_long_format(&file_info, &params)?;
+        display_long_format(&file_info, &params, test_width)?;
 
-        // Test short format display
+        // Test short format with name shortening
+        let params = Params {
+            shorten_names: true,
+            ..Default::default()
+        };
+        display_short_format(&file_info, &params)?;
+
+        // Test short format without name shortening
         let params = Params::default();
         display_short_format(&file_info, &params)?;
 
@@ -318,6 +386,7 @@ mod tests {
             human_readable: false,
             no_icons: false,
             fuzzy_time: false,
+            shorten_names: false,
         };
         assert_eq!(
             if args.paths.is_empty() {
@@ -414,6 +483,7 @@ mod tests {
             human_readable: true,
             no_icons: false,
             fuzzy_time: false,
+            shorten_names: true,
         };
 
         let args = cli::Flags {
@@ -427,6 +497,7 @@ mod tests {
             human_readable: false,
             no_icons: true,
             fuzzy_time: true,
+            shorten_names: false,
         };
 
         let params = Params {
@@ -438,6 +509,7 @@ mod tests {
             human_readable: args.human_readable || config.human_readable,
             no_icons: args.no_icons || config.no_icons,
             fuzzy_time: args.fuzzy_time || config.fuzzy_time,
+            shorten_names: args.shorten_names || config.shorten_names,
         };
 
         // Verify the merging logic
@@ -449,6 +521,7 @@ mod tests {
         assert!(params.human_readable);
         assert!(params.no_icons);
         assert!(params.fuzzy_time);
+        assert!(params.shorten_names);
     }
 
     #[test]
