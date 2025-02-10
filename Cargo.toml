@@ -27,7 +27,7 @@ term_size = "0.3.2"
 config = "0.15.7"
 serde = { version = "1.0.215", features = ["derive"] }
 dirs-next = "2.0.0"
-strip-ansi-escapes = "0.2.0"
+strip-ansi-escapes = "0.2.1"
 
 [dev-dependencies]
 tempfile = "3.16.0"
