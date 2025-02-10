@@ -1,3 +1,5 @@
+use inline_colorization::*;
+
 pub fn mode_to_rwx(mode: u32) -> String {
     let mut rwx = String::new();
     let perms = [
@@ -34,6 +36,38 @@ pub fn human_readable_format(size: u64) -> (f64, &'static str) {
     }
 
     (size, UNITS[unit_index])
+}
+
+/// Shortens a filename by replacing the middle with '...' if it exceeds max_width
+/// Preserves the file extension and at least 3 characters of the filename
+pub fn shorten_filename(filename: &str, max_width: usize) -> String {
+    if filename.len() <= max_width {
+        return filename.to_string();
+    }
+
+    // Split filename and extension
+    let (name, ext) = match filename.rfind('.') {
+        Some(pos) => (&filename[..pos], &filename[pos..]),
+        None => (filename, ""),
+    };
+
+    // Ensure we have enough space for at least 3 chars + ... + extension
+    let min_width = 6 + ext.len(); // 3 chars + "..." + extension
+    if max_width < min_width {
+        return filename[..max_width].to_string();
+    }
+
+    // Calculate how many characters we can keep from start and end of name
+    let available_width = max_width - 3 - ext.len(); // subtract "..." and extension
+    let start_chars = available_width / 2;
+    let end_chars = available_width - start_chars;
+
+    format!(
+        "{}{color_red}...{color_reset}{}{}",
+        &name[..start_chars],
+        &name[name.len() - end_chars..],
+        ext
+    )
 }
 
 pub fn show_size(size: u64, human_readable: bool) -> (String, &'static str) {
@@ -155,5 +189,35 @@ mod tests {
 
         // Test execute-only (unusual case)
         assert_eq!(mode_to_rwx(0o0111), "--x--x--x");
+    }
+
+    #[test]
+    fn test_shorten_filename() {
+        // Test no shortening needed
+        assert_eq!(shorten_filename("short.txt", 20), "short.txt");
+
+        // Test basic shortening (balanced between start and end)
+        assert_eq!(
+            shorten_filename("verylongfilename.txt", 15),
+            format!("very{color_red}...{color_reset}name.txt")
+        );
+
+        // Test with no extension (balanced between start and end)
+        assert_eq!(
+            shorten_filename("verylongfilename", 10),
+            format!("ver{color_red}...{color_reset}name")
+        );
+
+        // Test with very short max width
+        assert_eq!(shorten_filename("long.txt", 5), "long.");
+
+        // Test with exactly max width
+        assert_eq!(shorten_filename("exact.txt", 9), "exact.txt");
+
+        // Test with hidden file (balanced between start and end)
+        assert_eq!(
+            shorten_filename(".longconfigfile.conf", 15),
+            format!(".lo{color_red}...{color_reset}file.conf")
+        );
     }
 }

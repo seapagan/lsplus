@@ -63,6 +63,7 @@ fn main() {
         human_readable: args.human_readable || config.human_readable,
         no_icons: args.no_icons || config.no_icons,
         fuzzy_time: args.fuzzy_time || config.fuzzy_time,
+        shorten_names: args.shorten_names || config.shorten_names,
     };
 
     let patterns = if args.paths.is_empty() {
@@ -156,7 +157,16 @@ fn display_long_format(
             row_cells.push(Cell::new(&format!("{} ", icon)));
         }
 
-        let display_name = check_display_name(info);
+        let mut display_name = check_display_name(info);
+
+        // Shorten the filename if needed and the option is enabled
+        if params.shorten_names {
+            let terminal_width =
+                term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
+            let max_width = terminal_width / 2; // Use half the terminal width as max for long format
+            display_name =
+                utils::format::shorten_filename(&display_name, max_width);
+        }
 
         row_cells.push(Cell::new(&display_name));
 
@@ -169,7 +179,7 @@ fn display_long_format(
 
 fn display_short_format(
     file_info: &[FileInfo],
-    _params: &Params,
+    params: &Params,
 ) -> io::Result<()> {
     // Strip ANSI codes when calculating length
     let max_name_length = file_info
@@ -192,7 +202,15 @@ fn display_short_format(
     for chunk in file_info.chunks(num_columns) {
         let mut row = Row::empty();
         for info in chunk {
-            let display_name = check_display_name(info);
+            let mut display_name = check_display_name(info);
+
+            // Shorten the filename if needed and the option is enabled
+            if params.shorten_names {
+                let max_width = max_name_length - 2; // Account for spacing
+                display_name =
+                    utils::format::shorten_filename(&display_name, max_width);
+            }
+
             let mut cell_content = String::new();
             if let Some(icon) = &info.item_icon {
                 cell_content.push_str(&format!("{} ", icon));
@@ -276,25 +294,34 @@ mod tests {
         let params = Params::default();
         let file_info = collect_file_info(&test_file, &params)?;
 
-        // Test long format display
+        // Test long format display with all features
         let params = Params {
             long_format: true,
             fuzzy_time: true,
             human_readable: true,
+            shorten_names: true,
             ..Default::default()
         };
         display_long_format(&file_info, &params)?;
 
-        // Test long format without fuzzy time and human readable
+        // Test long format without optional features
         let params = Params {
             long_format: true,
             fuzzy_time: false,
             human_readable: false,
+            shorten_names: false,
             ..Default::default()
         };
         display_long_format(&file_info, &params)?;
 
-        // Test short format display
+        // Test short format with name shortening
+        let params = Params {
+            shorten_names: true,
+            ..Default::default()
+        };
+        display_short_format(&file_info, &params)?;
+
+        // Test short format without name shortening
         let params = Params::default();
         display_short_format(&file_info, &params)?;
 
@@ -318,6 +345,7 @@ mod tests {
             human_readable: false,
             no_icons: false,
             fuzzy_time: false,
+            shorten_names: false,
         };
         assert_eq!(
             if args.paths.is_empty() {
@@ -414,6 +442,7 @@ mod tests {
             human_readable: true,
             no_icons: false,
             fuzzy_time: false,
+            shorten_names: true,
         };
 
         let args = cli::Flags {
@@ -427,6 +456,7 @@ mod tests {
             human_readable: false,
             no_icons: true,
             fuzzy_time: true,
+            shorten_names: false,
         };
 
         let params = Params {
@@ -438,6 +468,7 @@ mod tests {
             human_readable: args.human_readable || config.human_readable,
             no_icons: args.no_icons || config.no_icons,
             fuzzy_time: args.fuzzy_time || config.fuzzy_time,
+            shorten_names: args.shorten_names || config.shorten_names,
         };
 
         // Verify the merging logic
@@ -449,6 +480,7 @@ mod tests {
         assert!(params.human_readable);
         assert!(params.no_icons);
         assert!(params.fuzzy_time);
+        assert!(params.shorten_names);
     }
 
     #[test]
