@@ -31,6 +31,6 @@ strip-ansi-escapes = "0.2.1"
 
 [dev-dependencies]
 tempfile = "3.16.0"
-assert_cmd = "2.0.12"
+assert_cmd = "2.0.17"
 predicates = "3.0.4"
 filetime = "0.2.23"
