@@ -30,6 +30,7 @@ pub enum Icon {
     DockerFile = '\u{f21f}' as isize,
     FontFile = '\u{e659}' as isize,
     GitFile = '\u{f1d3}' as isize,
+    // GitFile = '\u{e702}' as isize, // may switch to this later
     HistoryFile = '\u{f1da}' as isize,
     HtmlFile = '\u{e736}' as isize,
     JavaScriptFile = '\u{e74e}' as isize,
