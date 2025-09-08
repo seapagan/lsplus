@@ -6,15 +6,26 @@ project since the first release.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [Unreleased](https://github.com/seapagan/lsplus/tree/HEAD)
+## [0.7.0](https://github.com/seapagan/lsplus/releases/tag/0.7.0) (2025-09-08)
 
 **Closed Issues**
 
 - Passing a link to a folder will show the link file instead of the contents ([#48](https://github.com/seapagan/lsplus/issues/48)) by [seapagan](https://github.com/seapagan)
 
+**New Features**
+
+- Add a github action to build a release for linux and mac ([#93](https://github.com/seapagan/lsplus/pull/93)) by [seapagan](https://github.com/seapagan)
+- Update rust edition from 2021 to 2024 ([#91](https://github.com/seapagan/lsplus/pull/91)) by [seapagan](https://github.com/seapagan)
+- Move from dependabot to renovate ([#82](https://github.com/seapagan/lsplus/pull/82)) by [seapagan](https://github.com/seapagan)
+
 **Bug Fixes**
 
+- Fix some icons and file associations ([#81](https://github.com/seapagan/lsplus/pull/81)) by [seapagan](https://github.com/seapagan)
 - Properly list the contents of a symlink to folder ([#52](https://github.com/seapagan/lsplus/pull/52)) by [seapagan](https://github.com/seapagan)
+
+**Refactoring**
+
+- Perform some minor refactoring ([#59](https://github.com/seapagan/lsplus/pull/59)) by [seapagan](https://github.com/seapagan)
 
 **Automatic Testing**
 
@@ -22,11 +33,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 **Dependency Updates**
 
-- Bump clap from 4.5.23 to 4.5.26 ([#50](https://github.com/seapagan/lsplus/pull/50)) by [dependabot[bot]](https://github.com/apps/dependabot)
-- Bump config from 0.15.4 to 0.15.5 ([#49](https://github.com/seapagan/lsplus/pull/49)) by [dependabot[bot]](https://github.com/apps/dependabot)
-- Bump config from 0.14.1 to 0.15.4 ([#44](https://github.com/seapagan/lsplus/pull/44)) by [dependabot[bot]](https://github.com/apps/dependabot)
+- Update actions/checkout action to v5 ([#94](https://github.com/seapagan/lsplus/pull/94)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update Rust crate chrono to v0.4.42 ([#92](https://github.com/seapagan/lsplus/pull/92)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update actions/checkout action to v5 ([#90](https://github.com/seapagan/lsplus/pull/90)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update Rust crate tempfile to v3.21.0 ([#89](https://github.com/seapagan/lsplus/pull/89)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update Rust crate glob to v0.3.3 ([#88](https://github.com/seapagan/lsplus/pull/88)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update Rust crate filetime to v0.2.26 ([#87](https://github.com/seapagan/lsplus/pull/87)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update Rust crate config to v0.15.15 ([#86](https://github.com/seapagan/lsplus/pull/86)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update Rust crate clap to v4.5.47 ([#84](https://github.com/seapagan/lsplus/pull/84)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update Rust crate assert_cmd to v2.0.17 ([#83](https://github.com/seapagan/lsplus/pull/83)) by [renovate[bot]](https://github.com/apps/renovate)
+- Bump chrono from 0.4.39 to 0.4.41 ([#80](https://github.com/seapagan/lsplus/pull/80)) by [dependabot[bot]](https://github.com/apps/dependabot)
+- *and 11 more dependency updates*
 
-[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.6.0...HEAD) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.6.0...HEAD.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.6.0...HEAD.patch)
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.6.0...0.7.0) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.6.0...0.7.0.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.6.0...0.7.0.patch)
 
 ## [0.6.0](https://github.com/seapagan/lsplus/releases/tag/0.6.0) (2024-12-30)
 

@@ -1,6 +1,6 @@
 [package]
 name = "lsplus"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2024"
 authors = ["Grant Ramsay <seapagan@gmail.com>"]
 description = "A replacement for the 'ls' command written in Rust."
