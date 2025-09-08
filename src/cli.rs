@@ -68,6 +68,13 @@ pub struct Flags {
 
     #[arg(long = "fuzzy-time", short = 'Z', help = "Use fuzzy time format")]
     pub fuzzy_time: bool,
+
+    #[arg(
+        long = "shorten",
+        short = 'S',
+        help = "Shorten long filenames to prevent line wrapping"
+    )]
+    pub shorten_names: bool,
 }
 
 pub fn version_info() -> String {
