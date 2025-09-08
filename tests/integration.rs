@@ -38,7 +38,8 @@ fn test_config_file() {
     fs::write(&config_file, "invalid = toml [ content").unwrap();
 
     // Set the home directory environment variable
-    std::env::set_var("HOME", temp_dir.path());
+    // TODO: Audit that the environment access only happens in single-threaded code.
+    unsafe { std::env::set_var("HOME", temp_dir.path()) };
 
     let mut cmd = Command::cargo_bin("lsp").unwrap();
     cmd.assert().success(); // Should use default params when config is invalid
