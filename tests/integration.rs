@@ -37,11 +37,11 @@ fn test_config_file() {
     // Write an invalid config file
     fs::write(&config_file, "invalid = toml [ content").unwrap();
 
-    // Set the home directory environment variable
-    std::env::set_var("HOME", temp_dir.path());
-
-    let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.assert().success(); // Should use default params when config is invalid
+    // Set the home directory environment variable temporarily
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        let mut cmd = Command::cargo_bin("lsp").unwrap();
+        cmd.assert().success(); // Should use default params when config is invalid
+    });
 }
 
 #[test]

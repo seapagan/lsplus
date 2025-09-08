@@ -1,7 +1,7 @@
 [package]
 name = "lsplus"
 version = "0.6.0"
-edition = "2021"
+edition = "2024"
 authors = ["Grant Ramsay <seapagan@gmail.com>"]
 description = "A replacement for the 'ls' command written in Rust."
 license = "MIT"
@@ -34,3 +34,4 @@ tempfile = "3.19.1"
 assert_cmd = "2.0.12"
 predicates = "3.0.4"
 filetime = "0.2.23"
+temp-env = "0.3.6"

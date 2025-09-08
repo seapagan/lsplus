@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::time::SystemTime;
 
 macro_rules! config_to_params {
-    ($settings:expr, $params:ident, $( $field:ident ),* ) => {
+    ($settings:expr_2021, $params:ident, $( $field:ident ),* ) => {
         $(
             if let Ok(value) = $settings.get_bool(stringify!($field)) {
                 $params.$field = value;
