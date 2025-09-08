@@ -19,7 +19,8 @@ with time! 😁
 - [Compatibility](#compatibility)
 - [Nerd Fonts](#nerd-fonts)
 - [Installation](#installation)
-  - [Latest Release](#latest-release)
+  - [Download a Binary](#download-a-binary)
+  - [Using Cargo](#using-cargo)
   - [From Source](#from-source)
 - [Usage](#usage)
   - [Fuzzy Time](#fuzzy-time)
@@ -49,9 +50,19 @@ the program (or `no_icons=true` in the config file).
 
 ## Installation
 
-### Latest Release
+### Download a Binary
 
-To install the latest release of this package, you can use the following command:
+For Linux and Mac you can download the latest binary files from the [release
+page](https://github.com/seapagan/lsplus/releases/latest). Unpack the archive
+and move the single file `lsp` to somewhere in your path so it can be located.
+Ensure it is set as executable (though it already should be).
+
+These binaries are auto-generated for each release.
+
+### Using Cargo
+
+If you have rust installed, you can install the latest release of this package,
+using the following command:
 
 ```bash
 cargo install lsplus
