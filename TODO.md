@@ -6,7 +6,6 @@
       be colored the same way, and different to unknown file tipes.
 - [ ] for a symlink, color the name as it is, but color the target depending on
       whether it is a directory, file, or symlink.
-- [ ] colorize the short-form output same as the long-form output.
 - [ ] Add icons for partials like `TODO.*`, `LICENSE.*` and more.
 - [ ] option to grey-out files in the `.gitignore`.
 - [ ] using the config file, allow extending the existing file and folder
