@@ -12,3 +12,5 @@
 - [ ] using the config file, allow extending the existing file and folder
       mapping, or deleting specific maps.
 - [ ] add a -R flag to recursively list files in a directory.
+- [ ] better handle dotfiles?
+- [ ] option to list dotfiles (and folders) before non-dotfiles

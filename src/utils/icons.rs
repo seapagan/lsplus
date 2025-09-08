@@ -42,7 +42,7 @@ pub enum Icon {
     PerlFile = '\u{e67e}' as isize,
     PythonFile = '\u{e606}' as isize,
     ReactFile = '\u{e7ba}' as isize,
-    RubyFile = '\u{e23e}' as isize,
+    RubyFile = '\u{f0d2d}' as isize,
     RustFile = '\u{e7a8}' as isize,
     SassFile = '\u{e603}' as isize,
     SwapFile = '\u{f0fb4}' as isize,
@@ -89,6 +89,7 @@ fn folder_icons() -> &'static HashMap<&'static str, Icon> {
         m.insert("home", Icon::HomeFolder);
         m.insert("root", Icon::SecurityFolder);
         m.insert("venv", Icon::PythonFile);
+        m.insert(".fonts", Icon::FontFile);
         m.insert(".venv", Icon::PythonFile);
         m.insert(".pyenv", Icon::PythonFile);
         m.insert(".rbenv", Icon::RubyFile);
@@ -121,6 +122,20 @@ fn file_name_icons() -> &'static HashMap<&'static str, Icon> {
         m.insert("Rakefile", Icon::RubyFile);
         m.insert("Gemfile", Icon::RubyFile);
 
+        // specific dot files
+        m.insert(".gitignore", Icon::GitFile);
+        m.insert(".gitconfig", Icon::GitFile);
+        m.insert(".zshrc", Icon::TerminalFile);
+        m.insert(".bashrc", Icon::TerminalFile);
+        m.insert(".profile", Icon::TerminalFile);
+
+        m.insert(".bash_history", Icon::HistoryFile);
+        m.insert(".zsh_history", Icon::HistoryFile);
+        m.insert(".psql_history", Icon::HistoryFile);
+        m.insert(".python_history", Icon::HistoryFile);
+
+        m.insert(".gemrc", Icon::RubyFile);
+
         m
     })
 }
@@ -133,16 +148,16 @@ fn file_type_icons() -> &'static HashMap<&'static str, Icon> {
     // sharing the same icon
     FILE_ICONS.get_or_init(|| {
         let icon_groups: Vec<(&[&str], Icon)> = vec![
-            (&["txt"], Icon::LogFile),
-            (&["log"], Icon::TextFile),
+            (&["log"], Icon::LogFile),
+            (&["txt"], Icon::TextFile),
             (
                 &["conf", "cfg", "ini", "pylintrc", "yaml", "yml", "yarnrc"],
                 Icon::ConfigFile,
             ),
-            (
-                &["gitignore", "gitconfig", "gitattributes", "gitmodules"],
-                Icon::GitFile,
-            ),
+            // (
+            //     &["gitconfig", "gitattributes", "gitmodules"],
+            //     Icon::GitFile,
+            // ),
             (&["env"], Icon::WrenchFile),
             (&["json"], Icon::JsonFile),
             (&["md"], Icon::MarkdownFile),
@@ -151,7 +166,7 @@ fn file_type_icons() -> &'static HashMap<&'static str, Icon> {
             (&["db", "sqlite", "sql"], Icon::DatabaseFile),
             (&["py", "whl"], Icon::PythonFile),
             (&["jsx", "tsx"], Icon::ReactFile),
-            (&["rb", "gemrc", "rspec"], Icon::RubyFile),
+            (&["rb", "rspec"], Icon::RubyFile),
             (&["rs"], Icon::RustFile),
             (&["ts"], Icon::TypeScriptFile),
             (&["lua"], Icon::LuaFile),
@@ -161,17 +176,7 @@ fn file_type_icons() -> &'static HashMap<&'static str, Icon> {
             (&["html", "htm"], Icon::HtmlFile),
             (&["js", "cjs"], Icon::JavaScriptFile),
             (&["jpg", "png", "svg"], Icon::PictureFile),
-            (
-                &[
-                    "sh", "bash", "bashrc", "zsh", "zshrc", "fish", "profile",
-                    "zprofile",
-                ],
-                Icon::TerminalFile,
-            ),
-            (
-                &["bash_history", "zsh_history", "psql_history"],
-                Icon::HistoryFile,
-            ),
+            (&["sh", "bash", "zsh", "fish"], Icon::TerminalFile),
             (&["deb"], Icon::DebianFile),
             (
                 &[
@@ -192,6 +197,7 @@ fn file_type_icons() -> &'static HashMap<&'static str, Icon> {
                 ],
                 Icon::FontFile,
             ),
+            (&["history"], Icon::HistoryFile),
         ];
 
         let mut m = HashMap::new();
