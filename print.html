@@ -194,15 +194,23 @@ from. You will also need to set up your terminal to use that font.</p>
 the program.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="installation"><a class="header" href="#installation">Installation</a></h1>
 <p>To install the latest release of this package, you can use the following command:</p>
-<h2 id="latest-release"><a class="header" href="#latest-release">Latest Release</a></h2>
+<h2 id="download-a-binary"><a class="header" href="#download-a-binary">Download a Binary</a></h2>
+<p>For Linux and Mac you can download the latest binary files from the <a href="https://github.com/seapagan/lsplus/releases/latest">release
+page</a>. Unpack the archive
+and move the single file <code>lsp</code> to somewhere in your path so it can be located.
+Ensure it is set as executable (though it already should be).</p>
+<p>These binaries are auto-generated for each release.</p>
+<h2 id="using-cargo"><a class="header" href="#using-cargo">Using Cargo</a></h2>
+<p>If you have rust installed, you can install the latest release of this package,
+using the following command:</p>
 <pre><code class="language-bash">cargo install lsplus
 </code></pre>
 <p>This will install the <code>lsp</code> binary into your <code>~/.cargo/bin</code> directory. Make
 sure that this directory is in your <code>PATH</code> environment variable so that you
 can run the <code>lsp</code> command from anywhere.</p>
 <h2 id="from-source"><a class="header" href="#from-source">From Source</a></h2>
-<p>You can also install the package from source by cloning the repository and
-running the following command:</p>
+<p>You can also install the package from the GitHub repository by running the
+following command:</p>
 <pre><code class="language-bash">cargo install --git https://github.com/seapagan/lsplus.git
 </code></pre>
 <p>This may allow you to access the latest features and bug fixes that have not
