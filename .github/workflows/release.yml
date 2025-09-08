@@ -1,0 +1,100 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  build:
+    name: Build ${{ matrix.binary_target }}
+    runs-on: ${{ matrix.os }}
+    env:
+      BINARY_NAME: bundlerepo
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # - os: ubuntu-latest
+          #   binary_target: x86_64-unknown-linux-musl
+          - os: ubuntu-latest
+            binary_target: x86_64-unknown-linux-gnu
+          # disable windows for now until we support it properly
+          # - os: windows-latest
+          #   binary_target: x86_64-pc-windows-msvc
+          - os: macos-13
+            binary_target: x86_64-apple-darwin
+          - os: macos-latest
+            binary_target: aarch64-apple-darwin
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install musl tools and OpenSSL
+        if: matrix.binary_target == 'x86_64-unknown-linux-musl'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools musl-dev pkg-config linux-headers-generic
+          # Install and configure OpenSSL for MUSL
+          sudo apt-get install -y wget
+          OPENSSL_VERSION=3.4.1
+          wget https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz
+          tar xvf openssl-$OPENSSL_VERSION.tar.gz
+          cd openssl-$OPENSSL_VERSION
+          # Configure OpenSSL for MUSL
+          CC="musl-gcc -fPIC" ./Configure no-shared no-async linux-x86_64
+          make -j$(nproc)
+          sudo make install
+          cd ..
+          # Set OpenSSL env vars for the build
+          echo "OPENSSL_DIR=/usr/local" >> $GITHUB_ENV
+          echo "OPENSSL_STATIC=1" >> $GITHUB_ENV
+
+      - name: Install macOS dependencies (x86_64)
+        if: matrix.binary_target == 'x86_64-apple-darwin'
+        run: |
+          brew install openssl@3
+          echo 'export OPENSSL_DIR=$(brew --prefix openssl@3)' >> $GITHUB_ENV
+
+      - name: Install target
+        run: rustup target add ${{ matrix.binary_target }}
+
+      - name: Build binary
+        run: |
+          cargo build --release --target ${{ matrix.binary_target }}
+
+      - name: Set archive name
+        id: archive
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            echo "archive_name=${{ env.BINARY_NAME }}-v${{ github.ref_name }}-${{ matrix.binary_target }}.zip" >> $GITHUB_OUTPUT
+          else
+            echo "archive_name=${{ env.BINARY_NAME }}-v${{ github.ref_name }}-${{ matrix.binary_target }}.tar.gz" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prepare binary (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd target/${{ matrix.binary_target }}/release
+          tar -czf ../../../${{ steps.archive.outputs.archive_name }} ${{ env.BINARY_NAME }}
+          cd -
+
+      - name: Prepare binary (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          cd target/${{ matrix.binary_target }}/release
+          $BINARY_NAME = "${{ env.BINARY_NAME }}.exe"
+          Compress-Archive -Path $BINARY_NAME -DestinationPath ../../../${{ steps.archive.outputs.archive_name }}
+          cd -
+
+      - name: Upload Release Asset
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ steps.archive.outputs.archive_name }}
+          asset_name: ${{ steps.archive.outputs.archive_name }}
+          tag: ${{ github.ref }}
+          overwrite: true
