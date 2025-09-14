@@ -135,6 +135,9 @@ fn file_name_icons() -> &'static HashMap<&'static str, Icon> {
         m.insert(".psql_history", Icon::HistoryFile);
         m.insert(".python_history", Icon::HistoryFile);
 
+        m.insert(".env", Icon::WrenchFile);
+        m.insert(".envrc", Icon::WrenchFile);
+
         m.insert(".gemrc", Icon::RubyFile);
 
         m
@@ -164,7 +167,7 @@ fn file_type_icons() -> &'static HashMap<&'static str, Icon> {
             (&["md"], Icon::MarkdownFile),
             (&["toml"], Icon::TomlFile),
             (&["xml"], Icon::XmlFile),
-            (&["db", "sqlite", "sql"], Icon::DatabaseFile),
+            (&["db", "sqlite", "sqlite3", "sql"], Icon::DatabaseFile),
             (&["py", "whl"], Icon::PythonFile),
             (&["jsx", "tsx"], Icon::ReactFile),
             (&["rb", "rspec"], Icon::RubyFile),
