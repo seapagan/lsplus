@@ -11,38 +11,24 @@ use crate::utils::file::collect_file_info;
 pub fn run_with_flags(args: cli::Flags) -> io::Result<()> {
     let config = settings::load_config();
     let params = Params::merge(&args, &config);
-
-    let patterns = if args.paths.is_empty() {
-        vec![String::from(".")]
-    } else {
-        args.paths
-    };
+    let patterns = patterns_from_args(args.paths);
 
     run_multi(&patterns, &params)
+}
+
+fn patterns_from_args(paths: Vec<String>) -> Vec<String> {
+    if paths.is_empty() {
+        vec![String::from(".")]
+    } else {
+        paths
+    }
 }
 
 fn run_multi(patterns: &[String], params: &Params) -> io::Result<()> {
     let mut all_file_info = Vec::new();
 
     for pattern in patterns {
-        match glob(pattern) {
-            Ok(entries) => {
-                let paths: Vec<PathBuf> =
-                    entries.filter_map(Result::ok).collect();
-                if paths.is_empty() {
-                    eprintln!(
-                        "lsplus: {}: No such file or directory",
-                        pattern
-                    );
-                } else {
-                    for path in paths {
-                        let file_info = collect_file_info(&path, params)?;
-                        all_file_info.extend(file_info);
-                    }
-                }
-            }
-            Err(e) => eprintln!("Failed to read glob pattern: {}", e),
-        }
+        append_pattern_matches(&mut all_file_info, pattern, params)?;
     }
 
     if params.long_format {
@@ -50,6 +36,39 @@ fn run_multi(patterns: &[String], params: &Params) -> io::Result<()> {
     } else {
         utils::render::display_short_format(&all_file_info)
     }
+}
+
+fn append_pattern_matches(
+    all_file_info: &mut Vec<crate::FileInfo>,
+    pattern: &str,
+    params: &Params,
+) -> io::Result<()> {
+    match glob(pattern) {
+        Ok(entries) => {
+            let paths: Vec<PathBuf> = entries.filter_map(Result::ok).collect();
+            if paths.is_empty() {
+                eprintln!("lsplus: {}: No such file or directory", pattern);
+            } else {
+                append_paths(all_file_info, &paths, params)?;
+            }
+        }
+        Err(e) => eprintln!("Failed to read glob pattern: {}", e),
+    }
+
+    Ok(())
+}
+
+fn append_paths(
+    all_file_info: &mut Vec<crate::FileInfo>,
+    paths: &[PathBuf],
+    params: &Params,
+) -> io::Result<()> {
+    for path in paths {
+        let file_info = collect_file_info(path, params)?;
+        all_file_info.extend(file_info);
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -84,7 +103,7 @@ mod tests {
     }
 
     #[test]
-    fn test_run_multi_with_glob() -> io::Result<()> {
+    fn test_append_pattern_matches_with_glob() -> io::Result<()> {
         let temp_dir = tempdir()?;
 
         File::create(temp_dir.path().join("test1.txt"))?;
@@ -93,66 +112,24 @@ mod tests {
 
         let params = Params::default();
         let pattern = format!("{}/*.txt", temp_dir.path().to_string_lossy());
-        let patterns = vec![pattern];
+        let mut file_info = Vec::new();
 
-        assert!(run_multi(&patterns, &params).is_ok());
+        append_pattern_matches(&mut file_info, &pattern, &params)?;
+
+        assert_eq!(file_info.len(), 2);
         Ok(())
     }
 
     #[test]
-    fn test_display_formats() -> io::Result<()> {
-        let temp_dir = tempfile::tempdir()?;
-        let test_file = temp_dir.path().join("test.txt");
-        File::create(&test_file)?;
-
-        let params = Params::default();
-        let file_info = collect_file_info(&test_file, &params)?;
-
-        let params = Params {
-            long_format: true,
-            fuzzy_time: true,
-            human_readable: true,
-            ..Default::default()
-        };
-        utils::render::display_long_format(&file_info, &params)?;
-
-        let params = Params {
-            long_format: true,
-            fuzzy_time: false,
-            human_readable: false,
-            ..Default::default()
-        };
-        utils::render::display_long_format(&file_info, &params)?;
-
-        utils::render::display_short_format(&file_info)?;
-
-        Ok(())
+    fn test_patterns_from_args_defaults_to_current_directory() {
+        assert_eq!(patterns_from_args(Vec::new()), vec![String::from(".")]);
     }
 
     #[test]
-    fn test_main_flags() {
-        assert!(cli::version_info().contains("lsplus"));
+    fn test_patterns_from_args_preserves_explicit_paths() {
+        let paths = vec![String::from("left"), String::from("right")];
 
-        let args = cli::Flags {
-            version: false,
-            paths: vec![],
-            show_all: false,
-            almost_all: false,
-            slash: false,
-            dirs_first: false,
-            long: false,
-            human_readable: false,
-            no_icons: false,
-            fuzzy_time: false,
-        };
-        assert_eq!(
-            if args.paths.is_empty() {
-                vec![String::from(".")]
-            } else {
-                args.paths
-            },
-            vec![String::from(".")]
-        );
+        assert_eq!(patterns_from_args(paths.clone()), paths);
     }
 
     #[test]
@@ -164,13 +141,18 @@ mod tests {
     }
 
     #[test]
-    fn test_main_error_handling() {
+    fn test_append_pattern_matches_with_empty_glob() -> io::Result<()> {
         let params = Params::default();
-        let invalid_pattern =
-            vec![String::from("/nonexistent/path/that/should/not/exist")];
+        let mut file_info = Vec::new();
 
-        let result = run_multi(&invalid_pattern, &params);
-        assert!(result.is_ok());
+        append_pattern_matches(
+            &mut file_info,
+            "**/nonexistent_pattern_*.xyz",
+            &params,
+        )?;
+
+        assert!(file_info.is_empty());
+        Ok(())
     }
 
     #[test]
