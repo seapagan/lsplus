@@ -1,6 +1,22 @@
 use assert_cmd::Command;
+use filetime::FileTime;
 use std::fs;
+use std::time::{Duration, SystemTime};
+use strip_ansi_escapes::strip_str;
 use tempfile::tempdir;
+
+fn run_and_capture(cmd: &mut Command) -> (String, String) {
+    let output = cmd.output().unwrap();
+    assert!(
+        output.status.success(),
+        "command failed with stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = strip_str(String::from_utf8_lossy(&output.stdout)).to_owned();
+    let stderr = strip_str(String::from_utf8_lossy(&output.stderr)).to_owned();
+    (stdout, stderr)
+}
 
 #[test]
 fn test_version_flag() {
@@ -22,8 +38,16 @@ fn test_invalid_path() {
 
 #[test]
 fn test_list_current_directory() {
+    let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join("alpha.txt"), "alpha").unwrap();
+    fs::write(temp_dir.path().join("beta.txt"), "beta").unwrap();
+
     let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.assert().success();
+    cmd.current_dir(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains("alpha.txt"));
+    assert!(stdout.contains("beta.txt"));
 }
 
 #[test]
@@ -46,14 +70,88 @@ fn test_config_file() {
 
 #[test]
 fn test_long_format() {
+    let temp_dir = tempdir().unwrap();
+    let file_path = temp_dir.path().join("size.txt");
+    fs::write(&file_path, vec![b'x'; 2048]).unwrap();
+
     let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.arg("-l").assert().success();
+    cmd.arg("-l").arg("-h").arg(&file_path);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains("size.txt"));
+    assert!(stdout.contains("2 KB"));
 }
 
 #[test]
 fn test_multiple_paths() {
+    let temp_dir = tempdir().unwrap();
+    let left = temp_dir.path().join("left.txt");
+    let right = temp_dir.path().join("right.txt");
+    fs::write(&left, "left").unwrap();
+    fs::write(&right, "right").unwrap();
+
     let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.args([".", "Cargo.toml"]).assert().success();
+    cmd.arg(&left).arg(&right);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains("left.txt"));
+    assert!(stdout.contains("right.txt"));
+}
+
+#[test]
+fn test_no_icons_omits_file_icons() {
+    let temp_dir = tempdir().unwrap();
+    let rust_file = temp_dir.path().join("example.rs");
+    fs::write(&rust_file, "fn main() {}").unwrap();
+
+    let mut with_icons = Command::cargo_bin("lsp").unwrap();
+    with_icons.arg(&rust_file);
+    let (stdout_with_icons, _stderr) = run_and_capture(&mut with_icons);
+
+    let mut without_icons = Command::cargo_bin("lsp").unwrap();
+    without_icons.arg("--no-icons").arg(&rust_file);
+    let (stdout_without_icons, _stderr) = run_and_capture(&mut without_icons);
+
+    assert!(stdout_with_icons.contains(""));
+    assert!(!stdout_without_icons.contains(""));
+    assert!(stdout_without_icons.contains("example.rs"));
+}
+
+#[test]
+fn test_dirs_first_lists_directories_before_files() {
+    let temp_dir = tempdir().unwrap();
+    fs::create_dir(temp_dir.path().join("zeta_dir")).unwrap();
+    fs::write(temp_dir.path().join("alpha.txt"), "alpha").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-D").arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    let dir_position = stdout.find("zeta_dir").unwrap();
+    let file_position = stdout.find("alpha.txt").unwrap();
+
+    assert!(dir_position < file_position);
+}
+
+#[test]
+fn test_fuzzy_time_uses_human_readable_timestamp() {
+    let temp_dir = tempdir().unwrap();
+    let file_path = temp_dir.path().join("aged.txt");
+    fs::write(&file_path, "aged").unwrap();
+
+    let old_time = FileTime::from_system_time(
+        SystemTime::now()
+            .checked_sub(Duration::from_secs(2 * 60 * 60))
+            .unwrap(),
+    );
+    filetime::set_file_mtime(&file_path, old_time).unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-l").arg("-Z").arg(&file_path);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains("aged.txt"));
+    assert!(stdout.contains("2 hours ago"));
 }
 
 #[cfg(unix)]
