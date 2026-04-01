@@ -47,10 +47,10 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install cargo-audit
+      - name: Install cargo tools
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-audit
+          tool: cargo-make,cargo-audit
 
       - name: Run cargo-audit
         run: cargo make audit
