@@ -2,3 +2,7 @@
 .changelog_generator.toml
 .cursorrules
 .windsurfrules
+
+# AI stuff
+.codex
+AGENTS.md
