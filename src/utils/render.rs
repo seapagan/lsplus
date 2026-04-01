@@ -66,11 +66,11 @@ pub fn display_short_format(file_info: &[FileInfo]) -> io::Result<()> {
     let terminal_width = terminal_size()
         .map(|(Width(width), _)| usize::from(width))
         .unwrap_or(80);
-    let num_columns = short_column_count(file_info, terminal_width);
+    let rows = short_rows(file_info, terminal_width);
 
     let mut table = utils::table::create_table(2);
 
-    for chunk in file_info.chunks(num_columns) {
+    for chunk in rows {
         let mut row = Row::empty();
         for info in chunk {
             row.add_cell(Cell::new(&short_cell_content(info)));
@@ -80,6 +80,14 @@ pub fn display_short_format(file_info: &[FileInfo]) -> io::Result<()> {
 
     table.printstd();
     Ok(())
+}
+
+fn short_rows(
+    file_info: &[FileInfo],
+    terminal_width: usize,
+) -> Vec<&[FileInfo]> {
+    let num_columns = short_column_count(file_info, terminal_width);
+    file_info.chunks(num_columns).collect()
 }
 
 fn short_column_count(file_info: &[FileInfo], terminal_width: usize) -> usize {
@@ -155,6 +163,34 @@ mod tests {
         let files = [test_file_info("very-long-filename.txt", None)];
 
         assert_eq!(short_column_count(&files, 1), 1);
+    }
+
+    #[test]
+    fn test_short_rows_uses_single_column_for_wide_names_in_narrow_width() {
+        let files = [
+            test_file_info("界界界.txt", None),
+            test_file_info("beta.txt", None),
+        ];
+
+        let rows = short_rows(&files, 8);
+
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].len(), 1);
+        assert_eq!(rows[1].len(), 1);
+    }
+
+    #[test]
+    fn test_short_rows_groups_multiple_files_when_width_allows_it() {
+        let files = [
+            test_file_info("alpha.txt", None),
+            test_file_info("beta.txt", None),
+            test_file_info("gamma.txt", None),
+        ];
+
+        let rows = short_rows(&files, 40);
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].len(), 3);
     }
 
     #[test]
