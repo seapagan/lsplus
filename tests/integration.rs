@@ -118,6 +118,22 @@ fn test_no_icons_omits_file_icons() {
 }
 
 #[test]
+fn test_short_output_handles_wide_filename_without_panicking() {
+    let temp_dir = tempdir().unwrap();
+    let wide_name = format!("{}.txt", "界".repeat(50));
+    let wide_file = temp_dir.path().join(&wide_name);
+    fs::write(&wide_file, "wide").unwrap();
+
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        let mut cmd = Command::cargo_bin("lsp").unwrap();
+        cmd.arg("--no-icons").arg(&wide_file);
+        let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+        assert!(stdout.contains(&wide_name));
+    });
+}
+
+#[test]
 fn test_dirs_first_lists_directories_before_files() {
     let temp_dir = tempdir().unwrap();
     fs::create_dir(temp_dir.path().join("zeta_dir")).unwrap();
@@ -152,6 +168,32 @@ fn test_fuzzy_time_uses_human_readable_timestamp() {
 
     assert!(stdout.contains("aged.txt"));
     assert!(stdout.contains("2 hours ago"));
+}
+
+#[test]
+fn test_long_format_handles_wide_filename_rows() {
+    let temp_dir = tempdir().unwrap();
+    let wide_name = "界界界-report.txt";
+    let ascii_name = "plain.txt";
+    fs::write(temp_dir.path().join(wide_name), "wide").unwrap();
+    fs::write(temp_dir.path().join(ascii_name), "plain").unwrap();
+
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        let mut cmd = Command::cargo_bin("lsp").unwrap();
+        cmd.arg("-l").arg("--no-icons").arg(temp_dir.path());
+        let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+        let rows: Vec<_> = stdout
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .collect();
+
+        assert_eq!(rows.len(), 2);
+        assert!(rows.iter().any(|line| line.trim_start().starts_with('-')
+            && line.contains(wide_name)));
+        assert!(rows.iter().any(|line| line.trim_start().starts_with('-')
+            && line.contains(ascii_name)));
+    });
 }
 
 #[cfg(unix)]
