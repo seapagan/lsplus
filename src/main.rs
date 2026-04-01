@@ -15,6 +15,7 @@ use dirs_next::home_dir;
 
 use strip_ansi_escapes::strip_str;
 use structs::{FileInfo, Params};
+use terminal_size::{Width, terminal_size};
 use utils::file::{check_display_name, collect_file_info};
 
 fn load_config() -> Params {
@@ -184,7 +185,9 @@ fn display_short_format(
         .unwrap_or(0)
         + 2; // Adding space between columns
 
-    let terminal_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
+    let terminal_width = terminal_size()
+        .map(|(Width(width), _)| usize::from(width))
+        .unwrap_or(80);
     let num_columns = terminal_width / max_name_length;
 
     let mut table = utils::table::create_table(2);
