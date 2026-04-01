@@ -10,7 +10,7 @@ fn main() {
         exit(0);
     }
 
-    if let Err(e) = lsplus::run_with_flags(args) {
+    if let Err(e) = lsplus::app::run_with_flags(args) {
         eprintln!("Error: {}", e);
         exit(1);
     }
