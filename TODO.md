@@ -13,3 +13,9 @@
 - [ ] add a -R flag to recursively list files in a directory.
 - [ ] better handle dotfiles?
 - [ ] option to list dotfiles (and folders) before non-dotfiles
+- [ ] Consider separating config-loaded values from effective runtime params so
+      merge behavior is more explicit than the current shared `Params` type.
+- [ ] Review crate/module visibility and reduce the public surface where items
+      do not need to be exported.
+- [ ] Continue shifting tests toward behavior-focused checks at module seams
+      (`app`, `settings`, `render`) instead of broad smoke-style coverage.
