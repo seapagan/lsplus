@@ -1,4 +1,5 @@
 use nix::unistd::{Group, User};
+use std::ffi::OsStr;
 use std::fs;
 use std::io;
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
@@ -7,10 +8,13 @@ use std::time::SystemTime;
 
 use inline_colorization::*;
 
+use crate::Params;
 use crate::structs::FileInfo;
 use crate::utils;
 use crate::utils::format;
-use crate::Params;
+
+#[cfg(unix)]
+use std::os::unix::ffi::OsStrExt;
 
 pub fn get_file_details(
     metadata: &fs::Metadata,
@@ -76,43 +80,34 @@ pub fn collect_file_names(
         file_names.push(file_name);
     } else {
         // If it's a directory, read its entries
-        let mut entries: Vec<fs::DirEntry> = fs::read_dir(path)?
-            .filter_map(Result::ok)
-            .filter(|entry| {
-                if params.show_all || params.almost_all {
-                    true
-                } else {
-                    entry
-                        .file_name()
-                        .to_str()
-                        .map(|s| !s.starts_with('.'))
-                        .unwrap_or(false)
+        let mut entries = Vec::new();
+        for entry_result in fs::read_dir(path)? {
+            match entry_result {
+                Ok(entry) => {
+                    if params.show_all
+                        || params.almost_all
+                        || !entry_name_is_hidden(&entry.file_name())
+                    {
+                        entries.push(entry);
+                    }
                 }
-            })
-            .collect();
+                Err(err) => report_path_error(path, &err),
+            }
+        }
 
         // Sort entries alphabetically, ignoring leading dots
-        entries.sort_by(|a, b| {
-            let a_name = a
-                .file_name()
-                .to_str()
-                .unwrap()
-                .trim_start_matches('.')
-                .to_lowercase();
-            let b_name = b
-                .file_name()
-                .to_str()
-                .unwrap()
-                .trim_start_matches('.')
-                .to_lowercase();
-            a_name.cmp(&b_name)
-        });
+        entries.sort_by_cached_key(|entry| sort_key(&entry.file_name()));
 
         // Separate directories and files if dirs_first is true
         if params.dirs_first {
-            let (dirs, files): (Vec<_>, Vec<_>) =
-                entries.into_iter().partition(|entry| {
-                    entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false)
+            let (dirs, files): (Vec<_>, Vec<_>) = entries
+                .into_iter()
+                .partition(|entry| match entry.file_type() {
+                    Ok(file_type) => file_type.is_dir(),
+                    Err(err) => {
+                        report_path_error(&entry.path(), &err);
+                        false
+                    }
                 });
 
             entries = dirs.into_iter().chain(files).collect();
@@ -151,24 +146,28 @@ pub fn collect_file_info(
     let mut file_info = Vec::new();
     let symlink_metadata = fs::symlink_metadata(path)?;
 
-    // If it's a symlink, get the actual metadata by following it
-    let metadata = if symlink_metadata.is_symlink() {
-        fs::metadata(path)?
+    // If it's a symlink, try following it to determine whether it points to a
+    // directory. Broken symlinks should still be displayed as entries.
+    let is_dir = if symlink_metadata.is_symlink() {
+        fs::metadata(path)
+            .map(|metadata| metadata.is_dir())
+            .unwrap_or(false)
     } else {
-        symlink_metadata
+        symlink_metadata.is_dir()
     };
 
-    if metadata.is_dir() {
+    if is_dir {
         let file_names = utils::file::collect_file_names(path, params)?;
 
         for file_name in file_names {
             let full_path = path.join(&file_name);
-            if let Ok(info) = create_file_info(&full_path, params) {
-                file_info.push(info);
+            match create_file_info(&full_path, params) {
+                Ok(info) => file_info.push(info),
+                Err(err) => report_path_error(&full_path, &err),
             }
         }
-    } else if let Ok(info) = create_file_info(path, params) {
-        file_info.push(info);
+    } else {
+        file_info.push(create_file_info(path, params)?);
     }
     Ok(file_info)
 }
@@ -195,8 +194,10 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
         file_name = file_name.replacen("./", "", 1);
     }
 
+    let mut safe_file_name = sanitize_for_terminal(&file_name);
+
     if params.append_slash && metadata.is_dir() {
-        file_name.push('/');
+        safe_file_name.push('/');
     }
 
     let display_name = if metadata.is_symlink() {
@@ -207,49 +208,48 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
                 } else {
                     target
                 };
+                let display_target = sanitize_path_for_terminal(&target_path);
                 if params.long_format {
                     if target_path.exists() {
                         format!(
                             "{color_cyan}{} -> {}",
-                            file_name,
-                            target_path.display()
+                            safe_file_name, display_target
                         )
                     } else {
                         format!(
                             "{color_cyan}{} -> {} {color_red}[Broken Link]",
-                            file_name,
-                            target_path.display()
+                            safe_file_name, display_target
                         )
                     }
                 } else {
                     format!(
                         "{color_cyan}{}{}",
-                        file_name,
+                        safe_file_name,
                         if params.append_slash { "*" } else { "" }
                     )
                 }
             }
             Err(_) => {
                 if params.long_format {
-                    format!("{color_red}{} -> (unreadable)", file_name)
+                    format!("{color_red}{} -> (unreadable)", safe_file_name)
                 } else {
                     format!(
                         "{color_cyan}{}{}",
-                        file_name,
+                        safe_file_name,
                         if params.append_slash { "*" } else { "" }
                     )
                 }
             }
         }
     } else if metadata.is_dir() {
-        format!("{color_blue}{}", file_name)
+        format!("{color_blue}{}", safe_file_name)
     } else if executable {
-        format!("{style_bold}{color_green}{}", file_name)
+        format!("{style_bold}{color_green}{}", safe_file_name)
     } else {
         // Regular files must have explicit color formatting (even if just reset)
         // to ensure consistent ANSI escape sequence handling across all file types.
         // This maintains proper alignment in table display format.
-        format!("{color_reset}{}", file_name)
+        format!("{color_reset}{}", safe_file_name)
     };
 
     Ok(FileInfo {
@@ -274,12 +274,83 @@ pub fn check_display_name(info: &FileInfo) -> String {
     }
 }
 
+fn entry_name_is_hidden(name: &OsStr) -> bool {
+    #[cfg(unix)]
+    {
+        name.as_bytes().starts_with(b".")
+    }
+
+    #[cfg(not(unix))]
+    {
+        name.to_string_lossy().starts_with('.')
+    }
+}
+
+fn sort_key(name: &OsStr) -> Vec<u8> {
+    #[cfg(unix)]
+    {
+        let bytes = name.as_bytes();
+        let trimmed = bytes
+            .iter()
+            .skip_while(|byte| **byte == b'.')
+            .copied()
+            .collect::<Vec<_>>();
+        trimmed
+            .into_iter()
+            .map(|byte| byte.to_ascii_lowercase())
+            .collect()
+    }
+
+    #[cfg(not(unix))]
+    {
+        name.to_string_lossy()
+            .trim_start_matches('.')
+            .to_lowercase()
+            .into_bytes()
+    }
+}
+
+fn sanitize_for_terminal(text: &str) -> String {
+    let mut sanitized = String::with_capacity(text.len());
+    for character in text.chars() {
+        match character {
+            '\n' => sanitized.push_str("\\n"),
+            '\r' => sanitized.push_str("\\r"),
+            '\t' => sanitized.push_str("\\t"),
+            _ if character.is_control() => {
+                let code = character as u32;
+                if code <= 0xff {
+                    sanitized.push_str(&format!("\\x{code:02x}"));
+                } else {
+                    sanitized.push_str(&format!("\\u{{{code:x}}}"));
+                }
+            }
+            _ => sanitized.push(character),
+        }
+    }
+    sanitized
+}
+
+fn sanitize_path_for_terminal(path: &Path) -> String {
+    sanitize_for_terminal(&path.to_string_lossy())
+}
+
+fn report_path_error(path: &Path, err: &io::Error) {
+    eprintln!("lsplus: {}: {}", sanitize_path_for_terminal(path), err);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs::{self, File};
     use std::path::PathBuf;
+    use strip_ansi_escapes::strip_str;
     use tempfile::tempdir;
+
+    #[cfg(unix)]
+    use std::ffi::OsString;
+    #[cfg(unix)]
+    use std::os::unix::ffi::OsStringExt;
 
     #[test]
     fn test_check_display_name() {
@@ -413,7 +484,7 @@ mod tests {
 
     #[test]
     fn test_sort_file_info() {
-        let mut files = vec![
+        let mut files = [
             FileInfo {
                 file_type: String::from("regular file"),
                 mode: String::from("-rw-r--r--"),
@@ -557,8 +628,10 @@ mod tests {
         std::os::unix::fs::symlink("/dev/null", &unreadable_symlink)?;
 
         // Test valid symlink with long format
-        let mut params = Params::default();
-        params.long_format = true;
+        let mut params = Params {
+            long_format: true,
+            ..Default::default()
+        };
         let info = create_file_info(&valid_symlink, &params)?;
         assert!(info.display_name.contains("->"));
         assert!(!info.display_name.contains("[Broken Link]"));
@@ -588,8 +661,10 @@ mod tests {
         File::create(&file_path)?;
 
         // Test directory with append_slash
-        let mut params = Params::default();
-        params.append_slash = true;
+        let mut params = Params {
+            append_slash: true,
+            ..Default::default()
+        };
         let info = create_file_info(&dir_path, &params)?;
         assert!(info.display_name.ends_with('/'));
 
@@ -632,24 +707,30 @@ mod tests {
         assert!(files.contains(&"visible_file".to_string()));
 
         // Test with show_all = true
-        let mut params = Params::default();
-        params.show_all = true;
+        let params = Params {
+            show_all: true,
+            ..Default::default()
+        };
         let files = collect_file_names(temp_dir.path(), &params)?;
         assert!(files.contains(&".".to_string()));
         assert!(files.contains(&"..".to_string()));
         assert!(files.contains(&".hidden_file".to_string()));
 
         // Test with almost_all = true
-        let mut params = Params::default();
-        params.almost_all = true;
+        let params = Params {
+            almost_all: true,
+            ..Default::default()
+        };
         let files = collect_file_names(temp_dir.path(), &params)?;
         assert!(!files.contains(&".".to_string()));
         assert!(!files.contains(&"..".to_string()));
         assert!(files.contains(&".hidden_file".to_string()));
 
         // Test with dirs_first = true
-        let mut params = Params::default();
-        params.dirs_first = true;
+        let params = Params {
+            dirs_first: true,
+            ..Default::default()
+        };
         let files = collect_file_names(temp_dir.path(), &params)?;
         let subdir_idx = files.iter().position(|x| x == "subdir").unwrap();
         let file_idx = files.iter().position(|x| x == "visible_file").unwrap();
@@ -674,8 +755,10 @@ mod tests {
         std::os::unix::fs::symlink("nonexistent", &symlink_path)?;
 
         // Test broken symlink with long format
-        let mut params = Params::default();
-        params.long_format = true;
+        let mut params = Params {
+            long_format: true,
+            ..Default::default()
+        };
         let info = create_file_info(&symlink_path, &params)?;
         assert!(info.display_name.contains("[Broken Link]"));
 
@@ -719,8 +802,10 @@ mod tests {
         std::os::unix::fs::symlink(&link2_path, &link1_path)?;
         std::os::unix::fs::symlink(&link1_path, &link2_path)?;
 
-        let mut params = Params::default();
-        params.long_format = true; // Need long format to see the symlink target
+        let params = Params {
+            long_format: true, // Need long format to see the symlink target
+            ..Default::default()
+        };
         let info = create_file_info(&link1_path, &params)?;
 
         // Should handle circular symlinks gracefully
@@ -757,6 +842,68 @@ mod tests {
         // Test that we can read through the symlink
         let content = fs::read_to_string(symlink.join("test_file.txt"))?;
         assert_eq!(content, "test content");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_broken_symlink_direct_argument() -> io::Result<()> {
+        let temp_dir = tempdir()?;
+        let broken_symlink = temp_dir.path().join("broken_link");
+
+        std::os::unix::fs::symlink("missing-target", &broken_symlink)?;
+
+        let params = Params {
+            long_format: true,
+            ..Default::default()
+        };
+        let info = collect_file_info(&broken_symlink, &params)?;
+
+        assert_eq!(info.len(), 1);
+        assert!(info[0].display_name.contains("[Broken Link]"));
+        assert!(info[0].display_name.contains("broken_link"));
+
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_collect_file_names_with_non_utf8_names() -> io::Result<()> {
+        let temp_dir = tempdir()?;
+        let invalid_name = OsString::from_vec(vec![b'f', b'o', 0xff, b'o']);
+        let invalid_path = temp_dir.path().join(&invalid_name);
+        let visible_path = temp_dir.path().join("visible.txt");
+
+        File::create(&invalid_path)?;
+        File::create(&visible_path)?;
+
+        let files = collect_file_names(temp_dir.path(), &Params::default())?;
+
+        assert_eq!(files.len(), 2);
+        assert!(files.iter().any(|name| name == "visible.txt"));
+        assert!(files.iter().any(|name| name.contains('\u{fffd}')));
+
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_create_file_info_sanitizes_control_characters() -> io::Result<()> {
+        let temp_dir = tempdir()?;
+        let unsafe_name = OsString::from_vec(vec![
+            b'b', b'a', b'd', b'\n', 0x1b, b'n', b'a', b'm', b'e',
+        ]);
+        let unsafe_path = temp_dir.path().join(&unsafe_name);
+
+        File::create(&unsafe_path)?;
+
+        let info = create_file_info(&unsafe_path, &Params::default())?;
+        let cleaned_name = strip_str(&info.display_name);
+
+        assert!(cleaned_name.contains("\\n"));
+        assert!(cleaned_name.contains("\\x1b"));
+        assert!(!cleaned_name.contains('\n'));
+        assert!(!cleaned_name.contains('\u{1b}'));
 
         Ok(())
     }

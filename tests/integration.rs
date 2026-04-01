@@ -55,3 +55,20 @@ fn test_multiple_paths() {
     let mut cmd = Command::cargo_bin("lsp").unwrap();
     cmd.args([".", "Cargo.toml"]).assert().success();
 }
+
+#[cfg(unix)]
+#[test]
+fn test_broken_symlink_argument_long_format() {
+    let temp_dir = tempdir().unwrap();
+    let broken_symlink = temp_dir.path().join("broken_link");
+
+    std::os::unix::fs::symlink("missing-target", &broken_symlink).unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-l")
+        .arg(&broken_symlink)
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("[Broken Link]"))
+        .stdout(predicates::str::contains("broken_link"));
+}

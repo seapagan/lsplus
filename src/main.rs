@@ -347,13 +347,7 @@ mod tests {
 
         match settings {
             Ok(_) => (),
-            Err(e) => {
-                if e.to_string().contains("not found") {
-                    assert_eq!(Params::default(), Params::default());
-                } else {
-                    assert_eq!(Params::default(), Params::default());
-                }
-            }
+            Err(_e) => assert_eq!(Params::default(), Params::default()),
         }
     }
 
@@ -386,7 +380,7 @@ mod tests {
             Err(e) => {
                 assert!(!e.to_string().contains("not found"));
                 let params = Params::default();
-                assert_eq!(params.show_all, false);
+                assert!(!params.show_all);
             }
         }
     }
