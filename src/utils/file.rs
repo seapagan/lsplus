@@ -16,9 +16,18 @@ use crate::utils::format;
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;
 
-pub fn get_file_details(
-    metadata: &fs::Metadata,
-) -> (String, String, u64, u64, SystemTime, String, String, bool) {
+struct FileDetails {
+    file_type: String,
+    mode: String,
+    nlink: u64,
+    size: u64,
+    mtime: SystemTime,
+    user: String,
+    group: String,
+    executable: bool,
+}
+
+fn get_file_details(metadata: &fs::Metadata) -> FileDetails {
     let file_type = if metadata.is_dir() {
         "d"
     } else if metadata.is_file() {
@@ -49,9 +58,16 @@ pub fn get_file_details(
     #[cfg(windows)]
     let executable = false;
 
-    (
-        file_type, rwx_mode, nlink, size, mtime, user, group, executable,
-    )
+    FileDetails {
+        file_type,
+        mode: rwx_mode,
+        nlink,
+        size,
+        mtime,
+        user,
+        group,
+        executable,
+    }
 }
 
 pub fn collect_file_names(
@@ -182,8 +198,7 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
             &path.to_string_lossy(),
         ))
     };
-    let (file_type, mode, nlink, size, mtime, user, group, executable) =
-        utils::file::get_file_details(&metadata);
+    let details = utils::file::get_file_details(&metadata);
 
     let mut file_name = path
         .file_name()
@@ -243,7 +258,7 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
         }
     } else if metadata.is_dir() {
         format!("{color_blue}{}", safe_file_name)
-    } else if executable {
+    } else if details.executable {
         format!("{style_bold}{color_green}{}", safe_file_name)
     } else {
         // Regular files must have explicit color formatting (even if just reset)
@@ -253,13 +268,13 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
     };
 
     Ok(FileInfo {
-        file_type,
-        mode,
-        nlink,
-        user,
-        group,
-        size,
-        mtime,
+        file_type: details.file_type,
+        mode: details.mode,
+        nlink: details.nlink,
+        user: details.user,
+        group: details.group,
+        size: details.size,
+        mtime: details.mtime,
         item_icon,
         display_name,
         full_path: path.to_path_buf(),
@@ -558,20 +573,19 @@ mod tests {
 
         // Test directory
         let metadata = fs::metadata(dir_path)?;
-        let (file_type, _, _, _, _, _, _, _) = get_file_details(&metadata);
-        assert_eq!(file_type, "d");
+        let details = get_file_details(&metadata);
+        assert_eq!(details.file_type, "d");
 
         // Test regular file
         let metadata = fs::metadata(file_path)?;
-        let (file_type, _, _, _, _, _, _, executable) =
-            get_file_details(&metadata);
-        assert_eq!(file_type, "-");
-        assert!(!executable);
+        let details = get_file_details(&metadata);
+        assert_eq!(details.file_type, "-");
+        assert!(!details.executable);
 
         // Test symlink
         let metadata = fs::symlink_metadata(symlink_path)?;
-        let (file_type, _, _, _, _, _, _, _) = get_file_details(&metadata);
-        assert_eq!(file_type, "l");
+        let details = get_file_details(&metadata);
+        assert_eq!(details.file_type, "l");
 
         // Test executable file
         std::fs::set_permissions(
@@ -579,8 +593,8 @@ mod tests {
             fs::Permissions::from_mode(0o755),
         )?;
         let metadata = fs::metadata(file_path)?;
-        let (_, _, _, _, _, _, _, executable) = get_file_details(&metadata);
-        assert!(executable);
+        let details = get_file_details(&metadata);
+        assert!(details.executable);
 
         // Cleanup
         fs::remove_dir(dir_path)?;
