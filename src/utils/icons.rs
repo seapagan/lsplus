@@ -264,27 +264,34 @@ fn get_filename_icon(file_name: &str) -> Option<Icon> {
     file_name_icons().get(file_name).cloned()
 }
 
-pub fn get_item_icon(metadata: &fs::Metadata, file_path: &str) -> Icon {
-    // Extract just the file name without the path
-    let file_name = Path::new(file_path)
+pub fn get_item_icon(metadata: &fs::Metadata, file_path: &Path) -> Icon {
+    // Work from the final path segment and tolerate non-UTF-8 names.
+    let file_name = file_path
         .file_name()
-        .and_then(|s| s.to_str())
-        .unwrap_or("");
+        .map(|name| name.to_string_lossy())
+        .unwrap_or_default();
 
     // Return the icon for the item based on its metadata and name
     if metadata.is_dir() {
         // Icon::Folder
-        get_folder_icon(file_name)
+        get_folder_icon(file_name.as_ref())
     } else if metadata.is_symlink() {
         Icon::Symlink
     } else {
-        get_filename_icon(file_name)
-            .unwrap_or_else(|| get_file_icon(file_name))
+        get_filename_icon(file_name.as_ref())
+            .unwrap_or_else(|| get_file_icon(file_name.as_ref()))
     }
 }
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
+    use tempfile::tempdir;
+
+    #[cfg(unix)]
+    use std::ffi::OsString;
+    #[cfg(unix)]
+    use std::os::unix::ffi::OsStringExt;
 
     #[test]
     fn test_has_extension() {
@@ -324,31 +331,68 @@ mod tests {
         let metadata = fs::metadata("Cargo.toml").unwrap();
 
         // Test unknown file type returns generic icon
-        let icon = get_item_icon(&metadata, "test.unknown");
+        let icon = get_item_icon(&metadata, Path::new("test.unknown"));
         assert_eq!(icon, Icon::GenericFile);
 
         // Test with a known file type
-        let icon = get_item_icon(&metadata, "test.rs");
+        let icon = get_item_icon(&metadata, Path::new("test.rs"));
         assert_eq!(icon, Icon::RustFile);
 
         // Test with a known filename
-        let icon = get_item_icon(&metadata, "Cargo.toml");
+        let icon = get_item_icon(&metadata, Path::new("Cargo.toml"));
         assert_eq!(icon, Icon::TomlFile);
 
         // Test with a directory
         let metadata = fs::metadata(".").unwrap();
-        let icon = get_item_icon(&metadata, "test_dir");
+        let icon = get_item_icon(&metadata, Path::new("test_dir"));
         assert_eq!(icon, Icon::Folder);
 
         // Test with a symlink
         // Create a temporary symlink for testing
         let _ = std::os::unix::fs::symlink("test_target", "test_link");
         if let Ok(metadata) = fs::symlink_metadata("test_link") {
-            let icon = get_item_icon(&metadata, "test_link");
+            let icon = get_item_icon(&metadata, Path::new("test_link"));
             assert_eq!(icon, Icon::Symlink);
         }
         // Clean up the symlink
         let _ = fs::remove_file("test_link");
+    }
+
+    #[test]
+    fn test_get_item_icon_uses_final_path_segment() {
+        let metadata = fs::metadata("Cargo.toml").unwrap();
+
+        let icon =
+            get_item_icon(&metadata, Path::new("nested/config/.gitignore"));
+
+        assert_eq!(icon, Icon::GitFile);
+    }
+
+    #[test]
+    fn test_get_item_icon_uses_directory_name_for_hidden_folders() {
+        let temp_dir = tempdir().unwrap();
+        let git_dir = temp_dir.path().join(".git");
+        fs::create_dir(&git_dir).unwrap();
+        let metadata = fs::metadata(&git_dir).unwrap();
+
+        let icon = get_item_icon(&metadata, &git_dir);
+
+        assert_eq!(icon, Icon::GitFile);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_get_item_icon_handles_non_utf8_extensions() {
+        let temp_dir = tempdir().unwrap();
+        let file_name = OsString::from_vec(b"bad-\xff.rs".to_vec());
+        let file_path = PathBuf::from(&file_name);
+        let full_path = temp_dir.path().join(&file_path);
+        fs::write(&full_path, "fn main() {}").unwrap();
+        let metadata = fs::metadata(&full_path).unwrap();
+
+        let icon = get_item_icon(&metadata, &full_path);
+
+        assert_eq!(icon, Icon::RustFile);
     }
 
     #[test]

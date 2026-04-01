@@ -193,10 +193,7 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
     let item_icon = if params.no_icons {
         None
     } else {
-        Some(utils::icons::get_item_icon(
-            &metadata,
-            &path.to_string_lossy(),
-        ))
+        Some(utils::icons::get_item_icon(&metadata, path))
     };
     let details = utils::file::get_file_details(&metadata);
 

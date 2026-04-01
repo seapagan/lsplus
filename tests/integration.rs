@@ -1,5 +1,6 @@
 use assert_cmd::Command;
 use filetime::FileTime;
+use lsplus::utils::icons::Icon;
 use std::fs;
 use std::time::{Duration, SystemTime};
 use strip_ansi_escapes::strip_str;
@@ -193,6 +194,55 @@ fn test_long_format_handles_wide_filename_rows() {
             && line.contains(wide_name)));
         assert!(rows.iter().any(|line| line.trim_start().starts_with('-')
             && line.contains(ascii_name)));
+    });
+}
+
+#[test]
+fn test_long_format_renders_hidden_git_icons() {
+    let temp_dir = tempdir().unwrap();
+    let git_dir = temp_dir.path().join(".git");
+    let gitignore = temp_dir.path().join(".gitignore");
+    fs::create_dir(&git_dir).unwrap();
+    fs::write(&gitignore, "*.log\n").unwrap();
+
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        let mut cmd = Command::cargo_bin("lsp").unwrap();
+        cmd.arg("-l").arg("-a").arg(temp_dir.path());
+        let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+        let rows: Vec<_> = stdout
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .collect();
+        let git_icon = Icon::GitFile.to_string();
+
+        assert!(rows.iter().any(
+            |line| line.contains(&git_icon) && line.contains(".gitignore")
+        ));
+        assert!(
+            rows.iter()
+                .any(|line| line.contains(&git_icon) && line.contains(".git"))
+        );
+    });
+}
+
+#[cfg(unix)]
+#[test]
+fn test_long_format_renders_symlink_icon() {
+    let temp_dir = tempdir().unwrap();
+    let target = temp_dir.path().join("target.txt");
+    let link = temp_dir.path().join("link.txt");
+    fs::write(&target, "target").unwrap();
+    std::os::unix::fs::symlink(&target, &link).unwrap();
+
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        let mut cmd = Command::cargo_bin("lsp").unwrap();
+        cmd.arg("-l").arg(&link);
+        let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+        assert!(stdout.contains(&Icon::Symlink.to_string()));
+        assert!(stdout.contains("link.txt"));
+        assert!(stdout.contains("->"));
     });
 }
 
