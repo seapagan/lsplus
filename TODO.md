@@ -6,7 +6,8 @@
       be colored the same way, and different to unknown file tipes.
 - [ ] for a symlink, color the name as it is, but color the target depending on
       whether it is a directory, file, or symlink.
-- [ ] Add icons for partials like `TODO.*`, `LICENSE.*` and more.
+- [ ] Add icons for partials like `TODO.*`, `LICENSE.*` and more - brands like
+  claude, codex, vscode and more where the nerdfont exists
 - [ ] option to grey-out files in the `.gitignore`.
 - [ ] using the config file, allow extending the existing file and folder
       mapping, or deleting specific maps.
