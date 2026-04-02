@@ -77,7 +77,9 @@ display icons if set to `true`.
 - Default value: `false`
 
 This option corresponds to the `-I` or `--gitignore` command line option and
-will dim entries that are matched by the active merged `.gitignore` rules.
+will dim entries that are matched by the active Git ignore rules, including
+merged `.gitignore` files, `.git/info/exclude`, and the configured global Git
+excludes file.
 
 ### fuzzy_time
 

@@ -366,6 +366,79 @@ fn test_gitignore_flag_does_not_dim_outside_git_worktree() {
     assert!(!plain_line.contains("\u{1b}[2m"));
 }
 
+#[test]
+fn test_gitignore_flag_honors_git_info_exclude() {
+    let temp_dir = tempdir().unwrap();
+    let git_dir = temp_dir.path().join(".git");
+    let ignored_name =
+        "ignored-entry-name-that-forces-single-column-output.cache";
+    let visible_name =
+        "visible-entry-name-that-forces-single-column-output.txt";
+    fs::create_dir_all(git_dir.join("info")).unwrap();
+    fs::write(git_dir.join("info").join("exclude"), "*.cache\n").unwrap();
+    fs::write(temp_dir.path().join(ignored_name), "ignored").unwrap();
+    fs::write(temp_dir.path().join(visible_name), "visible").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-I").arg("--no-icons").arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
+
+    let ignored_line = stdout
+        .lines()
+        .find(|line| strip_str(line).contains(ignored_name))
+        .unwrap();
+    let visible_line = stdout
+        .lines()
+        .find(|line| strip_str(line).contains(visible_name))
+        .unwrap();
+
+    assert!(ignored_line.contains("\u{1b}[2m"));
+    assert!(!visible_line.contains("\u{1b}[2m"));
+}
+
+#[test]
+fn test_gitignore_flag_honors_global_excludes() {
+    let temp_dir = tempdir().unwrap();
+    let home_dir = temp_dir.path().join("home");
+    let repo_dir = temp_dir.path().join("repo");
+    let excludes_file = home_dir.join(".global_ignore");
+    let ignored_name =
+        "ignored-entry-name-that-forces-single-column-output.bak";
+    let visible_name =
+        "visible-entry-name-that-forces-single-column-output.txt";
+
+    fs::create_dir_all(&home_dir).unwrap();
+    fs::create_dir_all(repo_dir.join(".git")).unwrap();
+    fs::write(
+        home_dir.join(".gitconfig"),
+        format!("[core]\n\texcludesFile = {}\n", excludes_file.display()),
+    )
+    .unwrap();
+    fs::write(&excludes_file, "*.bak\n").unwrap();
+    fs::write(repo_dir.join(ignored_name), "ignored").unwrap();
+    fs::write(repo_dir.join(visible_name), "visible").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(&repo_dir)
+        .env("HOME", &home_dir)
+        .arg("-I")
+        .arg("--no-icons")
+        .arg(&repo_dir);
+    let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
+
+    let ignored_line = stdout
+        .lines()
+        .find(|line| strip_str(line).contains(ignored_name))
+        .unwrap();
+    let visible_line = stdout
+        .lines()
+        .find(|line| strip_str(line).contains(visible_name))
+        .unwrap();
+
+    assert!(ignored_line.contains("\u{1b}[2m"));
+    assert!(!visible_line.contains("\u{1b}[2m"));
+}
+
 #[cfg(unix)]
 #[test]
 fn test_long_format_renders_symlink_icon() {
