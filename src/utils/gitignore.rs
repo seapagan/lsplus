@@ -67,8 +67,10 @@ impl GitignoreMatcher {
         for matched in [
             self.gitignore_matcher
                 .matched_path_or_any_parents(relative_path, is_dir),
-            self.git_exclude_matcher.matched(relative_path, is_dir),
-            self.git_global_matcher.matched(relative_path, is_dir),
+            self.git_exclude_matcher
+                .matched_path_or_any_parents(relative_path, is_dir),
+            self.git_global_matcher
+                .matched_path_or_any_parents(relative_path, is_dir),
         ] {
             match matched {
                 Match::Ignore(_) => return true,

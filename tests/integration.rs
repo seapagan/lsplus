@@ -370,22 +370,36 @@ fn test_gitignore_flag_does_not_dim_outside_git_worktree() {
 fn test_gitignore_flag_honors_git_info_exclude() {
     let temp_dir = tempdir().unwrap();
     let git_dir = temp_dir.path().join(".git");
-    let ignored_name =
-        "ignored-entry-name-that-forces-single-column-output.cache";
+    let ignored_dir = temp_dir
+        .path()
+        .join("build-directory-that-forces-single-column-output");
+    let ignored_file = ignored_dir
+        .join("ignored-entry-name-that-forces-single-column-output.txt");
     let visible_name =
         "visible-entry-name-that-forces-single-column-output.txt";
     fs::create_dir_all(git_dir.join("info")).unwrap();
-    fs::write(git_dir.join("info").join("exclude"), "*.cache\n").unwrap();
-    fs::write(temp_dir.path().join(ignored_name), "ignored").unwrap();
+    fs::create_dir_all(&ignored_dir).unwrap();
+    fs::write(
+        git_dir.join("info").join("exclude"),
+        "build-directory-that-forces-single-column-output/\n",
+    )
+    .unwrap();
+    fs::write(&ignored_file, "ignored").unwrap();
     fs::write(temp_dir.path().join(visible_name), "visible").unwrap();
 
     let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.arg("-I").arg("--no-icons").arg(temp_dir.path());
+    cmd.arg("-I")
+        .arg("--no-icons")
+        .arg(&ignored_file)
+        .arg(temp_dir.path().join(visible_name));
     let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
 
     let ignored_line = stdout
         .lines()
-        .find(|line| strip_str(line).contains(ignored_name))
+        .find(|line| {
+            strip_str(line)
+                .contains(ignored_file.file_name().unwrap().to_str().unwrap())
+        })
         .unwrap();
     let visible_line = stdout
         .lines()
@@ -402,20 +416,27 @@ fn test_gitignore_flag_honors_global_excludes() {
     let home_dir = temp_dir.path().join("home");
     let repo_dir = temp_dir.path().join("repo");
     let excludes_file = home_dir.join(".global_ignore");
-    let ignored_name =
-        "ignored-entry-name-that-forces-single-column-output.bak";
+    let ignored_dir =
+        repo_dir.join("build-directory-that-forces-single-column-output");
+    let ignored_file = ignored_dir
+        .join("ignored-entry-name-that-forces-single-column-output.txt");
     let visible_name =
         "visible-entry-name-that-forces-single-column-output.txt";
 
     fs::create_dir_all(&home_dir).unwrap();
     fs::create_dir_all(repo_dir.join(".git")).unwrap();
+    fs::create_dir_all(&ignored_dir).unwrap();
     fs::write(
         home_dir.join(".gitconfig"),
         format!("[core]\n\texcludesFile = {}\n", excludes_file.display()),
     )
     .unwrap();
-    fs::write(&excludes_file, "*.bak\n").unwrap();
-    fs::write(repo_dir.join(ignored_name), "ignored").unwrap();
+    fs::write(
+        &excludes_file,
+        "build-directory-that-forces-single-column-output/\n",
+    )
+    .unwrap();
+    fs::write(&ignored_file, "ignored").unwrap();
     fs::write(repo_dir.join(visible_name), "visible").unwrap();
 
     let mut cmd = Command::cargo_bin("lsp").unwrap();
@@ -423,12 +444,16 @@ fn test_gitignore_flag_honors_global_excludes() {
         .env("HOME", &home_dir)
         .arg("-I")
         .arg("--no-icons")
-        .arg(&repo_dir);
+        .arg(&ignored_file)
+        .arg(repo_dir.join(visible_name));
     let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
 
     let ignored_line = stdout
         .lines()
-        .find(|line| strip_str(line).contains(ignored_name))
+        .find(|line| {
+            strip_str(line)
+                .contains(ignored_file.file_name().unwrap().to_str().unwrap())
+        })
         .unwrap();
     let visible_line = stdout
         .lines()
