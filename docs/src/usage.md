@@ -18,6 +18,7 @@ Curently, only a sub-set of the standard `ls` options are supported. These are:
 - `-l` / `--long` - Show long format listing
 - `-h` / `--human-readable` - Human readable file sizes
 - `-D` / `--sort-dirs` - Sort directories first
+- `-I` / `--gitignore` - Dim entries matched by active `.gitignore` rules
 - `--no-icons` - don't show file or folder icons
 - `-Z` / `--fuzzy-time` - Show fuzzy time for file modification times
 

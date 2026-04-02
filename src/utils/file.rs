@@ -12,6 +12,7 @@ use crate::Params;
 use crate::structs::FileInfo;
 use crate::utils;
 use crate::utils::format;
+use crate::utils::gitignore::GitignoreCache;
 
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;
@@ -26,6 +27,8 @@ struct FileDetails {
     group: String,
     executable: bool,
 }
+
+const STYLE_DIM: &str = "\x1B[2m";
 
 fn get_file_details(metadata: &fs::Metadata) -> FileDetails {
     let file_type = if metadata.is_dir() {
@@ -160,6 +163,7 @@ pub fn collect_file_info(
     params: &Params,
 ) -> io::Result<Vec<FileInfo>> {
     let mut file_info = Vec::new();
+    let mut gitignore_cache = GitignoreCache::default();
     let symlink_metadata = fs::symlink_metadata(path)?;
 
     // If it's a symlink, try following it to determine whether it points to a
@@ -177,18 +181,35 @@ pub fn collect_file_info(
 
         for file_name in file_names {
             let full_path = path.join(&file_name);
-            match create_file_info(&full_path, params) {
+            match create_file_info_with_gitignore(
+                &full_path,
+                params,
+                &mut gitignore_cache,
+            ) {
                 Ok(info) => file_info.push(info),
                 Err(err) => report_path_error(&full_path, &err),
             }
         }
     } else {
-        file_info.push(create_file_info(path, params)?);
+        file_info.push(create_file_info_with_gitignore(
+            path,
+            params,
+            &mut gitignore_cache,
+        )?);
     }
     Ok(file_info)
 }
 
 pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
+    let mut gitignore_cache = GitignoreCache::default();
+    create_file_info_with_gitignore(path, params, &mut gitignore_cache)
+}
+
+fn create_file_info_with_gitignore(
+    path: &Path,
+    params: &Params,
+    gitignore_cache: &mut GitignoreCache,
+) -> io::Result<FileInfo> {
     let metadata = fs::symlink_metadata(path)?;
     let item_icon = if params.no_icons {
         None
@@ -262,6 +283,13 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
         // to ensure consistent ANSI escape sequence handling across all file types.
         // This maintains proper alignment in table display format.
         format!("{color_reset}{}", safe_file_name)
+    };
+    let display_name = if params.gitignore
+        && gitignore_cache.is_ignored(path, metadata.is_dir())
+    {
+        format!("{STYLE_DIM}{display_name}{style_reset}")
+    } else {
+        display_name
     };
 
     Ok(FileInfo {

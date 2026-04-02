@@ -19,6 +19,20 @@ fn run_and_capture(cmd: &mut Command) -> (String, String) {
     (stdout, stderr)
 }
 
+fn run_and_capture_raw(cmd: &mut Command) -> (String, String) {
+    let output = cmd.output().unwrap();
+    assert!(
+        output.status.success(),
+        "command failed with stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    (
+        String::from_utf8_lossy(&output.stdout).to_string(),
+        String::from_utf8_lossy(&output.stderr).to_string(),
+    )
+}
+
 #[test]
 fn test_version_flag() {
     let mut cmd = Command::cargo_bin("lsp").unwrap();
@@ -224,6 +238,132 @@ fn test_long_format_renders_hidden_git_icons() {
                 .any(|line| line.contains(&git_icon) && line.contains(".git"))
         );
     });
+}
+
+#[test]
+fn test_gitignore_flag_dims_ignored_entries_in_short_output() {
+    let temp_dir = tempdir().unwrap();
+    let ignored_name =
+        "ignored-entry-name-that-forces-single-column-output.log";
+    let visible_name =
+        "visible-entry-name-that-forces-single-column-output.txt";
+    fs::create_dir(temp_dir.path().join(".git")).unwrap();
+    fs::write(temp_dir.path().join(".gitignore"), "*.log\n").unwrap();
+    fs::write(temp_dir.path().join(ignored_name), "ignored").unwrap();
+    fs::write(temp_dir.path().join(visible_name), "visible").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-I").arg("--no-icons").arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
+
+    let ignored_line = stdout
+        .lines()
+        .find(|line| strip_str(line).contains(ignored_name))
+        .unwrap();
+    let visible_line = stdout
+        .lines()
+        .find(|line| strip_str(line).contains(visible_name))
+        .unwrap();
+
+    assert!(ignored_line.contains("\u{1b}[2m"));
+    assert!(!visible_line.contains("\u{1b}[2m"));
+}
+
+#[test]
+fn test_gitignore_flag_dims_ignored_entries_in_long_output() {
+    let temp_dir = tempdir().unwrap();
+    fs::create_dir(temp_dir.path().join(".git")).unwrap();
+    fs::write(temp_dir.path().join(".gitignore"), "*.log\n").unwrap();
+    fs::write(temp_dir.path().join("ignored.log"), "ignored").unwrap();
+    fs::write(temp_dir.path().join("visible.txt"), "visible").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-l")
+        .arg("-I")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
+
+    let ignored_line = stdout
+        .lines()
+        .find(|line| strip_str(line).contains("ignored.log"))
+        .unwrap();
+    let visible_line = stdout
+        .lines()
+        .find(|line| strip_str(line).contains("visible.txt"))
+        .unwrap();
+
+    assert!(ignored_line.contains("\u{1b}[2m"));
+    assert!(!visible_line.contains("\u{1b}[2m"));
+}
+
+#[test]
+fn test_gitignore_flag_honors_nested_unignore_rules() {
+    let temp_dir = tempdir().unwrap();
+    let nested_dir = temp_dir.path().join("nested");
+    let ignored_name =
+        "ignored-entry-name-that-forces-single-column-output.log";
+    let kept_name = "keep-entry-name-that-forces-single-column-output.log";
+    fs::create_dir(temp_dir.path().join(".git")).unwrap();
+    fs::create_dir(&nested_dir).unwrap();
+    fs::write(temp_dir.path().join(".gitignore"), "*.log\n").unwrap();
+    fs::write(nested_dir.join(".gitignore"), format!("!{kept_name}\n"))
+        .unwrap();
+    fs::write(nested_dir.join(ignored_name), "ignored").unwrap();
+    fs::write(nested_dir.join(kept_name), "kept").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-I").arg("--no-icons").arg(&nested_dir);
+    let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
+
+    let ignored_line = stdout
+        .lines()
+        .find(|line| strip_str(line).contains(ignored_name))
+        .unwrap();
+    let kept_line = stdout
+        .lines()
+        .find(|line| strip_str(line).contains(kept_name))
+        .unwrap();
+
+    assert!(ignored_line.contains("\u{1b}[2m"));
+    assert!(!kept_line.contains("\u{1b}[2m"));
+}
+
+#[test]
+fn test_gitignore_flag_dims_explicit_file_arguments() {
+    let temp_dir = tempdir().unwrap();
+    let ignored_file = temp_dir.path().join("ignored.log");
+    fs::create_dir(temp_dir.path().join(".git")).unwrap();
+    fs::write(temp_dir.path().join(".gitignore"), "*.log\n").unwrap();
+    fs::write(&ignored_file, "ignored").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-I").arg("--no-icons").arg(&ignored_file);
+    let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
+
+    let ignored_line = stdout
+        .lines()
+        .find(|line| strip_str(line).contains("ignored.log"))
+        .unwrap();
+
+    assert!(ignored_line.contains("\u{1b}[2m"));
+}
+
+#[test]
+fn test_gitignore_flag_does_not_dim_outside_git_worktree() {
+    let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join("plain.log"), "plain").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-I").arg("--no-icons").arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
+
+    let plain_line = stdout
+        .lines()
+        .find(|line| strip_str(line).contains("plain.log"))
+        .unwrap();
+
+    assert!(!plain_line.contains("\u{1b}[2m"));
 }
 
 #[cfg(unix)]
