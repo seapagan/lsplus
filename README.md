@@ -174,12 +174,15 @@ currently run:
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test` on `pre-push`
 
-`cargo-make` is still recommended for the repo's preferred local aliases such
-as `cargo make test`, `cargo make test-html`, and `cargo make audit`. Install
-it separately with:
+`cargo-make` and `cargo-deny` are separate Cargo subcommands, so contributors
+who want the full local tooling workflow should install them explicitly. They
+are used for the repo's preferred task aliases such as `cargo make test`,
+`cargo make test-html`, `cargo make audit`, and `cargo make deny`. Install
+them with:
 
 ```bash
 cargo install cargo-make
+cargo install cargo-deny
 ```
 
 ## Future Plans

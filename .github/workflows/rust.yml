@@ -70,5 +70,4 @@ jobs:
           tool: cargo-make,cargo-deny
 
       - name: Run cargo-deny
-        continue-on-error: true
         run: cargo make deny
