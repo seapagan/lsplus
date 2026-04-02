@@ -1,4 +1,4 @@
-use prettytable::{format::FormatBuilder, Table};
+use prettytable::{Table, format::FormatBuilder};
 
 pub fn create_table(padding: usize) -> Table {
     let format = FormatBuilder::new()

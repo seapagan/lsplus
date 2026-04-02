@@ -6,3 +6,11 @@ args = ["llvm-cov", "nextest"]
 [tasks.test-html]
 command = "cargo"
 args = ["llvm-cov", "nextest", "--html"]
+
+[tasks.audit]
+command = "cargo"
+args = ["audit"]
+
+[tasks.deny]
+command = "cargo"
+args = ["deny", "check"]

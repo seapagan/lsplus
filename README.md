@@ -27,6 +27,7 @@ with time! 😁
   - [Icons](#icons)
   - [Configuration File](#configuration-file)
   - [Aliases](#aliases)
+- [Development](#development)
 - [Future Plans](#future-plans)
 
 <!-- vim-markdown-toc -->
@@ -156,6 +157,33 @@ alias ls='lsp -laph'
 
 This will show a long format listing with hidden files, append a '/' to
 directories, and show human readable file sizes, as in the image above.
+
+## Development
+
+This repo uses `husky-rs` to manage local Git hooks for contributors. After
+cloning the repo, run:
+
+```bash
+cargo test
+```
+
+That installs the versioned hooks from `.husky/` for this checkout. The hooks
+currently run:
+
+- `cargo fmt --check`
+- `cargo clippy --all-targets --all-features -- -D warnings`
+- `cargo test` on `pre-push`
+
+`cargo-make` and `cargo-deny` are separate Cargo subcommands, so contributors
+who want the full local tooling workflow should install them explicitly. They
+are used for the repo's preferred task aliases such as `cargo make test`,
+`cargo make test-html`, `cargo make audit`, and `cargo make deny`. Install
+them with:
+
+```bash
+cargo install cargo-make
+cargo install cargo-deny
+```
 
 ## Future Plans
 

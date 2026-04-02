@@ -5,6 +5,8 @@ use std::convert::From;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
+use crate::cli;
+
 macro_rules! config_to_params {
     ($settings:expr_2021, $params:ident, $( $field:ident ),* ) => {
         $(
@@ -45,6 +47,21 @@ impl From<Config> for Params {
         );
 
         params
+    }
+}
+
+impl Params {
+    pub fn merge(flags: &cli::Flags, config: &Self) -> Self {
+        Self {
+            show_all: flags.show_all || config.show_all,
+            append_slash: flags.slash || config.append_slash,
+            dirs_first: flags.dirs_first || config.dirs_first,
+            almost_all: flags.almost_all || config.almost_all,
+            long_format: flags.long || config.long_format,
+            human_readable: flags.human_readable || config.human_readable,
+            no_icons: flags.no_icons || config.no_icons,
+            fuzzy_time: flags.fuzzy_time || config.fuzzy_time,
+        }
     }
 }
 
@@ -110,5 +127,43 @@ mod tests {
         assert!(params.human_readable);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_params_merge() {
+        let config = Params {
+            show_all: true,
+            append_slash: true,
+            dirs_first: false,
+            almost_all: false,
+            long_format: true,
+            human_readable: true,
+            no_icons: false,
+            fuzzy_time: false,
+        };
+
+        let flags = cli::Flags {
+            version: false,
+            paths: vec![],
+            show_all: false,
+            almost_all: true,
+            slash: false,
+            dirs_first: true,
+            long: false,
+            human_readable: false,
+            no_icons: true,
+            fuzzy_time: true,
+        };
+
+        let params = Params::merge(&flags, &config);
+
+        assert!(params.show_all);
+        assert!(params.append_slash);
+        assert!(params.dirs_first);
+        assert!(params.almost_all);
+        assert!(params.long_format);
+        assert!(params.human_readable);
+        assert!(params.no_icons);
+        assert!(params.fuzzy_time);
     }
 }
