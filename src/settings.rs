@@ -6,7 +6,12 @@ use dirs_next::home_dir;
 use crate::Params;
 
 fn config_path() -> Option<PathBuf> {
-    let mut path = home_dir()?;
+    config_path_from_home(home_dir())
+}
+
+#[doc(hidden)]
+pub fn config_path_from_home(home: Option<PathBuf>) -> Option<PathBuf> {
+    let mut path = home?;
     path.push(".config/lsplus/config.toml");
     Some(path)
 }
@@ -15,7 +20,8 @@ pub fn load_config() -> Params {
     load_config_from_path(config_path())
 }
 
-fn load_config_from_path(config_path: Option<PathBuf>) -> Params {
+#[doc(hidden)]
+pub fn load_config_from_path(config_path: Option<PathBuf>) -> Params {
     let Some(config_path) = config_path else {
         return Params::default();
     };
@@ -34,40 +40,5 @@ fn load_config_from_path(config_path: Option<PathBuf>) -> Params {
             eprintln!("Error loading config: {}", e);
             Params::default()
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tempfile::tempdir;
-
-    #[test]
-    fn test_load_config_default() {
-        let temp_dir = tempdir().unwrap();
-        let config_path = temp_dir.path().join("missing-config.toml");
-
-        let config = load_config_from_path(Some(config_path));
-
-        assert_eq!(config, Params::default());
-    }
-
-    #[test]
-    fn test_load_config_error() {
-        let config = load_config_from_path(None);
-
-        assert_eq!(config, Params::default());
-    }
-
-    #[test]
-    fn test_load_config_error_other() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let config_path = temp_dir.path().join(".config/lsplus/config.toml");
-        std::fs::create_dir_all(config_path.parent().unwrap()).unwrap();
-        std::fs::write(&config_path, "invalid = toml [ content").unwrap();
-
-        let config = load_config_from_path(Some(config_path));
-
-        assert_eq!(config, Params::default());
     }
 }
