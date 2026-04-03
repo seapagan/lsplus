@@ -16,8 +16,7 @@ pub fn run_with_flags(args: cli::Flags) -> io::Result<()> {
     run_multi(&patterns, &params)
 }
 
-#[doc(hidden)]
-pub fn patterns_from_args(paths: Vec<String>) -> Vec<String> {
+pub(crate) fn patterns_from_args(paths: Vec<String>) -> Vec<String> {
     if paths.is_empty() {
         vec![String::from(".")]
     } else {
@@ -35,11 +34,14 @@ fn run_multi(patterns: &[String], params: &Params) -> io::Result<()> {
     }
 }
 
-#[doc(hidden)]
-pub fn collect_matches(
+pub(crate) fn collect_matches(
     patterns: &[String],
     params: &Params,
 ) -> io::Result<Vec<crate::FileInfo>> {
+    if patterns.is_empty() {
+        return Ok(Vec::new());
+    }
+
     let mut all_file_info = Vec::new();
 
     for pattern in patterns {

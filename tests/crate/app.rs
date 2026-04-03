@@ -1,6 +1,6 @@
-use lsplus::Params;
-use lsplus::app::{collect_matches, patterns_from_args, run_with_flags};
-use lsplus::cli::Flags;
+use crate::Params;
+use crate::app::{collect_matches, patterns_from_args, run_with_flags};
+use crate::cli::Flags;
 use std::fs;
 use tempfile::tempdir;
 
@@ -41,6 +41,13 @@ fn test_collect_matches_returns_empty_for_missing_pattern() {
         &Params::default(),
     )
     .unwrap();
+
+    assert!(matches.is_empty());
+}
+
+#[test]
+fn test_collect_matches_returns_empty_for_empty_patterns() {
+    let matches = collect_matches(&[], &Params::default()).unwrap();
 
     assert!(matches.is_empty());
 }

@@ -1,4 +1,4 @@
-use lsplus::utils::gitignore::{
+use crate::utils::gitignore::{
     GitignoreCache, collect_gitignore_files, find_git_paths_parts,
     matcher_ignores_path, parse_commondir, parse_gitdir_file,
 };

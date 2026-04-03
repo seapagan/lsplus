@@ -1,5 +1,5 @@
+use crate::cli::{Flags, format_version_info, version_info};
 use clap::Parser;
-use lsplus::cli::{Flags, format_version_info, version_info};
 
 #[test]
 fn test_default_flags() {

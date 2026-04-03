@@ -77,8 +77,7 @@ pub struct Flags {
     pub fuzzy_time: bool,
 }
 
-#[doc(hidden)]
-pub fn format_version_info(
+pub(crate) fn format_version_info(
     version: &str,
     authors: &str,
     description: &str,

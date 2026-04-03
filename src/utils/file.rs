@@ -30,8 +30,7 @@ struct FileDetails {
 
 const STYLE_DIM: &str = "\x1B[2m";
 
-#[doc(hidden)]
-pub struct DirectoryEntryData {
+pub(crate) struct DirectoryEntryData {
     pub file_name: OsString,
     pub path: PathBuf,
     pub is_dir: Result<bool, io::Error>,
@@ -122,12 +121,15 @@ pub fn collect_file_names(
     Ok(file_names)
 }
 
-#[doc(hidden)]
-pub fn collect_visible_file_names(
+pub(crate) fn collect_visible_file_names(
     path: &Path,
     entries: Vec<Result<DirectoryEntryData, io::Error>>,
     params: &Params,
 ) -> Vec<String> {
+    if entries.is_empty() {
+        return Vec::new();
+    }
+
     let mut visible_entries = Vec::new();
 
     for entry_result in entries {
@@ -226,14 +228,17 @@ pub fn collect_file_info(
     Ok(file_info)
 }
 
-#[doc(hidden)]
-pub fn append_file_info_for_names(
+pub(crate) fn append_file_info_for_names(
     file_info: &mut Vec<FileInfo>,
     path: &Path,
     file_names: &[String],
     params: &Params,
     gitignore_cache: &mut GitignoreCache,
 ) {
+    if file_names.is_empty() {
+        return;
+    }
+
     for file_name in file_names {
         let full_path = path.join(file_name);
         match create_file_info_with_gitignore(
@@ -377,8 +382,11 @@ fn sort_key(name: &OsStr) -> Vec<u8> {
     }
 }
 
-#[doc(hidden)]
-pub fn sanitize_for_terminal(text: &str) -> String {
+pub(crate) fn sanitize_for_terminal(text: &str) -> String {
+    if text.is_empty() {
+        return String::new();
+    }
+
     let mut sanitized = String::with_capacity(text.len());
     for character in text.chars() {
         match character {
@@ -399,8 +407,11 @@ fn sanitize_path_for_terminal(path: &Path) -> String {
     sanitize_for_terminal(&path.to_string_lossy())
 }
 
-#[doc(hidden)]
-pub fn format_symlink_display_name(
+fn symlink_short_suffix(params: &Params) -> &'static str {
+    if params.append_slash { "*" } else { "" }
+}
+
+pub(crate) fn format_symlink_display_name(
     safe_file_name: &str,
     path: &Path,
     target: io::Result<PathBuf>,
@@ -430,7 +441,7 @@ pub fn format_symlink_display_name(
                 format!(
                     "{color_cyan}{}{}",
                     safe_file_name,
-                    if params.append_slash { "*" } else { "" }
+                    symlink_short_suffix(params)
                 )
             }
         }
@@ -441,15 +452,14 @@ pub fn format_symlink_display_name(
                 format!(
                     "{color_cyan}{}{}",
                     safe_file_name,
-                    if params.append_slash { "*" } else { "" }
+                    symlink_short_suffix(params)
                 )
             }
         }
     }
 }
 
-#[doc(hidden)]
-pub fn format_path_error(path: &Path, err: &io::Error) -> String {
+pub(crate) fn format_path_error(path: &Path, err: &io::Error) -> String {
     format!("lsplus: {}: {}", sanitize_path_for_terminal(path), err)
 }
 

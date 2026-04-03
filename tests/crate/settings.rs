@@ -1,5 +1,5 @@
-use lsplus::Params;
-use lsplus::settings::{
+use crate::Params;
+use crate::settings::{
     config_path_from_home, load_config, load_config_from_path,
 };
 use std::fs;

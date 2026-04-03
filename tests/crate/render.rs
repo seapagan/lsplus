@@ -1,9 +1,9 @@
-use lsplus::utils::icons::Icon;
-use lsplus::utils::render::{
+use crate::utils::icons::Icon;
+use crate::utils::render::{
     build_long_format_table, build_short_format_table,
     terminal_width_or_default,
 };
-use lsplus::{FileInfo, Params};
+use crate::{FileInfo, Params};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 use terminal_size::{Height, Width};

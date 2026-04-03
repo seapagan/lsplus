@@ -9,8 +9,7 @@ fn config_path() -> Option<PathBuf> {
     config_path_from_home(home_dir())
 }
 
-#[doc(hidden)]
-pub fn config_path_from_home(home: Option<PathBuf>) -> Option<PathBuf> {
+pub(crate) fn config_path_from_home(home: Option<PathBuf>) -> Option<PathBuf> {
     let mut path = home?;
     path.push(".config/lsplus/config.toml");
     Some(path)
@@ -20,8 +19,7 @@ pub fn load_config() -> Params {
     load_config_from_path(config_path())
 }
 
-#[doc(hidden)]
-pub fn load_config_from_path(config_path: Option<PathBuf>) -> Params {
+pub(crate) fn load_config_from_path(config_path: Option<PathBuf>) -> Params {
     let Some(config_path) = config_path else {
         return Params::default();
     };

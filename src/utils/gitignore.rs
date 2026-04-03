@@ -122,14 +122,18 @@ fn find_git_paths(start: &Path) -> Option<GitPaths> {
     None
 }
 
-#[doc(hidden)]
-pub fn find_git_paths_parts(start: &Path) -> Option<(PathBuf, PathBuf)> {
+#[cfg(test)]
+pub(crate) fn find_git_paths_parts(
+    start: &Path,
+) -> Option<(PathBuf, PathBuf)> {
     let git_paths = find_git_paths(start)?;
     Some((git_paths.root, git_paths.common_dir))
 }
 
-#[doc(hidden)]
-pub fn collect_gitignore_files(root: &Path, directory: &Path) -> Vec<PathBuf> {
+pub(crate) fn collect_gitignore_files(
+    root: &Path,
+    directory: &Path,
+) -> Vec<PathBuf> {
     if !directory.starts_with(root) {
         return Vec::new();
     }
@@ -172,8 +176,7 @@ fn build_git_global_matcher(root: &Path) -> Gitignore {
     matcher
 }
 
-#[doc(hidden)]
-pub fn parse_gitdir_file(dot_git: &Path) -> Option<PathBuf> {
+pub(crate) fn parse_gitdir_file(dot_git: &Path) -> Option<PathBuf> {
     let contents = fs::read_to_string(dot_git).ok()?;
     let value = contents.strip_prefix("gitdir:")?.trim();
     let git_dir = PathBuf::from(value);
@@ -187,8 +190,7 @@ pub fn parse_gitdir_file(dot_git: &Path) -> Option<PathBuf> {
     }
 }
 
-#[doc(hidden)]
-pub fn parse_commondir(git_dir: &Path) -> Option<PathBuf> {
+pub(crate) fn parse_commondir(git_dir: &Path) -> Option<PathBuf> {
     let contents = fs::read_to_string(git_dir.join("commondir")).ok()?;
     let common_dir = PathBuf::from(contents.trim());
 
@@ -203,8 +205,8 @@ fn normalize_path(path: PathBuf) -> PathBuf {
     fs::canonicalize(&path).unwrap_or(path)
 }
 
-#[doc(hidden)]
-pub fn matcher_ignores_path(
+#[cfg(test)]
+pub(crate) fn matcher_ignores_path(
     directory: &Path,
     path: &Path,
     is_dir: bool,

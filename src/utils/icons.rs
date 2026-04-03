@@ -227,8 +227,7 @@ fn get_folder_icon(folder_name: &str) -> Icon {
 }
 
 // Helper function to check if a file name ends with an extension
-#[doc(hidden)]
-pub fn has_extension(file_name: &str, ext: &str) -> bool {
+pub(crate) fn has_extension(file_name: &str, ext: &str) -> bool {
     // Guard against empty extension
     if ext.is_empty() {
         return false;

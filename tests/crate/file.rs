@@ -1,11 +1,11 @@
-use inline_colorization::{color_blue, color_green};
-use lsplus::utils::file::{
+use crate::utils::file::{
     DirectoryEntryData, append_file_info_for_names, check_display_name,
     collect_file_info, collect_file_names, collect_visible_file_names,
     create_file_info, format_path_error, format_symlink_display_name,
     get_groupname, get_username, sanitize_for_terminal,
 };
-use lsplus::{FileInfo, Params};
+use crate::{FileInfo, Params};
+use inline_colorization::{color_blue, color_green};
 use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io;
@@ -217,7 +217,7 @@ fn test_append_file_info_for_names_skips_missing_entries() {
         vec![String::from("existing.txt"), String::from("missing.txt")];
     let mut file_info = Vec::new();
     let mut gitignore_cache =
-        lsplus::utils::gitignore::GitignoreCache::default();
+        crate::utils::gitignore::GitignoreCache::default();
 
     append_file_info_for_names(
         &mut file_info,
@@ -229,6 +229,23 @@ fn test_append_file_info_for_names_skips_missing_entries() {
 
     assert_eq!(file_info.len(), 1);
     assert!(file_info[0].display_name.contains("existing.txt"));
+}
+
+#[test]
+fn test_append_file_info_for_names_handles_empty_input() {
+    let mut file_info = Vec::new();
+    let mut gitignore_cache =
+        crate::utils::gitignore::GitignoreCache::default();
+
+    append_file_info_for_names(
+        &mut file_info,
+        Path::new("/tmp"),
+        &[],
+        &Params::default(),
+        &mut gitignore_cache,
+    );
+
+    assert!(file_info.is_empty());
 }
 
 #[test]
@@ -408,11 +425,23 @@ fn test_format_symlink_display_name_handles_unreadable_targets() {
 fn test_sanitize_for_terminal_and_format_path_error_escape_controls() {
     let sanitized = sanitize_for_terminal("bad\n\r\t\u{1b}name");
     assert_eq!(sanitized, "bad\\n\\r\\t\\x1bname");
+    assert_eq!(sanitize_for_terminal(""), "");
 
     let err = io::Error::other("boom");
     let formatted = format_path_error(Path::new("bad\nname"), &err);
     assert!(formatted.contains("bad\\nname"));
     assert!(formatted.contains("boom"));
+}
+
+#[test]
+fn test_collect_visible_file_names_handles_empty_entries() {
+    let names = collect_visible_file_names(
+        Path::new("/tmp"),
+        Vec::new(),
+        &Params::default(),
+    );
+
+    assert!(names.is_empty());
 }
 
 #[test]

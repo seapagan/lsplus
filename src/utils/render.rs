@@ -22,8 +22,7 @@ pub fn display_long_format(
     Ok(())
 }
 
-#[doc(hidden)]
-pub fn build_long_format_table(
+pub(crate) fn build_long_format_table(
     file_info: &[FileInfo],
     params: &Params,
 ) -> Table {
@@ -76,8 +75,7 @@ pub fn display_short_format(file_info: &[FileInfo]) -> io::Result<()> {
     Ok(())
 }
 
-#[doc(hidden)]
-pub fn build_short_format_table(
+pub(crate) fn build_short_format_table(
     file_info: &[FileInfo],
     terminal_width: usize,
 ) -> Table {
@@ -95,8 +93,9 @@ pub fn build_short_format_table(
     table
 }
 
-#[doc(hidden)]
-pub fn terminal_width_or_default(size: Option<(Width, Height)>) -> usize {
+pub(crate) fn terminal_width_or_default(
+    size: Option<(Width, Height)>,
+) -> usize {
     size.map(|(Width(width), _)| usize::from(width))
         .unwrap_or(80)
 }

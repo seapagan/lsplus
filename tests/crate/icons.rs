@@ -1,4 +1,4 @@
-use lsplus::utils::icons::{Icon, get_item_icon, has_extension};
+use crate::utils::icons::{Icon, get_item_icon, has_extension};
 use std::fs;
 use std::path::Path;
 use tempfile::tempdir;
