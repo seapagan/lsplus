@@ -71,6 +71,16 @@ and will display file sizes in human readable format if set to `true`.
 This option corresponds to the `--no-icons` command line option and will not
 display icons if set to `true`.
 
+### gitignore
+
+- Permitted values: `true` or `false`
+- Default value: `false`
+
+This option corresponds to the `-I` or `--gitignore` command line option and
+will dim entries that are matched by the active Git ignore rules, including
+merged `.gitignore` files, `.git/info/exclude`, and the configured global Git
+excludes file.
+
 ### fuzzy_time
 
 - Permitted values: `true` or `false`
@@ -90,4 +100,5 @@ append_slash = true
 dirs_first = true
 human_readable = true
 fuzzy_time = true
+gitignore = true
 ```

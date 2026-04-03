@@ -18,6 +18,7 @@ Curently, only a sub-set of the standard `ls` options are supported. These are:
 - `-l` / `--long` - Show long format listing
 - `-h` / `--human-readable` - Human readable file sizes
 - `-D` / `--sort-dirs` - Sort directories first
+- `-I` / `--gitignore` - Dim entries matched by Git ignore rules
 - `--no-icons` - don't show file or folder icons
 - `-Z` / `--fuzzy-time` - Show fuzzy time for file modification times
 
@@ -30,6 +31,10 @@ Use the `--help` option to see the full list of options.
 The long-format listing is currently colorized by default and cannot be
 disabled. This will be made configurable in the future along with adding more
 of the original `ls` options.
+
+When `-I` is enabled, `lsp` checks the same ignore sources Git normally uses:
+merged `.gitignore` files in the worktree, `.git/info/exclude`, and the
+configured global Git excludes file.
 
 ## Fuzzy Time
 

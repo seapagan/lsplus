@@ -8,10 +8,12 @@
       whether it is a directory, file, or symlink.
 - [ ] Add icons for partials like `TODO.*`, `LICENSE.*` and more - brands like
   claude, codex, vscode and more where the nerdfont exists
-- [ ] option to grey-out files in the `.gitignore`.
 - [ ] using the config file, allow extending the existing file and folder
       mapping, or deleting specific maps.
 - [ ] add a -R flag to recursively list files in a directory.
+- [ ] When adding recursion or tree-style output, revisit whether directory
+      traversal should move over to the `ignore` crate instead of the current
+      custom walker.
 - [ ] better handle dotfiles?
 - [ ] option to list dotfiles (and folders) before non-dotfiles
 - [ ] Consider separating config-loaded values from effective runtime params so

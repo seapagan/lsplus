@@ -58,6 +58,13 @@ pub struct Flags {
     pub no_icons: bool,
 
     #[arg(
+        short = 'I',
+        long = "gitignore",
+        help = "Dim entries matched by active .gitignore rules"
+    )]
+    pub gitignore: bool,
+
+    #[arg(
         long = "version",
         short = 'V',
         action = ArgAction::SetTrue,
@@ -109,6 +116,7 @@ mod tests {
         assert!(!args.slash);
         assert!(!args.dirs_first);
         assert!(!args.no_icons);
+        assert!(!args.gitignore);
         assert!(!args.version);
         assert!(!args.fuzzy_time);
         assert_eq!(args.paths, vec![String::from(".")]);
@@ -134,6 +142,7 @@ mod tests {
             "-p",
             "--sort-dirs",
             "--no-icons",
+            "--gitignore",
             "--fuzzy-time",
         ]);
         assert!(args.show_all);
@@ -143,6 +152,7 @@ mod tests {
         assert!(args.slash);
         assert!(args.dirs_first);
         assert!(args.no_icons);
+        assert!(args.gitignore);
         assert!(args.fuzzy_time);
     }
 

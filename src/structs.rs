@@ -26,6 +26,7 @@ pub struct Params {
     pub long_format: bool,
     pub human_readable: bool,
     pub no_icons: bool,
+    pub gitignore: bool,
     pub fuzzy_time: bool,
 }
 
@@ -43,6 +44,7 @@ impl From<Config> for Params {
             long_format,
             human_readable,
             no_icons,
+            gitignore,
             fuzzy_time
         );
 
@@ -60,6 +62,7 @@ impl Params {
             long_format: flags.long || config.long_format,
             human_readable: flags.human_readable || config.human_readable,
             no_icons: flags.no_icons || config.no_icons,
+            gitignore: flags.gitignore || config.gitignore,
             fuzzy_time: flags.fuzzy_time || config.fuzzy_time,
         }
     }
@@ -95,6 +98,7 @@ mod tests {
         assert!(!params.long_format);
         assert!(!params.human_readable);
         assert!(!params.no_icons);
+        assert!(!params.gitignore);
         assert!(!params.fuzzy_time);
     }
 
@@ -109,6 +113,7 @@ mod tests {
             dirs_first = true
             long_format = true
             human_readable = true
+            gitignore = true
         "#;
 
         fs::write(&config_path, config_content)?;
@@ -125,6 +130,7 @@ mod tests {
         assert!(params.dirs_first);
         assert!(params.long_format);
         assert!(params.human_readable);
+        assert!(params.gitignore);
 
         Ok(())
     }
@@ -139,6 +145,7 @@ mod tests {
             long_format: true,
             human_readable: true,
             no_icons: false,
+            gitignore: true,
             fuzzy_time: false,
         };
 
@@ -152,6 +159,7 @@ mod tests {
             long: false,
             human_readable: false,
             no_icons: true,
+            gitignore: false,
             fuzzy_time: true,
         };
 
@@ -164,6 +172,7 @@ mod tests {
         assert!(params.long_format);
         assert!(params.human_readable);
         assert!(params.no_icons);
+        assert!(params.gitignore);
         assert!(params.fuzzy_time);
     }
 }
