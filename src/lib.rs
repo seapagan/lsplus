@@ -4,7 +4,7 @@ pub mod settings;
 pub mod structs;
 pub mod utils;
 
-pub use structs::{FileInfo, Params};
+pub use structs::{FileInfo, NameStyle, Params};
 
 #[cfg(test)]
 #[path = "../tests/crate/app.rs"]

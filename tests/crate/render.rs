@@ -1,9 +1,9 @@
 use crate::utils::icons::Icon;
 use crate::utils::render::{
     build_long_format_table, build_short_format_table,
-    terminal_width_or_default,
+    render_short_format_lines, terminal_width_or_default,
 };
-use crate::{FileInfo, Params};
+use crate::{FileInfo, NameStyle, Params};
 use colored_text::{ColorMode, ColorizeConfig};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
@@ -24,7 +24,10 @@ fn test_file_info(
         size,
         mtime,
         item_icon,
+        short_name: display_name.to_string(),
         display_name: display_name.to_string(),
+        name_style: NameStyle::Plain,
+        dimmed: false,
         full_path: PathBuf::from(display_name),
     }
 }
@@ -232,6 +235,35 @@ fn test_build_short_format_table_handles_empty_input() {
     let rendered = normalized_table(build_short_format_table(&[], 80));
 
     assert!(rendered.trim().is_empty());
+}
+
+#[test]
+fn test_render_short_format_lines_style_directory_padding_when_enabled() {
+    with_color_output_enabled(|| {
+        let mut dir =
+            test_file_info("alpha/", Some(Icon::Folder), 0, SystemTime::now());
+        dir.name_style = NameStyle::Directory;
+
+        let lines = render_short_format_lines(&[dir], 80);
+
+        assert_eq!(lines.len(), 1);
+        assert!(lines[0].contains(&format!(
+            "{} \u{1b}[34malpha/  \u{1b}[0m",
+            Icon::Folder
+        )));
+    });
+}
+
+#[test]
+fn test_render_short_format_lines_keep_plain_output_when_color_disabled() {
+    let _guard = ColorModeGuard::set(ColorMode::Never);
+    let mut dir =
+        test_file_info("alpha/", Some(Icon::Folder), 0, SystemTime::now());
+    dir.name_style = NameStyle::Directory;
+
+    let lines = render_short_format_lines(&[dir], 80);
+
+    assert_eq!(lines, vec![format!(" {} alpha/  ", Icon::Folder)]);
 }
 
 #[test]

@@ -9,6 +9,7 @@ use std::time::SystemTime;
 
 use crate::Params;
 use crate::structs::FileInfo;
+use crate::structs::NameStyle;
 use crate::utils;
 use crate::utils::format;
 use crate::utils::gitignore::GitignoreCache;
@@ -290,25 +291,33 @@ fn create_file_info_from_metadata_with_gitignore(
     let ignored = params.gitignore
         && gitignore_cache.is_ignored(path, metadata.is_dir());
 
-    let display_name = if metadata.is_symlink() {
-        if ignored {
-            format_symlink_display_name_with_dim(
-                &safe_file_name,
-                path,
-                fs::read_link(path),
-                params,
-                true,
-            )
-        } else {
-            format_symlink_display_name(
-                &safe_file_name,
-                path,
-                fs::read_link(path),
-                params,
-            )
-        }
+    let (display_name, short_name, name_style) = if metadata.is_symlink() {
+        (
+            if ignored {
+                format_symlink_display_name_with_dim(
+                    &safe_file_name,
+                    path,
+                    fs::read_link(path),
+                    params,
+                    true,
+                )
+            } else {
+                format_symlink_display_name(
+                    &safe_file_name,
+                    path,
+                    fs::read_link(path),
+                    params,
+                )
+            },
+            format!("{safe_file_name}{}", symlink_short_suffix(params)),
+            NameStyle::Symlink,
+        )
     } else {
-        colorize_name_by_metadata(&safe_file_name, metadata, ignored)
+        (
+            colorize_name_by_metadata(&safe_file_name, metadata, ignored),
+            safe_file_name.clone(),
+            name_style_by_metadata(metadata),
+        )
     };
 
     FileInfo {
@@ -320,7 +329,10 @@ fn create_file_info_from_metadata_with_gitignore(
         size: details.size,
         mtime: details.mtime,
         item_icon,
+        short_name,
         display_name,
+        name_style,
+        dimmed: ignored,
         full_path: path.to_path_buf(),
     }
 }
@@ -404,6 +416,26 @@ fn apply_dim(style: StyledText, dimmed: bool) -> StyledText {
 
 fn plain_text(text: impl Into<String>, dimmed: bool) -> String {
     apply_dim(StyledText::plain(text), dimmed).to_string()
+}
+
+fn name_style_by_metadata(metadata: &fs::Metadata) -> NameStyle {
+    if metadata.is_symlink() {
+        NameStyle::Symlink
+    } else if metadata.is_dir() {
+        NameStyle::Directory
+    } else {
+        #[cfg(unix)]
+        let executable = metadata.permissions().mode() & 0o111 != 0;
+
+        #[cfg(windows)]
+        let executable = false;
+
+        if executable {
+            NameStyle::Executable
+        } else {
+            NameStyle::Plain
+        }
+    }
 }
 
 fn colorize_name_by_metadata(

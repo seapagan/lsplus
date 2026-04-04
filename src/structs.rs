@@ -31,6 +31,15 @@ pub struct Params {
     pub fuzzy_time: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum NameStyle {
+    #[default]
+    Plain,
+    Directory,
+    Symlink,
+    Executable,
+}
+
 impl From<Config> for Params {
     fn from(settings: Config) -> Self {
         let mut params = Params::default();
@@ -81,6 +90,9 @@ pub struct FileInfo {
     pub size: u64,
     pub mtime: SystemTime,
     pub item_icon: Option<Icon>,
+    pub short_name: String,
     pub display_name: String,
+    pub name_style: NameStyle,
+    pub dimmed: bool,
     pub full_path: PathBuf,
 }

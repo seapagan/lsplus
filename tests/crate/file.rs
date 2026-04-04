@@ -4,7 +4,7 @@ use crate::utils::file::{
     create_file_info, format_path_error, format_symlink_display_name,
     get_groupname, get_username, sanitize_for_terminal,
 };
-use crate::{FileInfo, Params};
+use crate::{FileInfo, NameStyle, Params};
 use colored_text::{ColorMode, ColorizeConfig};
 use std::ffi::OsString;
 use std::fs::{self, File};
@@ -30,7 +30,10 @@ fn basic_info(display_name: &str, full_path: PathBuf) -> FileInfo {
         size: 0,
         mtime: SystemTime::now(),
         item_icon: None,
+        short_name: display_name.to_string(),
         display_name: display_name.to_string(),
+        name_style: NameStyle::Plain,
+        dimmed: false,
         full_path,
     }
 }
