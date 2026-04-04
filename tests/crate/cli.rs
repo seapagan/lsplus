@@ -11,6 +11,7 @@ fn test_default_flags() {
     assert!(!args.slash);
     assert!(!args.dirs_first);
     assert!(!args.no_icons);
+    assert!(!args.no_color);
     assert!(!args.gitignore);
     assert!(!args.version);
     assert!(!args.fuzzy_time);
@@ -37,6 +38,7 @@ fn test_all_flags() {
         "-p",
         "--sort-dirs",
         "--no-icons",
+        "--no-color",
         "--gitignore",
         "--fuzzy-time",
     ]);
@@ -47,8 +49,15 @@ fn test_all_flags() {
     assert!(args.slash);
     assert!(args.dirs_first);
     assert!(args.no_icons);
+    assert!(args.no_color);
     assert!(args.gitignore);
     assert!(args.fuzzy_time);
+}
+
+#[test]
+fn test_no_color_short_flag() {
+    let args = Flags::parse_from(["lsplus", "-N"]);
+    assert!(args.no_color);
 }
 
 #[test]

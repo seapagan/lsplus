@@ -26,6 +26,7 @@ pub struct Params {
     pub long_format: bool,
     pub human_readable: bool,
     pub no_icons: bool,
+    pub no_color: bool,
     pub gitignore: bool,
     pub fuzzy_time: bool,
 }
@@ -44,6 +45,7 @@ impl From<Config> for Params {
             long_format,
             human_readable,
             no_icons,
+            no_color,
             gitignore,
             fuzzy_time
         );
@@ -62,6 +64,7 @@ impl Params {
             long_format: flags.long || config.long_format,
             human_readable: flags.human_readable || config.human_readable,
             no_icons: flags.no_icons || config.no_icons,
+            no_color: flags.no_color || config.no_color,
             gitignore: flags.gitignore || config.gitignore,
             fuzzy_time: flags.fuzzy_time || config.fuzzy_time,
         }

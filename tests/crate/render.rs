@@ -4,6 +4,7 @@ use crate::utils::render::{
     terminal_width_or_default,
 };
 use crate::{FileInfo, Params};
+use colored_text::{ColorMode, ColorizeConfig};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 use terminal_size::{Height, Width};
@@ -30,6 +31,33 @@ fn test_file_info(
 
 fn normalized_table(table: prettytable::Table) -> String {
     table.to_string().replace("\r\n", "\n")
+}
+
+struct ColorModeGuard(ColorMode);
+
+impl ColorModeGuard {
+    fn set(mode: ColorMode) -> Self {
+        let previous = ColorizeConfig::color_mode();
+        ColorizeConfig::set_color_mode(mode);
+        Self(previous)
+    }
+}
+
+impl Drop for ColorModeGuard {
+    fn drop(&mut self) {
+        ColorizeConfig::set_color_mode(self.0);
+    }
+}
+
+fn has_ansi(text: &str) -> bool {
+    text.contains("\u{1b}[")
+}
+
+fn with_color_output_enabled<T>(test: impl FnOnce() -> T) -> T {
+    temp_env::with_var("NO_COLOR", None::<&str>, || {
+        let _guard = ColorModeGuard::set(ColorMode::Always);
+        test()
+    })
 }
 
 #[test]
@@ -85,6 +113,33 @@ fn test_build_long_format_table_omits_optional_units_and_icons() {
     assert!(rendered.contains("12"));
     assert!(!rendered.contains("KB"));
     assert!(!rendered.contains(&Icon::RustFile.to_string()));
+}
+
+#[test]
+fn test_build_long_format_table_colors_columns_when_enabled() {
+    with_color_output_enabled(|| {
+        let info = test_file_info("plain.txt", None, 12, SystemTime::now());
+
+        let rendered = normalized_table(build_long_format_table(
+            &[info],
+            &Params::default(),
+        ));
+
+        assert!(rendered.contains("\u{1b}[36muser\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[32mgroup\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[33m"));
+    });
+}
+
+#[test]
+fn test_build_long_format_table_is_plain_when_color_is_disabled() {
+    let _guard = ColorModeGuard::set(ColorMode::Never);
+    let info = test_file_info("plain.txt", None, 12, SystemTime::now());
+
+    let rendered =
+        normalized_table(build_long_format_table(&[info], &Params::default()));
+
+    assert!(!has_ansi(&rendered));
 }
 
 #[test]

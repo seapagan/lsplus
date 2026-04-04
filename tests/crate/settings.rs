@@ -57,6 +57,7 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
             long_format = true
             human_readable = true
             no_icons = true
+            no_color = true
             gitignore = true
             fuzzy_time = true
         "#,
@@ -74,6 +75,7 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
                 long_format: true,
                 human_readable: true,
                 no_icons: true,
+                no_color: true,
                 gitignore: true,
                 fuzzy_time: true,
             }

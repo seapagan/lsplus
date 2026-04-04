@@ -58,6 +58,13 @@ pub struct Flags {
     pub no_icons: bool,
 
     #[arg(
+        short = 'N',
+        long = "no-color",
+        help = "Do not display colored or styled output"
+    )]
+    pub no_color: bool,
+
+    #[arg(
         short = 'I',
         long = "gitignore",
         help = "Dim entries matched by active .gitignore rules"

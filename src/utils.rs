@@ -1,3 +1,4 @@
+pub mod color;
 pub mod file;
 pub mod format;
 pub mod fuzzy_time;

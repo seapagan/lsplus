@@ -41,6 +41,7 @@ fn test_public_run_with_flags_accepts_missing_patterns() {
         slash: false,
         dirs_first: false,
         no_icons: false,
+        no_color: false,
         gitignore: false,
         version: false,
         fuzzy_time: false,

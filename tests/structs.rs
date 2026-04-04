@@ -14,6 +14,7 @@ fn test_default_params() {
     assert!(!params.long_format);
     assert!(!params.human_readable);
     assert!(!params.no_icons);
+    assert!(!params.no_color);
     assert!(!params.gitignore);
     assert!(!params.fuzzy_time);
 }
@@ -33,6 +34,7 @@ fn test_config_conversion() {
             long_format = true
             human_readable = true
             no_icons = true
+            no_color = true
             gitignore = true
             fuzzy_time = true
         "#,
@@ -56,6 +58,7 @@ fn test_config_conversion() {
             long_format: true,
             human_readable: true,
             no_icons: true,
+            no_color: true,
             gitignore: true,
             fuzzy_time: true,
         }
@@ -72,6 +75,7 @@ fn test_params_merge_prefers_true_from_either_source() {
         long_format: true,
         human_readable: true,
         no_icons: false,
+        no_color: true,
         gitignore: true,
         fuzzy_time: false,
     };
@@ -86,6 +90,7 @@ fn test_params_merge_prefers_true_from_either_source() {
         long: false,
         human_readable: false,
         no_icons: true,
+        no_color: false,
         gitignore: false,
         fuzzy_time: true,
     };
@@ -99,6 +104,7 @@ fn test_params_merge_prefers_true_from_either_source() {
     assert!(params.long_format);
     assert!(params.human_readable);
     assert!(params.no_icons);
+    assert!(params.no_color);
     assert!(params.gitignore);
     assert!(params.fuzzy_time);
 }
@@ -115,6 +121,7 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
         long: false,
         human_readable: false,
         no_icons: false,
+        no_color: false,
         gitignore: false,
         fuzzy_time: false,
     };

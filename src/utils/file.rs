@@ -1,3 +1,4 @@
+use colored_text::{Colorize, StyledText};
 use nix::unistd::{Group, User};
 use std::ffi::{OsStr, OsString};
 use std::fs;
@@ -5,8 +6,6 @@ use std::io;
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
-
-use inline_colorization::*;
 
 use crate::Params;
 use crate::structs::FileInfo;
@@ -26,8 +25,6 @@ struct FileDetails {
     user: String,
     group: String,
 }
-
-const STYLE_DIM: &str = "\x1B[2m";
 
 pub(crate) struct DirectoryEntryData {
     pub file_name: OsString,
@@ -290,22 +287,28 @@ fn create_file_info_from_metadata_with_gitignore(
         safe_file_name.push('/');
     }
 
+    let ignored = params.gitignore
+        && gitignore_cache.is_ignored(path, metadata.is_dir());
+
     let display_name = if metadata.is_symlink() {
-        format_symlink_display_name(
-            &safe_file_name,
-            path,
-            fs::read_link(path),
-            params,
-        )
+        if ignored {
+            format_symlink_display_name_with_dim(
+                &safe_file_name,
+                path,
+                fs::read_link(path),
+                params,
+                true,
+            )
+        } else {
+            format_symlink_display_name(
+                &safe_file_name,
+                path,
+                fs::read_link(path),
+                params,
+            )
+        }
     } else {
-        colorize_name_by_metadata(&safe_file_name, metadata)
-    };
-    let display_name = if params.gitignore
-        && gitignore_cache.is_ignored(path, metadata.is_dir())
-    {
-        format!("{STYLE_DIM}{display_name}{style_reset}")
-    } else {
-        display_name
+        colorize_name_by_metadata(&safe_file_name, metadata, ignored)
     };
 
     FileInfo {
@@ -324,8 +327,8 @@ fn create_file_info_from_metadata_with_gitignore(
 
 pub fn check_display_name(info: &FileInfo) -> String {
     match &info.full_path.to_string_lossy() {
-        p if p.ends_with("/.") => format!("{color_blue}."),
-        p if p.ends_with("/..") => format!("{color_blue}.."),
+        p if p.ends_with("/.") => ".".blue().to_string(),
+        p if p.ends_with("/..") => "..".blue().to_string(),
         _ => info.display_name.to_string(),
     }
 }
@@ -395,14 +398,23 @@ fn symlink_short_suffix(params: &Params) -> &'static str {
     if params.append_slash { "*" } else { "" }
 }
 
+fn apply_dim(style: StyledText, dimmed: bool) -> StyledText {
+    if dimmed { style.dim() } else { style }
+}
+
+fn plain_text(text: impl Into<String>, dimmed: bool) -> String {
+    apply_dim(StyledText::plain(text), dimmed).to_string()
+}
+
 fn colorize_name_by_metadata(
     safe_name: &str,
     metadata: &fs::Metadata,
+    dimmed: bool,
 ) -> String {
     if metadata.is_symlink() {
-        format!("{color_cyan}{safe_name}")
+        apply_dim(safe_name.cyan(), dimmed).to_string()
     } else if metadata.is_dir() {
-        format!("{color_blue}{safe_name}")
+        apply_dim(safe_name.blue(), dimmed).to_string()
     } else {
         #[cfg(unix)]
         let executable = metadata.permissions().mode() & 0o111 != 0;
@@ -411,9 +423,9 @@ fn colorize_name_by_metadata(
         let executable = false;
 
         if executable {
-            format!("{style_bold}{color_green}{safe_name}")
+            apply_dim(safe_name.green().bold(), dimmed).to_string()
         } else {
-            format!("{color_reset}{safe_name}")
+            plain_text(safe_name, dimmed)
         }
     }
 }
@@ -423,6 +435,22 @@ pub(crate) fn format_symlink_display_name(
     path: &Path,
     target: io::Result<PathBuf>,
     params: &Params,
+) -> String {
+    format_symlink_display_name_with_dim(
+        safe_file_name,
+        path,
+        target,
+        params,
+        false,
+    )
+}
+
+fn format_symlink_display_name_with_dim(
+    safe_file_name: &str,
+    path: &Path,
+    target: io::Result<PathBuf>,
+    params: &Params,
+    dimmed: bool,
 ) -> String {
     match target {
         Ok(target) => {
@@ -435,38 +463,60 @@ pub(crate) fn format_symlink_display_name(
             if params.long_format {
                 let display_target = fs::symlink_metadata(&target_path)
                     .map(|metadata| {
-                        colorize_name_by_metadata(&display_target, &metadata)
+                        colorize_name_by_metadata(
+                            &display_target,
+                            &metadata,
+                            dimmed,
+                        )
                     })
-                    .unwrap_or(display_target);
+                    .unwrap_or_else(|_| plain_text(&display_target, dimmed));
 
                 if target_path.exists() {
                     format!(
-                        "{color_cyan}{} -> {}",
-                        safe_file_name, display_target
+                        "{}{}{}",
+                        apply_dim(safe_file_name.cyan(), dimmed),
+                        plain_text(" -> ", dimmed),
+                        display_target
                     )
                 } else {
                     format!(
-                        "{color_cyan}{} -> {} {color_red}[Broken Link]",
-                        safe_file_name, display_target
+                        "{}{}{}{}{}",
+                        apply_dim(safe_file_name.cyan(), dimmed),
+                        plain_text(" -> ", dimmed),
+                        display_target,
+                        plain_text(" ", dimmed),
+                        apply_dim("[Broken Link]".red(), dimmed)
                     )
                 }
             } else {
-                format!(
-                    "{color_cyan}{}{}",
-                    safe_file_name,
-                    symlink_short_suffix(params)
+                apply_dim(
+                    format!(
+                        "{safe_file_name}{}",
+                        symlink_short_suffix(params)
+                    )
+                    .cyan(),
+                    dimmed,
                 )
+                .to_string()
             }
         }
         Err(_) => {
             if params.long_format {
-                format!("{color_red}{} -> (unreadable)", safe_file_name)
-            } else {
-                format!(
-                    "{color_cyan}{}{}",
-                    safe_file_name,
-                    symlink_short_suffix(params)
+                apply_dim(
+                    format!("{safe_file_name} -> (unreadable)").red(),
+                    dimmed,
                 )
+                .to_string()
+            } else {
+                apply_dim(
+                    format!(
+                        "{safe_file_name}{}",
+                        symlink_short_suffix(params)
+                    )
+                    .cyan(),
+                    dimmed,
+                )
+                .to_string()
             }
         }
     }

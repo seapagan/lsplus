@@ -5,9 +5,7 @@ use crate::utils::file::{
     get_groupname, get_username, sanitize_for_terminal,
 };
 use crate::{FileInfo, Params};
-use inline_colorization::{
-    color_blue, color_cyan, color_green, color_reset, style_bold,
-};
+use colored_text::{ColorMode, ColorizeConfig};
 use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io;
@@ -37,16 +35,45 @@ fn basic_info(display_name: &str, full_path: PathBuf) -> FileInfo {
     }
 }
 
+struct ColorModeGuard(ColorMode);
+
+impl ColorModeGuard {
+    fn set(mode: ColorMode) -> Self {
+        let previous = ColorizeConfig::color_mode();
+        ColorizeConfig::set_color_mode(mode);
+        Self(previous)
+    }
+}
+
+impl Drop for ColorModeGuard {
+    fn drop(&mut self) {
+        ColorizeConfig::set_color_mode(self.0);
+    }
+}
+
+fn has_ansi(text: &str) -> bool {
+    text.contains("\u{1b}[")
+}
+
+fn with_color_output_enabled<T>(test: impl FnOnce() -> T) -> T {
+    temp_env::with_var("NO_COLOR", None::<&str>, || {
+        let _guard = ColorModeGuard::set(ColorMode::Always);
+        test()
+    })
+}
+
 #[test]
 fn test_check_display_name_handles_regular_and_special_entries() {
     let plain = basic_info("test.txt", PathBuf::from("test.txt"));
     assert_eq!(check_display_name(&plain), "test.txt");
 
-    let dot = basic_info(".", PathBuf::from("/tmp/."));
-    assert_eq!(check_display_name(&dot), format!("{color_blue}."));
+    with_color_output_enabled(|| {
+        let dot = basic_info(".", PathBuf::from("/tmp/."));
+        assert_eq!(check_display_name(&dot), "\u{1b}[34m.\u{1b}[0m");
 
-    let dotdot = basic_info("..", PathBuf::from("/tmp/.."));
-    assert_eq!(check_display_name(&dotdot), format!("{color_blue}.."));
+        let dotdot = basic_info("..", PathBuf::from("/tmp/.."));
+        assert_eq!(check_display_name(&dotdot), "\u{1b}[34m..\u{1b}[0m");
+    });
 }
 
 #[test]
@@ -309,17 +336,49 @@ fn test_create_file_info_handles_executables_and_large_files() {
     fs::set_permissions(&file_path, fs::Permissions::from_mode(0o755))
         .unwrap();
 
-    let info = create_file_info(
-        &file_path,
+    with_color_output_enabled(|| {
+        let info = create_file_info(
+            &file_path,
+            &Params {
+                human_readable: true,
+                ..Params::default()
+            },
+        )
+        .unwrap();
+
+        assert_eq!(info.size, 5 * 1024 * 1024 * 1024);
+        assert!(info.display_name.contains("\u{1b}[1;32m"));
+    });
+}
+
+#[test]
+#[cfg(unix)]
+fn test_create_file_info_returns_plain_names_when_color_is_disabled() {
+    let _guard = ColorModeGuard::set(ColorMode::Never);
+    let temp_dir = tempdir().unwrap();
+    let file_path = temp_dir.path().join("plain-file");
+    let dir_path = temp_dir.path().join("plain-dir");
+    let link_path = temp_dir.path().join("plain-link");
+
+    fs::write(&file_path, "file").unwrap();
+    fs::create_dir(&dir_path).unwrap();
+    std::os::unix::fs::symlink(&file_path, &link_path).unwrap();
+
+    let file_info = create_file_info(&file_path, &Params::default()).unwrap();
+    let dir_info = create_file_info(&dir_path, &Params::default()).unwrap();
+    let link_info = create_file_info(
+        &link_path,
         &Params {
-            human_readable: true,
+            long_format: true,
             ..Params::default()
         },
     )
     .unwrap();
 
-    assert_eq!(info.size, 5 * 1024 * 1024 * 1024);
-    assert!(info.display_name.contains(color_green));
+    assert!(!has_ansi(&file_info.display_name));
+    assert!(!has_ansi(&dir_info.display_name));
+    assert!(!has_ansi(&link_info.display_name));
+    assert!(link_info.display_name.contains("->"));
 }
 
 #[cfg(unix)]
@@ -483,55 +542,109 @@ fn test_format_symlink_display_name_short_format_marks_append_slash() {
 #[test]
 #[cfg(unix)]
 fn test_format_symlink_display_name_colors_long_format_targets_by_type() {
+    with_color_output_enabled(|| {
+        let temp_dir = tempdir().unwrap();
+        let dir_target = temp_dir.path().join("dir-target");
+        let file_target = temp_dir.path().join("file-target.txt");
+        let symlink_target = temp_dir.path().join("symlink-target");
+        let exec_target = temp_dir.path().join("exec-target.sh");
+
+        fs::create_dir(&dir_target).unwrap();
+        fs::write(&file_target, "file").unwrap();
+        fs::write(&exec_target, "#!/bin/sh\nexit 0\n").unwrap();
+        fs::set_permissions(&exec_target, fs::Permissions::from_mode(0o755))
+            .unwrap();
+        std::os::unix::fs::symlink(&file_target, &symlink_target).unwrap();
+
+        let params = Params {
+            long_format: true,
+            ..Params::default()
+        };
+
+        let dir_display = format_symlink_display_name(
+            "dir-link",
+            &temp_dir.path().join("dir-link"),
+            Ok(PathBuf::from("dir-target")),
+            &params,
+        );
+        assert!(dir_display.contains("-> \u{1b}[34m"));
+
+        let file_display = format_symlink_display_name(
+            "file-link",
+            &temp_dir.path().join("file-link"),
+            Ok(PathBuf::from("file-target.txt")),
+            &params,
+        );
+        assert!(!file_display.contains("-> \u{1b}["));
+
+        let symlink_display = format_symlink_display_name(
+            "symlink-link",
+            &temp_dir.path().join("symlink-link"),
+            Ok(PathBuf::from("symlink-target")),
+            &params,
+        );
+        assert!(symlink_display.contains("-> \u{1b}[36m"));
+
+        let exec_display = format_symlink_display_name(
+            "exec-link",
+            &temp_dir.path().join("exec-link"),
+            Ok(PathBuf::from("exec-target.sh")),
+            &params,
+        );
+        assert!(exec_display.contains("-> \u{1b}[1;32m"));
+    });
+}
+
+#[test]
+#[cfg(unix)]
+fn test_gitignored_entries_remain_plain_when_color_is_disabled() {
+    let _guard = ColorModeGuard::set(ColorMode::Never);
     let temp_dir = tempdir().unwrap();
-    let dir_target = temp_dir.path().join("dir-target");
-    let file_target = temp_dir.path().join("file-target.txt");
-    let symlink_target = temp_dir.path().join("symlink-target");
-    let exec_target = temp_dir.path().join("exec-target.sh");
+    fs::create_dir(temp_dir.path().join(".git")).unwrap();
+    fs::write(temp_dir.path().join(".gitignore"), "*.log\n").unwrap();
+    let ignored_path = temp_dir.path().join("ignored.log");
+    fs::write(&ignored_path, "ignored").unwrap();
 
-    fs::create_dir(&dir_target).unwrap();
-    fs::write(&file_target, "file").unwrap();
-    fs::write(&exec_target, "#!/bin/sh\nexit 0\n").unwrap();
-    fs::set_permissions(&exec_target, fs::Permissions::from_mode(0o755))
+    let info = create_file_info(
+        &ignored_path,
+        &Params {
+            gitignore: true,
+            ..Params::default()
+        },
+    )
+    .unwrap();
+
+    assert_eq!(info.display_name, "ignored.log");
+}
+
+#[test]
+#[cfg(unix)]
+fn test_gitignored_entries_are_dimmed_when_color_is_enabled() {
+    with_color_output_enabled(|| {
+        let temp_dir = tempdir().unwrap();
+        fs::create_dir(temp_dir.path().join(".git")).unwrap();
+        fs::write(temp_dir.path().join(".gitignore"), "*.sh\n").unwrap();
+        let ignored_path = temp_dir.path().join("ignored.sh");
+        fs::write(&ignored_path, "#!/bin/sh\n").unwrap();
+        fs::set_permissions(&ignored_path, fs::Permissions::from_mode(0o755))
+            .unwrap();
+
+        let info = create_file_info(
+            &ignored_path,
+            &Params {
+                gitignore: true,
+                ..Params::default()
+            },
+        )
         .unwrap();
-    std::os::unix::fs::symlink(&file_target, &symlink_target).unwrap();
 
-    let params = Params {
-        long_format: true,
-        ..Params::default()
-    };
-
-    let dir_display = format_symlink_display_name(
-        "dir-link",
-        &temp_dir.path().join("dir-link"),
-        Ok(PathBuf::from("dir-target")),
-        &params,
-    );
-    assert!(dir_display.contains(&format!("-> {color_blue}")));
-
-    let file_display = format_symlink_display_name(
-        "file-link",
-        &temp_dir.path().join("file-link"),
-        Ok(PathBuf::from("file-target.txt")),
-        &params,
-    );
-    assert!(file_display.contains(&format!("-> {color_reset}")));
-
-    let symlink_display = format_symlink_display_name(
-        "symlink-link",
-        &temp_dir.path().join("symlink-link"),
-        Ok(PathBuf::from("symlink-target")),
-        &params,
-    );
-    assert!(symlink_display.contains(&format!("-> {color_cyan}")));
-
-    let exec_display = format_symlink_display_name(
-        "exec-link",
-        &temp_dir.path().join("exec-link"),
-        Ok(PathBuf::from("exec-target.sh")),
-        &params,
-    );
-    assert!(exec_display.contains(&format!("-> {style_bold}{color_green}")));
+        assert!(has_ansi(&info.display_name));
+        assert!(info.display_name.contains("ignored.sh"));
+        assert!(
+            info.display_name.contains("\u{1b}[1;2;32m")
+                || info.display_name.contains("\u{1b}[2;1;32m")
+        );
+    });
 }
 
 #[test]

@@ -1,7 +1,7 @@
 use chrono::{DateTime, Local};
-use inline_colorization::*;
+use colored_text::Colorize;
 use prettytable::{Cell, Row, Table};
-use std::io;
+use std::io::{self, Write};
 
 use strip_ansi_escapes::strip_str;
 use terminal_size::{Height, Width, terminal_size};
@@ -18,8 +18,7 @@ pub fn display_long_format(
     file_info: &[FileInfo],
     params: &Params,
 ) -> io::Result<()> {
-    build_long_format_table(file_info, params).printstd();
-    Ok(())
+    print_table(&build_long_format_table(file_info, params))
 }
 
 pub(crate) fn build_long_format_table(
@@ -44,8 +43,8 @@ pub(crate) fn build_long_format_table(
         row_cells
             .push(Cell::new(&format!("{}{} ", info.file_type, info.mode)));
         row_cells.push(Cell::new(&info.nlink.to_string()));
-        row_cells.push(Cell::new(&format!(" {color_cyan}{}", info.user)));
-        row_cells.push(Cell::new(&format!("{color_green}{} ", info.group)));
+        row_cells.push(Cell::new(&format!(" {}", info.user.cyan())));
+        row_cells.push(Cell::new(&format!("{} ", info.group.green())));
         row_cells.push(Cell::new(&display_size).style_spec("r"));
 
         if !units.is_empty() {
@@ -53,8 +52,7 @@ pub(crate) fn build_long_format_table(
         }
 
         row_cells.push(
-            Cell::new(&format!(" {color_yellow}{} ", display_time))
-                .style_spec("r"),
+            Cell::new(&format!(" {} ", display_time.yellow())).style_spec("r"),
         );
 
         if let Some(icon) = &info.item_icon {
@@ -71,8 +69,7 @@ pub(crate) fn build_long_format_table(
 
 pub fn display_short_format(file_info: &[FileInfo]) -> io::Result<()> {
     let terminal_width = terminal_width_or_default(terminal_size());
-    build_short_format_table(file_info, terminal_width).printstd();
-    Ok(())
+    print_table(&build_short_format_table(file_info, terminal_width))
 }
 
 pub(crate) fn build_short_format_table(
@@ -135,4 +132,10 @@ fn short_cell_content(info: &FileInfo) -> String {
 fn visible_text_width(text: &str) -> usize {
     let stripped = strip_str(text);
     UnicodeWidthStr::width(stripped.as_str())
+}
+
+fn print_table(table: &Table) -> io::Result<()> {
+    let mut stdout = io::stdout();
+    table.print(&mut stdout)?;
+    stdout.flush()
 }
