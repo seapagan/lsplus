@@ -20,6 +20,7 @@ Curently, only a sub-set of the standard `ls` options are supported. These are:
 - `-D` / `--sort-dirs` - Sort directories first
 - `-I` / `--gitignore` - Dim entries matched by Git ignore rules
 - `--no-icons` - don't show file or folder icons
+- `-V` / `--version` - Print version information and exit
 - `-Z` / `--fuzzy-time` - Show fuzzy time for file modification times
 
 You can combine the short options together, e.g. `-laph` will show a long format
@@ -50,7 +51,7 @@ mappings implemented at the moment, but more will be added in the future. Add
 an issue if you have a specific icon you would like to see - even better, add
 a Pull Request implementing it! :grin:
 
-You can disable the icons by using the `-no-icons` option.
+You can disable the icons by using the `--no-icons` option.
 
 ## Aliases
 

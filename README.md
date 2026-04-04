@@ -102,7 +102,9 @@ Curently, only a sub-set of the standard `ls` options are supported. These are:
 - `-l` / `--long` - Show long format listing
 - `-h` / `--human-readable` - Human readable file sizes
 - `-D` / `--sort-dirs` - Sort directories first
+- `-I` / `--gitignore` - Dim entries matched by Git ignore rules
 - `--no-icons` - don't show file or folder icons
+- `-V` / `--version` - Print version information and exit
 - `-Z` / `--fuzzy-time` - Show fuzzy time for file modification times
 
 You can combine the short options together, e.g. `-laph` will show a long format
@@ -110,6 +112,10 @@ listing with hidden files, append a '/' to directories, and show human-readable
 file sizes.
 
 Use the `--help` option to see the full list of options.
+
+When `-I` is enabled, `lsp` checks the same ignore sources Git normally uses:
+merged `.gitignore` files in the worktree, `.git/info/exclude`, and the
+configured global Git excludes file.
 
 The long-format listing is currently colorized by default and cannot be
 disabled. This will be made configurable in the future along with adding more
@@ -129,7 +135,7 @@ mappings implemented at the moment, but more will be added in the future. Add
 an issue if you have a specific icon you would like to see - even better, add
 a Pull Request implementing it! 😁
 
-You can disable the icons by using the `-no-icons` option.
+You can disable the icons by using the `--no-icons` option.
 
 ### Configuration File
 
