@@ -1,7 +1,7 @@
 use chrono::{DateTime, Local};
-use colored_text::{ColorMode, Colorize, ColorizeConfig, StyledText};
+use colored_text::{Colorize, StyledText};
 use prettytable::{Cell, Row, Table};
-use std::io::{self, IsTerminal, Write};
+use std::io::{self, Write};
 
 use strip_ansi_escapes::strip_str;
 use terminal_size::{Height, Width, terminal_size};
@@ -69,32 +69,7 @@ pub(crate) fn build_long_format_table(
 
 pub fn display_short_format(file_info: &[FileInfo]) -> io::Result<()> {
     let terminal_width = terminal_width_or_default(terminal_size());
-    if short_output_uses_colored_cells() {
-        print_short_lines(&render_short_format_lines(
-            file_info,
-            terminal_width,
-        ))
-    } else {
-        print_table(&build_short_format_table(file_info, terminal_width))
-    }
-}
-
-pub(crate) fn build_short_format_table(
-    file_info: &[FileInfo],
-    terminal_width: usize,
-) -> Table {
-    let rows = short_rows(file_info, terminal_width);
-    let mut table = utils::table::create_table(2);
-
-    for chunk in rows {
-        let mut row = Row::empty();
-        for info in chunk {
-            row.add_cell(Cell::new(&short_cell_content(info)));
-        }
-        table.add_row(row);
-    }
-
-    table
+    print_short_lines(&render_short_format_lines(file_info, terminal_width))
 }
 
 pub(crate) fn render_short_format_lines(
@@ -136,13 +111,6 @@ fn short_column_count(file_info: &[FileInfo], terminal_width: usize) -> usize {
 
 fn short_cell_width(info: &FileInfo) -> usize {
     visible_text_width(&plain_short_cell_content(info)) + SHORT_CELL_PADDING
-}
-
-fn short_cell_content(info: &FileInfo) -> String {
-    let (prefix, _) = short_cell_parts(info);
-    let mut cell_content = prefix;
-    cell_content.push_str(&check_display_name(info));
-    cell_content
 }
 
 fn plain_short_cell_content(info: &FileInfo) -> String {
@@ -191,13 +159,19 @@ fn render_short_row(row: &[FileInfo], column_widths: &[usize]) -> String {
 
     for (index, info) in row.iter().enumerate() {
         let (prefix, name) = short_cell_parts(info);
+        let is_last_column = index + 1 == row.len();
         line.push_str(&prefix);
         line.push_str(&style_short_segment(
             info,
-            padded_short_name(&prefix, &name, column_widths[index]),
+            padded_short_name(
+                &prefix,
+                &name,
+                column_widths[index],
+                is_last_column,
+            ),
         ));
 
-        if index + 1 < row.len() {
+        if !is_last_column {
             line.push(' ');
         }
     }
@@ -205,10 +179,18 @@ fn render_short_row(row: &[FileInfo], column_widths: &[usize]) -> String {
     line
 }
 
-fn padded_short_name(prefix: &str, name: &str, column_width: usize) -> String {
+fn padded_short_name(
+    prefix: &str,
+    name: &str,
+    column_width: usize,
+    is_last_column: bool,
+) -> String {
     let full_width = visible_text_width(&format!("{prefix}{name}"));
-    let right_padding =
-        column_width.saturating_sub(full_width) + SHORT_CELL_PADDING;
+    let right_padding = if is_last_column {
+        SHORT_CELL_PADDING
+    } else {
+        column_width.saturating_sub(full_width) + SHORT_CELL_PADDING
+    };
     let mut padded = String::from(name);
     padded.push_str(&" ".repeat(right_padding));
     padded
@@ -246,16 +228,4 @@ fn print_short_lines(lines: &[String]) -> io::Result<()> {
         writeln!(stdout, "{line}")?;
     }
     stdout.flush()
-}
-
-fn short_output_uses_colored_cells() -> bool {
-    if std::env::var_os("NO_COLOR").is_some() {
-        return false;
-    }
-
-    match ColorizeConfig::color_mode() {
-        ColorMode::Never => false,
-        ColorMode::Always => true,
-        ColorMode::Auto => std::io::stdout().is_terminal(),
-    }
 }

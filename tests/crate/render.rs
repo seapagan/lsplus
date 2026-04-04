@@ -1,7 +1,7 @@
 use crate::utils::icons::Icon;
 use crate::utils::render::{
-    build_long_format_table, build_short_format_table,
-    render_short_format_lines, terminal_width_or_default,
+    build_long_format_table, render_short_format_lines,
+    terminal_width_or_default,
 };
 use crate::{FileInfo, NameStyle, Params};
 use colored_text::{ColorMode, ColorizeConfig};
@@ -30,6 +30,10 @@ fn test_file_info(
         dimmed: false,
         full_path: PathBuf::from(display_name),
     }
+}
+
+fn normalized_lines(lines: Vec<String>) -> String {
+    lines.join("\n")
 }
 
 fn normalized_table(table: prettytable::Table) -> String {
@@ -168,13 +172,13 @@ fn test_build_long_format_table_does_not_pad_short_rows_to_widest_name() {
 }
 
 #[test]
-fn test_build_short_format_table_uses_single_column_for_narrow_width() {
+fn test_render_short_format_lines_uses_single_column_for_narrow_width() {
     let files = [
         test_file_info("界界界.txt", None, 0, SystemTime::now()),
         test_file_info("beta.txt", None, 0, SystemTime::now()),
     ];
 
-    let rendered = normalized_table(build_short_format_table(&files, 8));
+    let rendered = normalized_lines(render_short_format_lines(&files, 8));
     let rows: Vec<_> = rendered
         .lines()
         .filter(|line| !line.trim().is_empty())
@@ -184,7 +188,8 @@ fn test_build_short_format_table_uses_single_column_for_narrow_width() {
 }
 
 #[test]
-fn test_build_short_format_table_groups_multiple_files_when_width_allows_it() {
+fn test_render_short_format_lines_groups_multiple_files_when_width_allows_it()
+{
     let files = [
         test_file_info("alpha.txt", None, 0, SystemTime::now()),
         test_file_info("beta.txt", None, 0, SystemTime::now()),
@@ -196,7 +201,7 @@ fn test_build_short_format_table_groups_multiple_files_when_width_allows_it() {
         ),
     ];
 
-    let rendered = normalized_table(build_short_format_table(&files, 80));
+    let rendered = normalized_lines(render_short_format_lines(&files, 80));
     let rows: Vec<_> = rendered
         .lines()
         .filter(|line| !line.trim().is_empty())
@@ -210,7 +215,7 @@ fn test_build_short_format_table_groups_multiple_files_when_width_allows_it() {
 }
 
 #[test]
-fn test_build_short_format_table_does_not_pad_short_rows_to_widest_name() {
+fn test_render_short_format_lines_does_not_pad_short_rows_to_widest_name() {
     let files = [
         test_file_info("plain.txt", None, 0, SystemTime::now()),
         test_file_info(
@@ -221,7 +226,7 @@ fn test_build_short_format_table_does_not_pad_short_rows_to_widest_name() {
         ),
     ];
 
-    let rendered = normalized_table(build_short_format_table(&files, 20));
+    let rendered = normalized_lines(render_short_format_lines(&files, 20));
     let short_row = rendered
         .lines()
         .find(|line| line.contains("plain.txt"))
@@ -231,8 +236,8 @@ fn test_build_short_format_table_does_not_pad_short_rows_to_widest_name() {
 }
 
 #[test]
-fn test_build_short_format_table_handles_empty_input() {
-    let rendered = normalized_table(build_short_format_table(&[], 80));
+fn test_render_short_format_lines_handles_empty_input() {
+    let rendered = normalized_lines(render_short_format_lines(&[], 80));
 
     assert!(rendered.trim().is_empty());
 }
