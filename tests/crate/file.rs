@@ -1,7 +1,7 @@
 use crate::utils::file::{
     DirectoryEntryData, append_file_info_for_names, check_display_name,
     collect_file_info, collect_file_names, collect_visible_file_names,
-    create_file_info, format_path_error, format_symlink_display_name,
+    create_file_info, format_path_error, format_symlink_display_name_with_dim,
     get_groupname, get_username, sanitize_for_terminal,
 };
 use crate::{FileInfo, NameStyle, Params};
@@ -469,15 +469,16 @@ fn test_format_symlink_display_name_handles_unreadable_targets() {
         append_slash: true,
         ..Params::default()
     };
-    let unreadable = format_symlink_display_name(
+    let unreadable = format_symlink_display_name_with_dim(
         "broken-link",
         Path::new("/tmp/broken-link"),
         Err(io::Error::other("boom")),
         &params,
+        false,
     );
     assert!(unreadable.contains("(unreadable)"));
 
-    let short = format_symlink_display_name(
+    let short = format_symlink_display_name_with_dim(
         "broken-link",
         Path::new("/tmp/broken-link"),
         Err(io::Error::other("boom")),
@@ -485,6 +486,7 @@ fn test_format_symlink_display_name_handles_unreadable_targets() {
             append_slash: true,
             ..Params::default()
         },
+        false,
     );
     assert!(short.contains('*'));
 }
@@ -515,11 +517,12 @@ fn test_collect_visible_file_names_handles_empty_entries() {
 #[test]
 fn test_format_symlink_display_name_short_format_omits_marker_without_append_slash()
  {
-    let short = format_symlink_display_name(
+    let short = format_symlink_display_name_with_dim(
         "link",
         Path::new("/tmp/link"),
         Ok(PathBuf::from("target")),
         &Params::default(),
+        false,
     );
 
     assert!(short.contains("link"));
@@ -528,7 +531,7 @@ fn test_format_symlink_display_name_short_format_omits_marker_without_append_sla
 
 #[test]
 fn test_format_symlink_display_name_short_format_marks_append_slash() {
-    let short = format_symlink_display_name(
+    let short = format_symlink_display_name_with_dim(
         "link",
         Path::new("/tmp/link"),
         Ok(PathBuf::from("target")),
@@ -536,6 +539,7 @@ fn test_format_symlink_display_name_short_format_marks_append_slash() {
             append_slash: true,
             ..Params::default()
         },
+        false,
     );
 
     assert!(short.contains("link"));
@@ -564,35 +568,39 @@ fn test_format_symlink_display_name_colors_long_format_targets_by_type() {
             ..Params::default()
         };
 
-        let dir_display = format_symlink_display_name(
+        let dir_display = format_symlink_display_name_with_dim(
             "dir-link",
             &temp_dir.path().join("dir-link"),
             Ok(PathBuf::from("dir-target")),
             &params,
+            false,
         );
         assert!(dir_display.contains("-> \u{1b}[34m"));
 
-        let file_display = format_symlink_display_name(
+        let file_display = format_symlink_display_name_with_dim(
             "file-link",
             &temp_dir.path().join("file-link"),
             Ok(PathBuf::from("file-target.txt")),
             &params,
+            false,
         );
         assert!(!file_display.contains("-> \u{1b}["));
 
-        let symlink_display = format_symlink_display_name(
+        let symlink_display = format_symlink_display_name_with_dim(
             "symlink-link",
             &temp_dir.path().join("symlink-link"),
             Ok(PathBuf::from("symlink-target")),
             &params,
+            false,
         );
         assert!(symlink_display.contains("-> \u{1b}[36m"));
 
-        let exec_display = format_symlink_display_name(
+        let exec_display = format_symlink_display_name_with_dim(
             "exec-link",
             &temp_dir.path().join("exec-link"),
             Ok(PathBuf::from("exec-target.sh")),
             &params,
+            false,
         );
         assert!(exec_display.contains("-> \u{1b}[1;32m"));
     });
@@ -653,11 +661,12 @@ fn test_gitignored_entries_are_dimmed_when_color_is_enabled() {
 #[test]
 fn test_format_symlink_display_name_unreadable_short_format_omits_marker_without_append_slash()
  {
-    let short = format_symlink_display_name(
+    let short = format_symlink_display_name_with_dim(
         "link",
         Path::new("/tmp/link"),
         Err(io::Error::other("boom")),
         &Params::default(),
+        false,
     );
 
     assert!(short.contains("link"));

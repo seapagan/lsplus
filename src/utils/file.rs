@@ -293,22 +293,13 @@ fn create_file_info_from_metadata_with_gitignore(
 
     let (display_name, short_name, name_style) = if metadata.is_symlink() {
         (
-            if ignored {
-                format_symlink_display_name_with_dim(
-                    &safe_file_name,
-                    path,
-                    fs::read_link(path),
-                    params,
-                    true,
-                )
-            } else {
-                format_symlink_display_name(
-                    &safe_file_name,
-                    path,
-                    fs::read_link(path),
-                    params,
-                )
-            },
+            format_symlink_display_name_with_dim(
+                &safe_file_name,
+                path,
+                fs::read_link(path),
+                params,
+                ignored,
+            ),
             format!("{safe_file_name}{}", symlink_short_suffix(params)),
             NameStyle::Symlink,
         )
@@ -462,22 +453,7 @@ fn colorize_name_by_metadata(
     }
 }
 
-pub(crate) fn format_symlink_display_name(
-    safe_file_name: &str,
-    path: &Path,
-    target: io::Result<PathBuf>,
-    params: &Params,
-) -> String {
-    format_symlink_display_name_with_dim(
-        safe_file_name,
-        path,
-        target,
-        params,
-        false,
-    )
-}
-
-fn format_symlink_display_name_with_dim(
+pub(crate) fn format_symlink_display_name_with_dim(
     safe_file_name: &str,
     path: &Path,
     target: io::Result<PathBuf>,
