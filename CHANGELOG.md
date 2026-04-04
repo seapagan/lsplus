@@ -6,6 +6,45 @@ project since the first release.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.8.0](https://github.com/seapagan/lsplus/releases/tag/0.8.0) (2026-04-04)
+
+**Closed Issues**
+
+- Shorten huge filenames if they are going to cause wrapping on the long or short listing. ([#58](https://github.com/seapagan/lsplus/issues/58)) by [seapagan](https://github.com/seapagan)
+
+**New Features**
+
+- Feat: migrate color handling to `colored_text` crate ([#114](https://github.com/seapagan/lsplus/pull/114)) by [seapagan](https://github.com/seapagan)
+- Feat: dim gitignored entries ([#110](https://github.com/seapagan/lsplus/pull/110)) by [seapagan](https://github.com/seapagan)
+
+**Bug Fixes**
+
+- Fix: stop padding rows to widest filename ([#113](https://github.com/seapagan/lsplus/pull/113)) by [seapagan](https://github.com/seapagan)
+- Fix: color symlink targets by type ([#112](https://github.com/seapagan/lsplus/pull/112)) by [seapagan](https://github.com/seapagan)
+
+**Refactoring**
+
+- Fix: modernize lsplus runtime, structure, and tooling ([#109](https://github.com/seapagan/lsplus/pull/109)) by [seapagan](https://github.com/seapagan)
+
+**Automatic Testing**
+
+- Test: improve coverage with focused seam tests ([#111](https://github.com/seapagan/lsplus/pull/111)) by [seapagan](https://github.com/seapagan)
+
+**Dependency Updates**
+
+- Update Rust crate predicates to v3.1.4 ([#108](https://github.com/seapagan/lsplus/pull/108)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update Rust crate nix to 0.31.0 ([#107](https://github.com/seapagan/lsplus/pull/107)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update Rust crate filetime to v0.2.27 ([#106](https://github.com/seapagan/lsplus/pull/106)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update Rust crate chrono to v0.4.44 ([#105](https://github.com/seapagan/lsplus/pull/105)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update actions/checkout action to v6 ([#104](https://github.com/seapagan/lsplus/pull/104)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update Rust crate assert_cmd to v2.2.0 ([#103](https://github.com/seapagan/lsplus/pull/103)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update Rust crate clap to v4.6.0 ([#102](https://github.com/seapagan/lsplus/pull/102)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update Rust crate config to v0.15.22 ([#101](https://github.com/seapagan/lsplus/pull/101)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update Rust crate serde to v1.0.228 ([#100](https://github.com/seapagan/lsplus/pull/100)) by [renovate[bot]](https://github.com/apps/renovate)
+- Update Rust crate tempfile to v3.27.0 ([#99](https://github.com/seapagan/lsplus/pull/99)) by [renovate[bot]](https://github.com/apps/renovate)
+
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.7.0...0.8.0) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.7.0...0.8.0.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.7.0...0.8.0.patch)
+
 ## [0.7.0](https://github.com/seapagan/lsplus/releases/tag/0.7.0) (2025-09-08)
 
 **Closed Issues**
