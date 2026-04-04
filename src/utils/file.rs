@@ -25,7 +25,6 @@ struct FileDetails {
     mtime: SystemTime,
     user: String,
     group: String,
-    executable: bool,
 }
 
 const STYLE_DIM: &str = "\x1B[2m";
@@ -60,13 +59,6 @@ fn get_file_details(metadata: &fs::Metadata) -> FileDetails {
 
     let mtime = metadata.modified().unwrap();
 
-    #[cfg(unix)]
-    let executable = metadata.permissions().mode() & 0o111 != 0;
-
-    // for now just return false under windows
-    #[cfg(windows)]
-    let executable = false;
-
     FileDetails {
         file_type,
         mode: rwx_mode,
@@ -75,7 +67,6 @@ fn get_file_details(metadata: &fs::Metadata) -> FileDetails {
         mtime,
         user,
         group,
-        executable,
     }
 }
 
@@ -413,9 +404,13 @@ fn colorize_name_by_metadata(
     } else if metadata.is_dir() {
         format!("{color_blue}{safe_name}")
     } else {
-        let details = get_file_details(metadata);
+        #[cfg(unix)]
+        let executable = metadata.permissions().mode() & 0o111 != 0;
 
-        if details.executable {
+        #[cfg(windows)]
+        let executable = false;
+
+        if executable {
             format!("{style_bold}{color_green}{safe_name}")
         } else {
             format!("{color_reset}{safe_name}")
