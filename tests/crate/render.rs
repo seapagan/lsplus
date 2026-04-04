@@ -88,6 +88,28 @@ fn test_build_long_format_table_omits_optional_units_and_icons() {
 }
 
 #[test]
+fn test_build_long_format_table_does_not_pad_short_rows_to_widest_name() {
+    let files = [
+        test_file_info("plain.txt", None, 12, SystemTime::now()),
+        test_file_info(
+            "this-is-a-very-long-filename-that-should-not-pad-other-rows.txt",
+            None,
+            12,
+            SystemTime::now(),
+        ),
+    ];
+
+    let rendered =
+        normalized_table(build_long_format_table(&files, &Params::default()));
+    let short_row = rendered
+        .lines()
+        .find(|line| line.contains("plain.txt"))
+        .unwrap();
+
+    assert!(short_row.ends_with("plain.txt"));
+}
+
+#[test]
 fn test_build_short_format_table_uses_single_column_for_narrow_width() {
     let files = [
         test_file_info("界界界.txt", None, 0, SystemTime::now()),
@@ -127,6 +149,27 @@ fn test_build_short_format_table_groups_multiple_files_when_width_allows_it() {
     assert!(rows[0].contains("beta.txt"));
     assert!(rows[0].contains("gamma.txt"));
     assert!(rows[0].contains(&Icon::RustFile.to_string()));
+}
+
+#[test]
+fn test_build_short_format_table_does_not_pad_short_rows_to_widest_name() {
+    let files = [
+        test_file_info("plain.txt", None, 0, SystemTime::now()),
+        test_file_info(
+            "this-is-a-very-long-filename.txt",
+            None,
+            0,
+            SystemTime::now(),
+        ),
+    ];
+
+    let rendered = normalized_table(build_short_format_table(&files, 20));
+    let short_row = rendered
+        .lines()
+        .find(|line| line.contains("plain.txt"))
+        .unwrap();
+
+    assert_eq!(short_row, " plain.txt  ");
 }
 
 #[test]

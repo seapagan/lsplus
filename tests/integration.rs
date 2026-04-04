@@ -213,6 +213,47 @@ fn test_long_format_handles_wide_filename_rows() {
 }
 
 #[test]
+fn test_long_format_does_not_pad_short_rows_to_longest_filename() {
+    let temp_dir = tempdir().unwrap();
+    let short_name = "plain.txt";
+    let long_name =
+        "this-is-a-very-long-filename-that-should-not-pad-other-rows.txt";
+    fs::write(temp_dir.path().join(short_name), "plain").unwrap();
+    fs::write(temp_dir.path().join(long_name), "long").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-l").arg("--no-icons").arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    let short_row = stdout
+        .lines()
+        .find(|line| line.contains(short_name))
+        .unwrap();
+
+    assert!(short_row.ends_with(short_name));
+}
+
+#[test]
+fn test_short_format_does_not_pad_short_rows_to_longest_filename() {
+    let temp_dir = tempdir().unwrap();
+    let short_name = "plain.txt";
+    let long_name = "this-is-a-very-long-filename-that-forces-one-column.txt";
+    fs::write(temp_dir.path().join(short_name), "plain").unwrap();
+    fs::write(temp_dir.path().join(long_name), "long").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("--no-icons").arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    let short_row = stdout
+        .lines()
+        .find(|line| line.contains(short_name))
+        .unwrap();
+
+    assert_eq!(short_row, " plain.txt  ");
+}
+
+#[test]
 fn test_long_format_renders_hidden_git_icons() {
     let temp_dir = tempdir().unwrap();
     let git_dir = temp_dir.path().join(".git");
