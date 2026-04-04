@@ -414,18 +414,10 @@ fn name_style_by_metadata(metadata: &fs::Metadata) -> NameStyle {
         NameStyle::Symlink
     } else if metadata.is_dir() {
         NameStyle::Directory
+    } else if is_executable(metadata) {
+        NameStyle::Executable
     } else {
-        #[cfg(unix)]
-        let executable = metadata.permissions().mode() & 0o111 != 0;
-
-        #[cfg(windows)]
-        let executable = false;
-
-        if executable {
-            NameStyle::Executable
-        } else {
-            NameStyle::Plain
-        }
+        NameStyle::Plain
     }
 }
 
@@ -434,22 +426,27 @@ fn colorize_name_by_metadata(
     metadata: &fs::Metadata,
     dimmed: bool,
 ) -> String {
-    if metadata.is_symlink() {
-        apply_dim(safe_name.cyan(), dimmed).to_string()
-    } else if metadata.is_dir() {
-        apply_dim(safe_name.blue(), dimmed).to_string()
-    } else {
-        #[cfg(unix)]
-        let executable = metadata.permissions().mode() & 0o111 != 0;
-
-        #[cfg(windows)]
-        let executable = false;
-
-        if executable {
-            apply_dim(safe_name.green().bold(), dimmed).to_string()
-        } else {
-            plain_text(safe_name, dimmed)
+    match name_style_by_metadata(metadata) {
+        NameStyle::Symlink => apply_dim(safe_name.cyan(), dimmed).to_string(),
+        NameStyle::Directory => {
+            apply_dim(safe_name.blue(), dimmed).to_string()
         }
+        NameStyle::Executable => {
+            apply_dim(safe_name.green().bold(), dimmed).to_string()
+        }
+        NameStyle::Plain => plain_text(safe_name, dimmed),
+    }
+}
+
+fn is_executable(metadata: &fs::Metadata) -> bool {
+    #[cfg(unix)]
+    {
+        metadata.permissions().mode() & 0o111 != 0
+    }
+
+    #[cfg(windows)]
+    {
+        false
     }
 }
 

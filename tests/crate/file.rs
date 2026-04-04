@@ -20,6 +20,9 @@ use tempfile::tempdir;
 #[cfg(unix)]
 use std::os::unix::ffi::OsStringExt;
 
+const BLUE_DOT: &str = "\u{1b}[34m.\u{1b}[0m";
+const BLUE_DOTDOT: &str = "\u{1b}[34m..\u{1b}[0m";
+
 fn basic_info(display_name: &str, full_path: PathBuf) -> FileInfo {
     FileInfo {
         file_type: String::from("directory"),
@@ -72,10 +75,10 @@ fn test_check_display_name_handles_regular_and_special_entries() {
 
     with_color_output_enabled(|| {
         let dot = basic_info(".", PathBuf::from("/tmp/."));
-        assert_eq!(check_display_name(&dot), "\u{1b}[34m.\u{1b}[0m");
+        assert_eq!(check_display_name(&dot), BLUE_DOT);
 
         let dotdot = basic_info("..", PathBuf::from("/tmp/.."));
-        assert_eq!(check_display_name(&dotdot), "\u{1b}[34m..\u{1b}[0m");
+        assert_eq!(check_display_name(&dotdot), BLUE_DOTDOT);
     });
 }
 
