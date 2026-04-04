@@ -26,8 +26,18 @@ pub struct Params {
     pub long_format: bool,
     pub human_readable: bool,
     pub no_icons: bool,
+    pub no_color: bool,
     pub gitignore: bool,
     pub fuzzy_time: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum NameStyle {
+    #[default]
+    Plain,
+    Directory,
+    Symlink,
+    Executable,
 }
 
 impl From<Config> for Params {
@@ -44,6 +54,7 @@ impl From<Config> for Params {
             long_format,
             human_readable,
             no_icons,
+            no_color,
             gitignore,
             fuzzy_time
         );
@@ -62,6 +73,7 @@ impl Params {
             long_format: flags.long || config.long_format,
             human_readable: flags.human_readable || config.human_readable,
             no_icons: flags.no_icons || config.no_icons,
+            no_color: flags.no_color || config.no_color,
             gitignore: flags.gitignore || config.gitignore,
             fuzzy_time: flags.fuzzy_time || config.fuzzy_time,
         }
@@ -78,6 +90,9 @@ pub struct FileInfo {
     pub size: u64,
     pub mtime: SystemTime,
     pub item_icon: Option<Icon>,
+    pub short_name: String,
     pub display_name: String,
+    pub name_style: NameStyle,
+    pub dimmed: bool,
     pub full_path: PathBuf,
 }

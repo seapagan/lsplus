@@ -71,6 +71,14 @@ and will display file sizes in human readable format if set to `true`.
 This option corresponds to the `--no-icons` command line option and will not
 display icons if set to `true`.
 
+### no_color
+
+- Permitted values: `true` or `false`
+- Default value: `false`
+
+This option corresponds to the `-N` or `--no-color` command line option and
+will disable colored and styled output if set to `true`.
+
 ### gitignore
 
 - Permitted values: `true` or `false`
@@ -99,6 +107,7 @@ show_all = true
 append_slash = true
 dirs_first = true
 human_readable = true
+no_color = true
 fuzzy_time = true
 gitignore = true
 ```

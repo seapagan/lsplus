@@ -19,6 +19,7 @@ Curently, only a sub-set of the standard `ls` options are supported. These are:
 - `-h` / `--human-readable` - Human readable file sizes
 - `-D` / `--sort-dirs` - Sort directories first
 - `-I` / `--gitignore` - Dim entries matched by Git ignore rules
+- `-N` / `--no-color` - Disable colored and styled output
 - `--no-icons` - don't show file or folder icons
 - `-V` / `--version` - Print version information and exit
 - `-Z` / `--fuzzy-time` - Show fuzzy time for file modification times
@@ -29,9 +30,10 @@ file sizes.
 
 Use the `--help` option to see the full list of options.
 
-The long-format listing is currently colorized by default and cannot be
-disabled. This will be made configurable in the future along with adding more
-of the original `ls` options.
+Styled output is enabled automatically when writing to a terminal. Captured,
+piped, and redirected output is plain by default. You can also disable styled
+output explicitly with `--no-color`, `no_color = true` in the config file, or
+the `NO_COLOR` environment variable.
 
 When `-I` is enabled, `lsp` checks the same ignore sources Git normally uses:
 merged `.gitignore` files in the worktree, `.git/info/exclude`, and the

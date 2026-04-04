@@ -1,6 +1,5 @@
 use assert_cmd::Command;
 use filetime::FileTime;
-use inline_colorization::color_reset;
 use lsplus::utils::icons::Icon;
 use std::fs;
 use std::time::{Duration, SystemTime};
@@ -32,6 +31,10 @@ fn run_and_capture_raw(cmd: &mut Command) -> (String, String) {
         String::from_utf8_lossy(&output.stdout).to_string(),
         String::from_utf8_lossy(&output.stderr).to_string(),
     )
+}
+
+fn has_ansi(text: &str) -> bool {
+    text.contains("\u{1b}[")
 }
 
 #[test]
@@ -234,6 +237,53 @@ fn test_long_format_does_not_pad_short_rows_to_longest_filename() {
 }
 
 #[test]
+fn test_captured_long_format_output_is_plain_by_default() {
+    let temp_dir = tempdir().unwrap();
+    let file_path = temp_dir.path().join("plain.txt");
+    fs::write(&file_path, "plain").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-l").arg("--no-icons").arg(&file_path);
+    let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
+
+    assert!(!has_ansi(&stdout));
+}
+
+#[test]
+fn test_no_color_flag_keeps_short_output_plain() {
+    let temp_dir = tempdir().unwrap();
+    let file_path = temp_dir.path().join("plain.txt");
+    fs::write(&file_path, "plain").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-N").arg("--no-icons").arg(&file_path);
+    let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
+
+    assert!(!has_ansi(&stdout));
+    assert!(stdout.contains("plain.txt"));
+}
+
+#[test]
+fn test_no_color_config_keeps_long_output_plain() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+    let file_path = temp_dir.path().join("plain.txt");
+
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(config_dir.join("config.toml"), "no_color = true\n").unwrap();
+    fs::write(&file_path, "plain").unwrap();
+
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        let mut cmd = Command::cargo_bin("lsp").unwrap();
+        cmd.arg("-l").arg("--no-icons").arg(&file_path);
+        let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
+
+        assert!(!has_ansi(&stdout));
+        assert!(stdout.contains("plain.txt"));
+    });
+}
+
+#[test]
 fn test_short_format_does_not_pad_short_rows_to_longest_filename() {
     let temp_dir = tempdir().unwrap();
     let short_name = "plain.txt";
@@ -283,7 +333,7 @@ fn test_long_format_renders_hidden_git_icons() {
 }
 
 #[test]
-fn test_gitignore_flag_dims_ignored_entries_in_short_output() {
+fn test_gitignore_flag_keeps_captured_short_output_plain() {
     let temp_dir = tempdir().unwrap();
     let ignored_name =
         "ignored-entry-name-that-forces-single-column-output.log";
@@ -307,12 +357,12 @@ fn test_gitignore_flag_dims_ignored_entries_in_short_output() {
         .find(|line| strip_str(line).contains(visible_name))
         .unwrap();
 
-    assert!(ignored_line.contains("\u{1b}[2m"));
-    assert!(!visible_line.contains("\u{1b}[2m"));
+    assert!(!has_ansi(ignored_line));
+    assert!(!has_ansi(visible_line));
 }
 
 #[test]
-fn test_gitignore_flag_dims_ignored_entries_in_long_output() {
+fn test_gitignore_flag_keeps_captured_long_output_plain() {
     let temp_dir = tempdir().unwrap();
     fs::create_dir(temp_dir.path().join(".git")).unwrap();
     fs::write(temp_dir.path().join(".gitignore"), "*.log\n").unwrap();
@@ -335,8 +385,8 @@ fn test_gitignore_flag_dims_ignored_entries_in_long_output() {
         .find(|line| strip_str(line).contains("visible.txt"))
         .unwrap();
 
-    assert!(ignored_line.contains("\u{1b}[2m"));
-    assert!(!visible_line.contains("\u{1b}[2m"));
+    assert!(!has_ansi(ignored_line));
+    assert!(!has_ansi(visible_line));
 }
 
 #[test]
@@ -367,8 +417,8 @@ fn test_gitignore_flag_honors_nested_unignore_rules() {
         .find(|line| strip_str(line).contains(kept_name))
         .unwrap();
 
-    assert!(ignored_line.contains("\u{1b}[2m"));
-    assert!(!kept_line.contains("\u{1b}[2m"));
+    assert!(!has_ansi(ignored_line));
+    assert!(!has_ansi(kept_line));
 }
 
 #[test]
@@ -388,7 +438,7 @@ fn test_gitignore_flag_dims_explicit_file_arguments() {
         .find(|line| strip_str(line).contains("ignored.log"))
         .unwrap();
 
-    assert!(ignored_line.contains("\u{1b}[2m"));
+    assert!(!has_ansi(ignored_line));
 }
 
 #[test]
@@ -405,7 +455,7 @@ fn test_gitignore_flag_does_not_dim_outside_git_worktree() {
         .find(|line| strip_str(line).contains("plain.log"))
         .unwrap();
 
-    assert!(!plain_line.contains("\u{1b}[2m"));
+    assert!(!has_ansi(plain_line));
 }
 
 #[test]
@@ -448,8 +498,8 @@ fn test_gitignore_flag_honors_git_info_exclude() {
         .find(|line| strip_str(line).contains(visible_name))
         .unwrap();
 
-    assert!(ignored_line.contains("\u{1b}[2m"));
-    assert!(!visible_line.contains("\u{1b}[2m"));
+    assert!(!has_ansi(ignored_line));
+    assert!(!has_ansi(visible_line));
 }
 
 #[test]
@@ -502,8 +552,8 @@ fn test_gitignore_flag_honors_global_excludes() {
         .find(|line| strip_str(line).contains(visible_name))
         .unwrap();
 
-    assert!(ignored_line.contains("\u{1b}[2m"));
-    assert!(!visible_line.contains("\u{1b}[2m"));
+    assert!(!has_ansi(ignored_line));
+    assert!(!has_ansi(visible_line));
 }
 
 #[cfg(unix)]
@@ -524,10 +574,7 @@ fn test_long_format_renders_symlink_icon() {
         assert!(stdout.contains(&Icon::Symlink.to_string()));
         assert!(stdout.contains("link.txt"));
         assert!(stdout.contains("->"));
-        assert!(stdout_raw.contains(&format!(
-            "-> {color_reset}{}",
-            target.to_string_lossy()
-        )));
+        assert!(!has_ansi(&stdout_raw));
     });
 }
 

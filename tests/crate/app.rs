@@ -1,6 +1,8 @@
 use crate::Params;
 use crate::app::{collect_matches, patterns_from_args, run_with_flags};
 use crate::cli::Flags;
+use crate::utils::color::color_mode_for;
+use colored_text::ColorMode;
 use std::fs;
 use tempfile::tempdir;
 
@@ -79,6 +81,7 @@ fn test_run_with_flags_lists_matching_entries() {
             slash: false,
             dirs_first: false,
             no_icons: true,
+            no_color: false,
             gitignore: false,
             version: false,
             fuzzy_time: false,
@@ -86,4 +89,19 @@ fn test_run_with_flags_lists_matching_entries() {
 
         assert!(run_with_flags(flags).is_ok());
     });
+}
+
+#[test]
+fn test_color_mode_for_uses_never_when_no_color_is_enabled() {
+    let params = Params {
+        no_color: true,
+        ..Params::default()
+    };
+
+    assert_eq!(color_mode_for(&params), ColorMode::Never);
+}
+
+#[test]
+fn test_color_mode_for_uses_auto_by_default() {
+    assert_eq!(color_mode_for(&Params::default()), ColorMode::Auto);
 }
