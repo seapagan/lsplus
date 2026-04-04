@@ -1,10 +1,10 @@
 use chrono::{DateTime, Local};
 use inline_colorization::*;
-use prettytable::{Cell, Row};
+use prettytable::{Cell, Row, Table};
 use std::io;
 
 use strip_ansi_escapes::strip_str;
-use terminal_size::{Width, terminal_size};
+use terminal_size::{Height, Width, terminal_size};
 use unicode_width::UnicodeWidthStr;
 
 use crate::Params;
@@ -18,6 +18,14 @@ pub fn display_long_format(
     file_info: &[FileInfo],
     params: &Params,
 ) -> io::Result<()> {
+    build_long_format_table(file_info, params).printstd();
+    Ok(())
+}
+
+pub(crate) fn build_long_format_table(
+    file_info: &[FileInfo],
+    params: &Params,
+) -> Table {
     let mut table = utils::table::create_table(0);
 
     for info in file_info {
@@ -58,16 +66,20 @@ pub fn display_long_format(
         table.add_row(Row::new(row_cells));
     }
 
-    table.printstd();
-    Ok(())
+    table
 }
 
 pub fn display_short_format(file_info: &[FileInfo]) -> io::Result<()> {
-    let terminal_width = terminal_size()
-        .map(|(Width(width), _)| usize::from(width))
-        .unwrap_or(80);
-    let rows = short_rows(file_info, terminal_width);
+    let terminal_width = terminal_width_or_default(terminal_size());
+    build_short_format_table(file_info, terminal_width).printstd();
+    Ok(())
+}
 
+pub(crate) fn build_short_format_table(
+    file_info: &[FileInfo],
+    terminal_width: usize,
+) -> Table {
+    let rows = short_rows(file_info, terminal_width);
     let mut table = utils::table::create_table(2);
 
     for chunk in rows {
@@ -78,8 +90,14 @@ pub fn display_short_format(file_info: &[FileInfo]) -> io::Result<()> {
         table.add_row(row);
     }
 
-    table.printstd();
-    Ok(())
+    table
+}
+
+pub(crate) fn terminal_width_or_default(
+    size: Option<(Width, Height)>,
+) -> usize {
+    size.map(|(Width(width), _)| usize::from(width))
+        .unwrap_or(80)
 }
 
 fn short_rows(
@@ -117,88 +135,4 @@ fn short_cell_content(info: &FileInfo) -> String {
 fn visible_text_width(text: &str) -> usize {
     let stripped = strip_str(text);
     UnicodeWidthStr::width(stripped.as_str())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::utils::icons::Icon;
-    use std::path::PathBuf;
-    use std::time::SystemTime;
-
-    fn test_file_info(
-        display_name: &str,
-        item_icon: Option<Icon>,
-    ) -> FileInfo {
-        FileInfo {
-            file_type: String::from("-"),
-            mode: String::from("rw-r--r--"),
-            nlink: 1,
-            user: String::from("user"),
-            group: String::from("group"),
-            size: 0,
-            mtime: SystemTime::now(),
-            item_icon,
-            display_name: display_name.to_string(),
-            full_path: PathBuf::from(display_name),
-        }
-    }
-
-    #[test]
-    fn test_visible_text_width_strips_ansi_and_uses_display_width() {
-        let styled = format!("{color_red}界{color_reset}");
-        assert_eq!(visible_text_width(&styled), 2);
-    }
-
-    #[test]
-    fn test_short_cell_width_includes_icon_width() {
-        let plain = test_file_info("example.rs", None);
-        let with_icon = test_file_info("example.rs", Some(Icon::RustFile));
-
-        assert!(short_cell_width(&with_icon) > short_cell_width(&plain));
-    }
-
-    #[test]
-    fn test_short_column_count_never_returns_zero() {
-        let files = [test_file_info("very-long-filename.txt", None)];
-
-        assert_eq!(short_column_count(&files, 1), 1);
-    }
-
-    #[test]
-    fn test_short_rows_uses_single_column_for_wide_names_in_narrow_width() {
-        let files = [
-            test_file_info("界界界.txt", None),
-            test_file_info("beta.txt", None),
-        ];
-
-        let rows = short_rows(&files, 8);
-
-        assert_eq!(rows.len(), 2);
-        assert_eq!(rows[0].len(), 1);
-        assert_eq!(rows[1].len(), 1);
-    }
-
-    #[test]
-    fn test_short_rows_groups_multiple_files_when_width_allows_it() {
-        let files = [
-            test_file_info("alpha.txt", None),
-            test_file_info("beta.txt", None),
-            test_file_info("gamma.txt", None),
-        ];
-
-        let rows = short_rows(&files, 40);
-
-        assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0].len(), 3);
-    }
-
-    #[test]
-    fn test_short_cell_content_includes_icon_and_display_name() {
-        let file_info = test_file_info("example.rs", Some(Icon::RustFile));
-        let content = short_cell_content(&file_info);
-
-        assert!(content.contains("example.rs"));
-        assert!(content.contains(&Icon::RustFile.to_string()));
-    }
 }

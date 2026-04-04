@@ -45,11 +45,11 @@ impl GitignoreMatcher {
         for ignore_file in ignore_files {
             let _ = builder.add(ignore_file);
         }
-        let gitignore_matcher = builder.build().ok()?;
+        let gitignore_matcher = build_matcher_or_empty(&builder);
 
         let git_exclude_matcher =
-            build_git_exclude_matcher(&git_paths.root, &git_paths.common_dir)?;
-        let git_global_matcher = build_git_global_matcher(&git_paths.root)?;
+            build_git_exclude_matcher(&git_paths.root, &git_paths.common_dir);
+        let git_global_matcher = build_git_global_matcher(&git_paths.root);
 
         Some(Self {
             root: git_paths.root,
@@ -87,7 +87,7 @@ fn matcher_directory(path: &Path, is_dir: bool) -> &Path {
     if is_dir {
         path
     } else {
-        path.parent().unwrap_or_else(|| Path::new("."))
+        path.parent().unwrap_or(Path::new("."))
     }
 }
 
@@ -121,7 +121,18 @@ fn find_git_paths(start: &Path) -> Option<GitPaths> {
     None
 }
 
-fn collect_gitignore_files(root: &Path, directory: &Path) -> Vec<PathBuf> {
+#[cfg(test)]
+pub(crate) fn find_git_paths_parts(
+    start: &Path,
+) -> Option<(PathBuf, PathBuf)> {
+    let git_paths = find_git_paths(start)?;
+    Some((git_paths.root, git_paths.common_dir))
+}
+
+pub(crate) fn collect_gitignore_files(
+    root: &Path,
+    directory: &Path,
+) -> Vec<PathBuf> {
     if !directory.starts_with(root) {
         return Vec::new();
     }
@@ -135,10 +146,9 @@ fn collect_gitignore_files(root: &Path, directory: &Path) -> Vec<PathBuf> {
             break;
         }
 
-        let Some(parent) = current.parent() else {
-            return Vec::new();
-        };
-        current = parent;
+        current = current
+            .parent()
+            .expect("directory within root should always have a parent");
     }
 
     directories.reverse();
@@ -150,25 +160,26 @@ fn collect_gitignore_files(root: &Path, directory: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
-fn build_git_exclude_matcher(
-    root: &Path,
-    common_dir: &Path,
-) -> Option<Gitignore> {
+fn build_git_exclude_matcher(root: &Path, common_dir: &Path) -> Gitignore {
     let mut builder = GitignoreBuilder::new(root);
     let exclude_path = common_dir.join("info").join("exclude");
     if exclude_path.is_file() {
         let _ = builder.add(exclude_path);
     }
 
-    builder.build().ok()
+    build_matcher_or_empty(&builder)
 }
 
-fn build_git_global_matcher(root: &Path) -> Option<Gitignore> {
+fn build_git_global_matcher(root: &Path) -> Gitignore {
     let (matcher, _err) = GitignoreBuilder::new(root).build_global();
-    Some(matcher)
+    matcher
 }
 
-fn parse_gitdir_file(dot_git: &Path) -> Option<PathBuf> {
+fn build_matcher_or_empty(builder: &GitignoreBuilder) -> Gitignore {
+    builder.build().unwrap_or_else(|_| Gitignore::empty())
+}
+
+pub(crate) fn parse_gitdir_file(dot_git: &Path) -> Option<PathBuf> {
     let contents = fs::read_to_string(dot_git).ok()?;
     let value = contents.strip_prefix("gitdir:")?.trim();
     let git_dir = PathBuf::from(value);
@@ -176,11 +187,13 @@ fn parse_gitdir_file(dot_git: &Path) -> Option<PathBuf> {
     if git_dir.is_absolute() {
         Some(normalize_path(git_dir))
     } else {
-        Some(normalize_path(dot_git.parent()?.join(git_dir)))
+        Some(normalize_path(
+            dot_git.parent().unwrap_or(Path::new(".")).join(git_dir),
+        ))
     }
 }
 
-fn parse_commondir(git_dir: &Path) -> Option<PathBuf> {
+pub(crate) fn parse_commondir(git_dir: &Path) -> Option<PathBuf> {
     let contents = fs::read_to_string(git_dir.join("commondir")).ok()?;
     let common_dir = PathBuf::from(contents.trim());
 
@@ -196,61 +209,11 @@ fn normalize_path(path: PathBuf) -> PathBuf {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use tempfile::tempdir;
-
-    #[test]
-    fn test_gitignore_cache_matches_parent_and_child_rules() {
-        let temp_dir = tempdir().unwrap();
-        let repo_root = temp_dir.path();
-        let nested_dir = repo_root.join("nested");
-        let ignored_file = nested_dir.join("ignored.log");
-        let kept_file = nested_dir.join("keep.log");
-
-        std::fs::create_dir(repo_root.join(".git")).unwrap();
-        std::fs::create_dir(&nested_dir).unwrap();
-        std::fs::write(repo_root.join(".gitignore"), "*.log\n").unwrap();
-        std::fs::write(nested_dir.join(".gitignore"), "!keep.log\n").unwrap();
-        std::fs::write(&ignored_file, "ignored").unwrap();
-        std::fs::write(&kept_file, "kept").unwrap();
-
-        let mut cache = GitignoreCache::default();
-
-        assert!(cache.is_ignored(&ignored_file, false));
-        assert!(!cache.is_ignored(&kept_file, false));
-    }
-
-    #[test]
-    fn test_gitignore_cache_returns_false_outside_worktree() {
-        let temp_dir = tempdir().unwrap();
-        let plain_file = temp_dir.path().join("plain.txt");
-        std::fs::write(&plain_file, "plain").unwrap();
-
-        let mut cache = GitignoreCache::default();
-
-        assert!(!cache.is_ignored(&plain_file, false));
-    }
-
-    #[test]
-    fn test_find_git_paths_resolves_linked_worktree_common_dir() {
-        let temp_dir = tempdir().unwrap();
-        let repo_root = temp_dir.path().join("repo");
-        let common_dir = temp_dir.path().join("common");
-        let git_dir = common_dir.join("worktrees").join("repo");
-
-        std::fs::create_dir_all(&repo_root).unwrap();
-        std::fs::create_dir_all(&git_dir).unwrap();
-        std::fs::write(
-            repo_root.join(".git"),
-            format!("gitdir: {}\n", git_dir.display()),
-        )
-        .unwrap();
-        std::fs::write(git_dir.join("commondir"), "../../\n").unwrap();
-
-        let git_paths = find_git_paths(&repo_root).unwrap();
-
-        assert_eq!(git_paths.root, repo_root);
-        assert_eq!(git_paths.common_dir, common_dir);
-    }
+pub(crate) fn matcher_ignores_path(
+    directory: &Path,
+    path: &Path,
+    is_dir: bool,
+) -> Option<bool> {
+    let matcher = GitignoreMatcher::for_directory(directory)?;
+    Some(matcher.is_ignored(path, is_dir))
 }
