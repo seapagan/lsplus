@@ -408,16 +408,18 @@ fn colorize_name_by_metadata(
     safe_name: &str,
     metadata: &fs::Metadata,
 ) -> String {
-    let details = get_file_details(metadata);
-
     if metadata.is_symlink() {
         format!("{color_cyan}{safe_name}")
     } else if metadata.is_dir() {
         format!("{color_blue}{safe_name}")
-    } else if details.executable {
-        format!("{style_bold}{color_green}{safe_name}")
     } else {
-        format!("{color_reset}{safe_name}")
+        let details = get_file_details(metadata);
+
+        if details.executable {
+            format!("{style_bold}{color_green}{safe_name}")
+        } else {
+            format!("{color_reset}{safe_name}")
+        }
     }
 }
 
