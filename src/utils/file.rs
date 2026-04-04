@@ -306,15 +306,8 @@ fn create_file_info_from_metadata_with_gitignore(
             fs::read_link(path),
             params,
         )
-    } else if metadata.is_dir() {
-        format!("{color_blue}{}", safe_file_name)
-    } else if details.executable {
-        format!("{style_bold}{color_green}{}", safe_file_name)
     } else {
-        // Regular files must have explicit color formatting (even if just reset)
-        // to ensure consistent ANSI escape sequence handling across all file types.
-        // This maintains proper alignment in table display format.
-        format!("{color_reset}{}", safe_file_name)
+        colorize_name_by_metadata(&safe_file_name, metadata)
     };
     let display_name = if params.gitignore
         && gitignore_cache.is_ignored(path, metadata.is_dir())
@@ -411,6 +404,23 @@ fn symlink_short_suffix(params: &Params) -> &'static str {
     if params.append_slash { "*" } else { "" }
 }
 
+fn colorize_name_by_metadata(
+    safe_name: &str,
+    metadata: &fs::Metadata,
+) -> String {
+    let details = get_file_details(metadata);
+
+    if metadata.is_symlink() {
+        format!("{color_cyan}{safe_name}")
+    } else if metadata.is_dir() {
+        format!("{color_blue}{safe_name}")
+    } else if details.executable {
+        format!("{style_bold}{color_green}{safe_name}")
+    } else {
+        format!("{color_reset}{safe_name}")
+    }
+}
+
 pub(crate) fn format_symlink_display_name(
     safe_file_name: &str,
     path: &Path,
@@ -426,6 +436,12 @@ pub(crate) fn format_symlink_display_name(
             };
             let display_target = sanitize_path_for_terminal(&target_path);
             if params.long_format {
+                let display_target = fs::symlink_metadata(&target_path)
+                    .map(|metadata| {
+                        colorize_name_by_metadata(&display_target, &metadata)
+                    })
+                    .unwrap_or(display_target);
+
                 if target_path.exists() {
                     format!(
                         "{color_cyan}{} -> {}",

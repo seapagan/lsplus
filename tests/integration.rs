@@ -1,5 +1,6 @@
 use assert_cmd::Command;
 use filetime::FileTime;
+use inline_colorization::color_reset;
 use lsplus::utils::icons::Icon;
 use std::fs;
 use std::time::{Duration, SystemTime};
@@ -476,11 +477,16 @@ fn test_long_format_renders_symlink_icon() {
     temp_env::with_var("HOME", Some(temp_dir.path()), || {
         let mut cmd = Command::cargo_bin("lsp").unwrap();
         cmd.arg("-l").arg(&link);
-        let (stdout, _stderr) = run_and_capture(&mut cmd);
+        let (stdout_raw, _stderr) = run_and_capture_raw(&mut cmd);
+        let stdout = strip_str(&stdout_raw).to_string();
 
         assert!(stdout.contains(&Icon::Symlink.to_string()));
         assert!(stdout.contains("link.txt"));
         assert!(stdout.contains("->"));
+        assert!(stdout_raw.contains(&format!(
+            "-> {color_reset}{}",
+            target.to_string_lossy()
+        )));
     });
 }
 

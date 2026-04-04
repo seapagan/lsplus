@@ -5,7 +5,9 @@ use crate::utils::file::{
     get_groupname, get_username, sanitize_for_terminal,
 };
 use crate::{FileInfo, Params};
-use inline_colorization::{color_blue, color_green};
+use inline_colorization::{
+    color_blue, color_cyan, color_green, color_reset, style_bold,
+};
 use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io;
@@ -476,6 +478,60 @@ fn test_format_symlink_display_name_short_format_marks_append_slash() {
 
     assert!(short.contains("link"));
     assert!(short.contains('*'));
+}
+
+#[test]
+#[cfg(unix)]
+fn test_format_symlink_display_name_colors_long_format_targets_by_type() {
+    let temp_dir = tempdir().unwrap();
+    let dir_target = temp_dir.path().join("dir-target");
+    let file_target = temp_dir.path().join("file-target.txt");
+    let symlink_target = temp_dir.path().join("symlink-target");
+    let exec_target = temp_dir.path().join("exec-target.sh");
+
+    fs::create_dir(&dir_target).unwrap();
+    fs::write(&file_target, "file").unwrap();
+    fs::write(&exec_target, "#!/bin/sh\nexit 0\n").unwrap();
+    fs::set_permissions(&exec_target, fs::Permissions::from_mode(0o755))
+        .unwrap();
+    std::os::unix::fs::symlink(&file_target, &symlink_target).unwrap();
+
+    let params = Params {
+        long_format: true,
+        ..Params::default()
+    };
+
+    let dir_display = format_symlink_display_name(
+        "dir-link",
+        &temp_dir.path().join("dir-link"),
+        Ok(PathBuf::from("dir-target")),
+        &params,
+    );
+    assert!(dir_display.contains(&format!("-> {color_blue}")));
+
+    let file_display = format_symlink_display_name(
+        "file-link",
+        &temp_dir.path().join("file-link"),
+        Ok(PathBuf::from("file-target.txt")),
+        &params,
+    );
+    assert!(file_display.contains(&format!("-> {color_reset}")));
+
+    let symlink_display = format_symlink_display_name(
+        "symlink-link",
+        &temp_dir.path().join("symlink-link"),
+        Ok(PathBuf::from("symlink-target")),
+        &params,
+    );
+    assert!(symlink_display.contains(&format!("-> {color_cyan}")));
+
+    let exec_display = format_symlink_display_name(
+        "exec-link",
+        &temp_dir.path().join("exec-link"),
+        Ok(PathBuf::from("exec-target.sh")),
+        &params,
+    );
+    assert!(exec_display.contains(&format!("-> {style_bold}{color_green}")));
 }
 
 #[test]
