@@ -9,6 +9,7 @@ use inline_colorization::{color_blue, color_green};
 use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -249,6 +250,7 @@ fn test_append_file_info_for_names_handles_empty_input() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_create_file_info_handles_regular_files_symlinks_and_special_cases() {
     let temp_dir = tempdir().unwrap();
     let file_path = temp_dir.path().join("test_file");
@@ -296,6 +298,7 @@ fn test_create_file_info_handles_regular_files_symlinks_and_special_cases() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_create_file_info_handles_executables_and_large_files() {
     let temp_dir = tempdir().unwrap();
     let file_path = temp_dir.path().join("large_file");
@@ -354,6 +357,7 @@ fn test_create_file_info_handles_non_utf8_names_and_control_characters() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_symlink_directory_and_circular_links_are_handled() {
     let temp_dir = tempdir().unwrap();
     let target_dir = temp_dir.path().join("target_dir");
