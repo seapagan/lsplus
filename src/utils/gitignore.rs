@@ -45,8 +45,7 @@ impl GitignoreMatcher {
         for ignore_file in ignore_files {
             let _ = builder.add(ignore_file);
         }
-        let gitignore_matcher =
-            builder.build().expect("gitignore builder should succeed");
+        let gitignore_matcher = build_matcher_or_empty(&builder);
 
         let git_exclude_matcher =
             build_git_exclude_matcher(&git_paths.root, &git_paths.common_dir);
@@ -168,12 +167,16 @@ fn build_git_exclude_matcher(root: &Path, common_dir: &Path) -> Gitignore {
         let _ = builder.add(exclude_path);
     }
 
-    builder.build().expect("exclude builder should succeed")
+    build_matcher_or_empty(&builder)
 }
 
 fn build_git_global_matcher(root: &Path) -> Gitignore {
     let (matcher, _err) = GitignoreBuilder::new(root).build_global();
     matcher
+}
+
+fn build_matcher_or_empty(builder: &GitignoreBuilder) -> Gitignore {
+    builder.build().unwrap_or_else(|_| Gitignore::empty())
 }
 
 pub(crate) fn parse_gitdir_file(dot_git: &Path) -> Option<PathBuf> {

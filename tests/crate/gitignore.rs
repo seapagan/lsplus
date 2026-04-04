@@ -53,6 +53,22 @@ fn test_gitignore_cache_ignores_invalid_gitignore_files() {
 }
 
 #[test]
+fn test_gitignore_cache_ignores_invalid_info_exclude_files() {
+    let temp_dir = tempdir().unwrap();
+    let repo_root = temp_dir.path();
+    let broken_file = repo_root.join("broken.log");
+    let info_dir = repo_root.join(".git").join("info");
+
+    fs::create_dir_all(&info_dir).unwrap();
+    fs::write(info_dir.join("exclude"), "[\n").unwrap();
+    fs::write(&broken_file, "broken").unwrap();
+
+    let mut cache = GitignoreCache::default();
+
+    assert!(!cache.is_ignored(&broken_file, false));
+}
+
+#[test]
 fn test_find_git_paths_resolves_linked_worktree_common_dir() {
     let temp_dir = tempdir().unwrap();
     let repo_root = temp_dir.path().join("repo");
