@@ -333,7 +333,7 @@ fn test_long_format_renders_hidden_git_icons() {
 }
 
 #[test]
-fn test_gitignore_flag_dims_ignored_entries_in_short_output() {
+fn test_gitignore_flag_keeps_captured_short_output_plain() {
     let temp_dir = tempdir().unwrap();
     let ignored_name =
         "ignored-entry-name-that-forces-single-column-output.log";
@@ -362,7 +362,7 @@ fn test_gitignore_flag_dims_ignored_entries_in_short_output() {
 }
 
 #[test]
-fn test_gitignore_flag_dims_ignored_entries_in_long_output() {
+fn test_gitignore_flag_keeps_captured_long_output_plain() {
     let temp_dir = tempdir().unwrap();
     fs::create_dir(temp_dir.path().join(".git")).unwrap();
     fs::write(temp_dir.path().join(".gitignore"), "*.log\n").unwrap();
