@@ -2,6 +2,5 @@
 [book]
 authors = ["Grant Ramsay"]
 language = "en"
-multilingual = false
 src = "src"
 title = "LSPlus"
