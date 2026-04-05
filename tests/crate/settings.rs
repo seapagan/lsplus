@@ -1,9 +1,9 @@
-use crate::Params;
 use crate::cli::CompatMode;
 use crate::settings::{
     StartupConfig, config_path_from_home, load_config, load_config_from_path,
     load_startup_config_from,
 };
+use crate::{IndicatorStyle, Params};
 use std::fs;
 use std::path::PathBuf;
 use tempfile::tempdir;
@@ -53,7 +53,7 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
         config_dir.join("config.toml"),
         r#"
             show_all = true
-            append_slash = true
+            indicator_style = "classify"
             dirs_first = true
             almost_all = true
             long_format = true
@@ -71,7 +71,7 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
             load_config(),
             Params {
                 show_all: true,
-                append_slash: true,
+                indicator_style: IndicatorStyle::Classify,
                 dirs_first: true,
                 almost_all: true,
                 long_format: true,
@@ -80,6 +80,47 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
                 no_color: true,
                 gitignore: true,
                 fuzzy_time: true,
+            }
+        );
+    });
+}
+
+#[test]
+fn test_load_config_maps_append_slash_alias_to_indicator_style() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(config_dir.join("config.toml"), "append_slash = true\n")
+        .unwrap();
+
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        assert_eq!(
+            load_config(),
+            Params {
+                indicator_style: IndicatorStyle::Slash,
+                ..Params::default()
+            }
+        );
+    });
+}
+
+#[test]
+fn test_load_config_prefers_indicator_style_over_append_slash_alias() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(
+        config_dir.join("config.toml"),
+        "append_slash = true\nindicator_style = \"file-type\"\n",
+    )
+    .unwrap();
+
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        assert_eq!(
+            load_config(),
+            Params {
+                indicator_style: IndicatorStyle::FileType,
+                ..Params::default()
             }
         );
     });

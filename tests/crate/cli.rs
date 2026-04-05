@@ -1,3 +1,4 @@
+use crate::IndicatorStyle;
 use crate::cli::{
     CompatMode, Flags, format_version_info, try_parse_from_mode, version_info,
 };
@@ -9,7 +10,7 @@ fn test_default_flags() {
     assert!(!args.almost_all);
     assert!(!args.long);
     assert!(!args.human_readable);
-    assert!(!args.slash);
+    assert_eq!(args.indicator_style, None);
     assert!(!args.dirs_first);
     assert!(!args.no_icons);
     assert!(!args.no_color);
@@ -47,7 +48,7 @@ fn test_all_flags() {
     assert!(args.almost_all);
     assert!(args.long);
     assert!(args.human_readable);
-    assert!(args.slash);
+    assert_eq!(args.indicator_style, Some(IndicatorStyle::Slash));
     assert!(args.dirs_first);
     assert!(args.no_icons);
     assert!(args.no_color);
@@ -142,7 +143,7 @@ fn test_parse_from_mode_gnu_accepts_long_options_for_conflicts() {
     )
     .unwrap();
 
-    assert!(args.slash);
+    assert_eq!(args.indicator_style, Some(IndicatorStyle::Slash));
     assert!(args.dirs_first);
     assert!(args.gitignore);
     assert!(args.no_color);
@@ -156,6 +157,8 @@ fn test_parse_from_mode_gnu_help_omits_conflicting_short_flags() {
     let help = err.to_string();
 
     assert!(help.contains("-p"));
+    assert!(help.contains("--file-type"));
+    assert!(help.contains("-F"));
     assert!(help.contains("--indicator-style"));
     assert!(help.contains("--group-directories-first"));
     assert!(!help.contains("--slash-dirs"));
@@ -169,7 +172,63 @@ fn test_parse_from_mode_gnu_help_omits_conflicting_short_flags() {
 fn test_parse_from_mode_gnu_short_p_sets_slash() {
     let args = try_parse_from_mode(CompatMode::Gnu, ["lsplus", "-p"]).unwrap();
 
-    assert!(args.slash);
+    assert_eq!(args.indicator_style, Some(IndicatorStyle::Slash));
+}
+
+#[test]
+fn test_parse_from_mode_native_accepts_file_type_and_classify_options() {
+    let file_type =
+        try_parse_from_mode(CompatMode::Native, ["lsplus", "--file-type"])
+            .unwrap();
+    let classify =
+        try_parse_from_mode(CompatMode::Native, ["lsplus", "-F"]).unwrap();
+    let no_indicators =
+        try_parse_from_mode(CompatMode::Native, ["lsplus", "--no-indicators"])
+            .unwrap();
+
+    assert_eq!(file_type.indicator_style, Some(IndicatorStyle::FileType));
+    assert_eq!(classify.indicator_style, Some(IndicatorStyle::Classify));
+    assert_eq!(no_indicators.indicator_style, Some(IndicatorStyle::None));
+}
+
+#[test]
+fn test_parse_from_mode_gnu_accepts_indicator_style_variants() {
+    let file_type = try_parse_from_mode(
+        CompatMode::Gnu,
+        ["lsplus", "--indicator-style=file-type"],
+    )
+    .unwrap();
+    let classify = try_parse_from_mode(
+        CompatMode::Gnu,
+        ["lsplus", "--indicator-style=classify"],
+    )
+    .unwrap();
+    let none = try_parse_from_mode(
+        CompatMode::Gnu,
+        ["lsplus", "--indicator-style=none"],
+    )
+    .unwrap();
+
+    assert_eq!(file_type.indicator_style, Some(IndicatorStyle::FileType));
+    assert_eq!(classify.indicator_style, Some(IndicatorStyle::Classify));
+    assert_eq!(none.indicator_style, Some(IndicatorStyle::None));
+}
+
+#[test]
+fn test_parse_from_mode_rejects_conflicting_indicator_options() {
+    let native_err = try_parse_from_mode(
+        CompatMode::Native,
+        ["lsplus", "-p", "--file-type"],
+    )
+    .unwrap_err();
+    let gnu_err = try_parse_from_mode(
+        CompatMode::Gnu,
+        ["lsplus", "-F", "--indicator-style=file-type"],
+    )
+    .unwrap_err();
+
+    assert!(native_err.to_string().contains("cannot be used"));
+    assert!(gnu_err.to_string().contains("cannot be used"));
 }
 
 #[test]
@@ -179,6 +238,17 @@ fn test_parse_from_mode_gnu_rejects_native_slash_dirs_long_option() {
 
     assert!(err.to_string().contains("unexpected argument"));
     assert!(err.to_string().contains("--slash-dirs"));
+}
+
+#[test]
+fn test_parse_from_mode_gnu_rejects_native_classify_and_no_indicators() {
+    for flag in ["--classify", "--no-indicators"] {
+        let err = try_parse_from_mode(CompatMode::Gnu, ["lsplus", flag])
+            .unwrap_err();
+
+        assert!(err.to_string().contains("unexpected argument"));
+        assert!(err.to_string().contains(flag));
+    }
 }
 
 #[test]
