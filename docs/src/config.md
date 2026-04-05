@@ -123,7 +123,7 @@ The following is an example configuration file that sets several options. Any
 options that are not set will use the default values:
 
 ```toml
-compat_mode = "gnu"
+# compat_mode = "native"  # or "gnu" for GNU ls compatibility
 show_all = true
 append_slash = true
 dirs_first = true

@@ -111,6 +111,7 @@ You can also use the configuration file to set the default options you want.
 
 ![lsp output](./images/screenshot.png)
 
-If you add the '-D' option to the command, directories will be sorted first:
+If you add the `-D` option to the command (native mode only; use
+`--group-directories-first` in gnu mode), directories will be sorted first:
 
 ![lsp output](./images/screenshot2.png)
