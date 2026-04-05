@@ -48,14 +48,30 @@ This option corresponds to the `-A` or `--almost-all` command line option and
 will display all files and directories if set to `true`, except for `.` and
 `..`.
 
-### append_slash
+### indicator_style
 
-- Permitted values: `true` or `false`
-- Default value: `false`
+- Permitted values: `"none"`, `"slash"`, `"file-type"`, or `"classify"`
+- Default value: `"none"`
 
-This option corresponds to the `-p` or `--slash-dirs` command line option and
-will append a slash to directories if set to `true`. In `gnu` compatibility
-mode, the equivalent long option is `--indicator-style=slash`.
+This option selects which file type indicators `lsp` appends to entry names.
+In native mode, the related CLI options are `-p` / `--slash-dirs`,
+`--file-type`, `-F` / `--classify`, and `--no-indicators`. In `gnu`
+compatibility mode, the equivalent GNU forms are `-p`,
+`--indicator-style=slash`, `--file-type`,
+`--indicator-style=file-type`, `-F`, `--indicator-style=classify`, and
+`--indicator-style=none`.
+
+The indicator characters are `/` for directories, `@` for symlinks, `|` for
+FIFOs, `=` for sockets, and `*` for executables. The `*` executable marker is
+only added by `"classify"`.
+
+In long format, native mode omits the symlink `@` marker because `name ->
+target` and the symlink styling already make the type clear. This also matches
+GNU `ls`, which does not append `@` to symlink names in long format.
+
+For backward compatibility, `append_slash = true` is still accepted in the
+config file and maps to `indicator_style = "slash"`. If both are present,
+`indicator_style` takes precedence.
 
 ### dirs_first
 
@@ -125,7 +141,7 @@ options that are not set will use the default values:
 ```toml
 # compat_mode = "native"  # or "gnu" for GNU ls compatibility
 show_all = true
-append_slash = true
+indicator_style = "classify"
 dirs_first = true
 human_readable = true
 no_color = true

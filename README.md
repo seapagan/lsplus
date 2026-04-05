@@ -100,6 +100,9 @@ Curently, only a sub-set of the standard `ls` options are supported. These are:
 - `-a` / `--all` - Show hidden files
 - `-A` / `--almost-all` - Show hidden files, but don't show `.` and `..
 - `-p` / `--slash-dirs` - Append a '/' to directories
+- `--file-type` - Append type indicators except `*` for executables
+- `-F` / `--classify` - Append type indicators, including `*` for executables
+- `--no-indicators` - Disable file type indicators
 - `-l` / `--long` - Show long format listing
 - `-h` / `--human-readable` - Human readable file sizes
 - `-D` / `--sort-dirs` - Sort directories first
@@ -114,6 +117,18 @@ listing with hidden files, append a '/' to directories, and show human-readable
 file sizes.
 
 Use the `--help` option to see the full list of options.
+
+The indicator characters are:
+
+- `/` for directories
+- `@` for symlinks
+- `|` for FIFOs
+- `=` for sockets
+- `*` for executables, but only with `-F` / `--classify`
+
+In long format, native mode omits the symlink `@` marker because `name ->
+target` and the symlink styling already make the type clear. This also matches
+GNU `ls`, which does not append `@` to symlink names in long format.
 
 When `-I` is enabled, `lsp` checks the same ignore sources Git normally uses:
 merged `.gitignore` files in the worktree, `.git/info/exclude`, and the
@@ -175,8 +190,12 @@ available in `gnu` mode through their long forms only:
 - `--no-color`
 - `--fuzzy-time`
 
-In `gnu` mode, `-p` uses the GNU-style long form `--indicator-style=slash`
-instead of the native `--slash-dirs`.
+GNU indicator options are also available in `gnu` mode:
+
+- `-p` / `--indicator-style=slash`
+- `--file-type` / `--indicator-style=file-type`
+- `-F` / `--indicator-style=classify`
+- `--indicator-style=none`
 
 ### Configuration File
 
