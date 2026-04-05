@@ -20,15 +20,25 @@ macro_rules! config_to_params {
 #[derive(Debug, Deserialize, PartialEq, Default)]
 #[serde(default)]
 pub struct Params {
+    /// Show entries whose names start with `.`.
     pub show_all: bool,
+    /// Append a trailing `/` to directory names.
     pub append_slash: bool,
+    /// Group directories before files.
     pub dirs_first: bool,
+    /// Hide `.` and `..` while still showing other dotfiles.
     pub almost_all: bool,
+    /// Render long-format output.
     pub long_format: bool,
+    /// Render human-readable file sizes in long format.
     pub human_readable: bool,
+    /// Disable file and directory icons.
     pub no_icons: bool,
+    /// Disable colored or styled output.
     pub no_color: bool,
+    /// Dim paths matched by `.gitignore` rules.
     pub gitignore: bool,
+    /// Render humanized relative timestamps.
     pub fuzzy_time: bool,
 }
 
@@ -65,6 +75,10 @@ impl From<Config> for Params {
 }
 
 impl Params {
+    /// Merge parsed CLI flags with config-file defaults.
+    ///
+    /// Boolean options are treated as opt-in toggles, so a value is enabled if
+    /// either the command line or the config file enables it.
     pub fn merge(flags: &cli::Flags, config: &Self) -> Self {
         Self {
             show_all: flags.show_all || config.show_all,

@@ -1,4 +1,9 @@
-// Set up the CLI arguments
+//! CLI parsing for `lsplus`.
+//!
+//! The command line can be parsed in either native `lsplus` mode or GNU
+//! compatibility mode. Both modes map into the same internal [`Flags`] type so
+//! the rest of the application can work with one normalized representation.
+
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::env;
 use std::ffi::OsString;
@@ -20,7 +25,9 @@ const ARG_HELP: &str = "help";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompatMode {
+    /// Parse arguments using the native `lsplus` option set.
     Native,
+    /// Parse arguments using the GNU-compatible option set.
     Gnu,
 }
 
@@ -40,21 +47,34 @@ impl CompatMode {
 
 #[derive(Debug)]
 pub struct Flags {
+    /// Show entries whose names start with `.`.
     pub show_all: bool,
+    /// Hide `.` and `..` while still showing other dotfiles.
     pub almost_all: bool,
+    /// Render long-format output.
     pub long: bool,
+    /// Render human-readable file sizes in long format.
     pub human_readable: bool,
+    /// Raw path arguments collected from the CLI.
     pub paths: Vec<String>,
+    /// Append a directory indicator in the active CLI mode.
     pub slash: bool,
+    /// Group directories before files.
     pub dirs_first: bool,
+    /// Disable file and directory icons.
     pub no_icons: bool,
+    /// Disable colored or styled output.
     pub no_color: bool,
+    /// Dim paths matched by `.gitignore` rules.
     pub gitignore: bool,
+    /// Print version information and exit.
     pub version: bool,
+    /// Render humanized relative timestamps.
     pub fuzzy_time: bool,
 }
 
 impl Flags {
+    /// Parse native-mode CLI arguments, exiting on parse failure.
     pub fn parse_from<I, T>(args: I) -> Self
     where
         I: IntoIterator<Item = T>,
@@ -72,6 +92,10 @@ impl Flags {
     }
 }
 
+/// Parse CLI arguments using the requested compatibility mode.
+///
+/// This is the main entry point used after startup mode selection has already
+/// resolved whether `lsplus` should behave in native or GNU-compatible mode.
 pub fn parse_from_mode(mode: CompatMode) -> Flags {
     let matches = build_command(mode).get_matches();
     flags_from_matches(mode, &matches)
@@ -296,6 +320,7 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
     }
 }
 
+/// Format the user-facing version output from package metadata values.
 pub(crate) fn format_version_info(
     version: &str,
     authors: &str,
@@ -320,6 +345,7 @@ pub(crate) fn format_version_info(
     )
 }
 
+/// Return the formatted version banner for the current build.
 pub fn version_info() -> String {
     let version = env!("CARGO_PKG_VERSION");
     let authors = env!("CARGO_PKG_AUTHORS");
