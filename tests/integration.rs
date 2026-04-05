@@ -629,6 +629,26 @@ fn test_gnu_compat_mode_from_env_rejects_conflicting_short_flag() {
 }
 
 #[test]
+fn test_gnu_compat_mode_from_env_rejects_gitignore_short_flag() {
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("LSP_COMPAT_MODE", "gnu")
+        .arg("-I")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("unexpected argument '-I'"));
+}
+
+#[test]
+fn test_gnu_compat_mode_from_env_rejects_fuzzy_time_short_flag() {
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("LSP_COMPAT_MODE", "gnu")
+        .arg("-Z")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("unexpected argument '-Z'"));
+}
+
+#[test]
 fn test_gnu_compat_mode_from_config_rejects_conflicting_short_flag() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().join(".config").join("lsplus");
