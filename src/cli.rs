@@ -1,8 +1,26 @@
 // Set up the CLI arguments
-use clap::{Arg, ArgAction, CommandFactory, Parser, ValueEnum};
-#[cfg(test)]
+use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::ffi::OsString;
 use std::{env, process::exit};
+
+const ARG_SHOW_ALL: &str = "show_all";
+const ARG_ALMOST_ALL: &str = "almost_all";
+const ARG_LONG: &str = "long";
+const ARG_HUMAN_READABLE: &str = "human_readable";
+const ARG_PATHS: &str = "paths";
+const ARG_SLASH: &str = "slash";
+const ARG_DIRS_FIRST: &str = "dirs_first";
+const ARG_NO_ICONS: &str = "no_icons";
+const ARG_NO_COLOR: &str = "no_color";
+const ARG_GITIGNORE: &str = "gitignore";
+const ARG_VERSION: &str = "version";
+const ARG_FUZZY_TIME: &str = "fuzzy_time";
+const ARG_HELP: &str = "help";
+
+const GNU_INDICATOR_STYLE_HELP_FROM: &str = "  -p, --indicator-style[=<WORD>]  Append indicator with style WORD to \
+     entry names [possible values: slash]\n";
+const GNU_INDICATOR_STYLE_HELP_TO: &str =
+    "  -p, --indicator-style=slash     Append / indicator to directories\n";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompatMode {
@@ -24,217 +42,47 @@ impl CompatMode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-enum IndicatorStyle {
-    Slash,
-}
-
-const GNU_INDICATOR_STYLE_HELP_FROM: &str = "  -p, --indicator-style[=<WORD>]  Append indicator with style WORD to \
-     entry names [possible values: slash]\n";
-const GNU_INDICATOR_STYLE_HELP_TO: &str =
-    "  -p, --indicator-style=slash     Append / indicator to directories\n";
-
-#[derive(Parser)]
-#[command(
-    name = "lsplus",
-    author = env!("CARGO_PKG_AUTHORS"),
-    about =env!("CARGO_PKG_DESCRIPTION"),
-    long_about = None,
-    disable_help_flag = true,
-    arg(
-        Arg::new("help")
-            .long("help")
-            .action(ArgAction::Help)
-            .help("Print help information")
-    )
-)]
 #[derive(Debug)]
 pub struct Flags {
-    #[arg(
-        short = 'a',
-        long = "all",
-        help = "Do not ignore entries starting with ."
-    )]
     pub show_all: bool,
-
-    #[arg(
-        short = 'A',
-        long = "almost-all",
-        help = "Do not list implied . and .."
-    )]
     pub almost_all: bool,
-
-    #[arg(short = 'l', long = "long", help = "Display detailed information")]
     pub long: bool,
-
-    #[arg(
-        short = 'h',
-        long = "human-readable",
-        help = "with -l, print sizes like 1K 234M 2G etc."
-    )]
     pub human_readable: bool,
-
-    #[arg(default_value = ".", help = "The path to list")]
     pub paths: Vec<String>,
-
-    #[arg(
-        short = 'p',
-        long = "slash-dirs",
-        help = "Append a slash to directories"
-    )]
     pub slash: bool,
-
-    #[arg(short = 'D', long = "sort-dirs", help = "Sort directories first")]
     pub dirs_first: bool,
-
-    #[arg(long = "no-icons", help = "Do not display file or folder icons")]
     pub no_icons: bool,
-
-    #[arg(
-        short = 'N',
-        long = "no-color",
-        help = "Do not display colored or styled output"
-    )]
     pub no_color: bool,
-
-    #[arg(
-        short = 'I',
-        long = "gitignore",
-        help = "Dim entries matched by active .gitignore rules"
-    )]
     pub gitignore: bool,
-
-    #[arg(
-        long = "version",
-        short = 'V',
-        action = ArgAction::SetTrue,
-        help = "Print version information and exit",
-        global = true
-    )]
     pub version: bool,
-
-    #[arg(long = "fuzzy-time", short = 'Z', help = "Use fuzzy time format")]
     pub fuzzy_time: bool,
 }
 
-#[derive(Parser, Debug)]
-#[command(
-    name = "lsplus",
-    author = env!("CARGO_PKG_AUTHORS"),
-    about = env!("CARGO_PKG_DESCRIPTION"),
-    long_about = None,
-    disable_help_flag = true,
-    arg(
-        Arg::new("help")
-            .long("help")
-            .action(ArgAction::Help)
-            .help("Print help information")
-    )
-)]
-struct GnuFlags {
-    #[arg(
-        short = 'a',
-        long = "all",
-        help = "Do not ignore entries starting with ."
-    )]
-    show_all: bool,
+impl Flags {
+    pub fn parse_from<I, T>(args: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<OsString> + Clone,
+    {
+        Self::try_parse_from(args).unwrap_or_else(|err| err.exit())
+    }
 
-    #[arg(
-        short = 'A',
-        long = "almost-all",
-        help = "Do not list implied . and .."
-    )]
-    almost_all: bool,
-
-    #[arg(short = 'l', long = "long", help = "Display detailed information")]
-    long: bool,
-
-    #[arg(
-        short = 'h',
-        long = "human-readable",
-        help = "with -l, print sizes like 1K 234M 2G etc."
-    )]
-    human_readable: bool,
-
-    #[arg(default_value = ".", help = "The path to list")]
-    paths: Vec<String>,
-
-    #[arg(
-        short = 'p',
-        long = "indicator-style",
-        value_enum,
-        value_name = "WORD",
-        num_args = 0..=1,
-        require_equals = true,
-        default_missing_value = "slash",
-        help = "Append indicator with style WORD to entry names"
-    )]
-    indicator_style: Option<IndicatorStyle>,
-
-    #[arg(
-        long = "group-directories-first",
-        help = "Group directories before files"
-    )]
-    dirs_first: bool,
-
-    #[arg(long = "no-icons", help = "Do not display file or folder icons")]
-    no_icons: bool,
-
-    #[arg(
-        long = "no-color",
-        help = "Do not display colored or styled output"
-    )]
-    no_color: bool,
-
-    #[arg(
-        long = "gitignore",
-        help = "Dim entries matched by active .gitignore rules"
-    )]
-    gitignore: bool,
-
-    #[arg(
-        long = "version",
-        short = 'V',
-        action = ArgAction::SetTrue,
-        help = "Print version information and exit",
-        global = true
-    )]
-    version: bool,
-
-    #[arg(long = "fuzzy-time", help = "Use fuzzy time format")]
-    fuzzy_time: bool,
-}
-
-impl From<GnuFlags> for Flags {
-    fn from(value: GnuFlags) -> Self {
-        Self {
-            show_all: value.show_all,
-            almost_all: value.almost_all,
-            long: value.long,
-            human_readable: value.human_readable,
-            paths: value.paths,
-            slash: matches!(
-                value.indicator_style,
-                Some(IndicatorStyle::Slash)
-            ),
-            dirs_first: value.dirs_first,
-            no_icons: value.no_icons,
-            no_color: value.no_color,
-            gitignore: value.gitignore,
-            version: value.version,
-            fuzzy_time: value.fuzzy_time,
-        }
+    pub fn try_parse_from<I, T>(args: I) -> Result<Self, clap::Error>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<OsString> + Clone,
+    {
+        parse_matches(CompatMode::Native, args)
     }
 }
 
 pub fn parse_from_mode(mode: CompatMode) -> Flags {
-    match mode {
-        CompatMode::Native => Flags::parse(),
-        CompatMode::Gnu => {
-            print_gnu_help_and_exit_if_requested();
-            GnuFlags::parse().into()
-        }
+    if mode == CompatMode::Gnu {
+        print_gnu_help_and_exit_if_requested();
     }
+
+    let matches = build_command(mode).get_matches();
+    flags_from_matches(mode, &matches)
 }
 
 #[cfg(test)]
@@ -246,9 +94,201 @@ where
     I: IntoIterator<Item = T>,
     T: Into<OsString> + Clone,
 {
+    parse_matches(mode, args)
+}
+
+fn parse_matches<I, T>(mode: CompatMode, args: I) -> Result<Flags, clap::Error>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<OsString> + Clone,
+{
+    let matches = build_command(mode).try_get_matches_from(args)?;
+    Ok(flags_from_matches(mode, &matches))
+}
+
+fn build_command(mode: CompatMode) -> Command {
+    Command::new("lsplus")
+        .author(env!("CARGO_PKG_AUTHORS"))
+        .about(env!("CARGO_PKG_DESCRIPTION"))
+        .long_about(None)
+        .disable_help_flag(true)
+        .arg(show_all_arg())
+        .arg(almost_all_arg())
+        .arg(long_arg())
+        .arg(human_readable_arg())
+        .arg(paths_arg())
+        .arg(slash_arg(mode))
+        .arg(dirs_first_arg(mode))
+        .arg(no_icons_arg())
+        .arg(no_color_arg(mode))
+        .arg(gitignore_arg(mode))
+        .arg(version_arg())
+        .arg(fuzzy_time_arg(mode))
+        .arg(help_arg())
+}
+
+fn help_arg() -> Arg {
+    Arg::new(ARG_HELP)
+        .long("help")
+        .action(ArgAction::Help)
+        .help("Print help information")
+}
+
+fn show_all_arg() -> Arg {
+    Arg::new(ARG_SHOW_ALL)
+        .short('a')
+        .long("all")
+        .action(ArgAction::SetTrue)
+        .help("Do not ignore entries starting with .")
+}
+
+fn almost_all_arg() -> Arg {
+    Arg::new(ARG_ALMOST_ALL)
+        .short('A')
+        .long("almost-all")
+        .action(ArgAction::SetTrue)
+        .help("Do not list implied . and ..")
+}
+
+fn long_arg() -> Arg {
+    Arg::new(ARG_LONG)
+        .short('l')
+        .long("long")
+        .action(ArgAction::SetTrue)
+        .help("Display detailed information")
+}
+
+fn human_readable_arg() -> Arg {
+    Arg::new(ARG_HUMAN_READABLE)
+        .short('h')
+        .long("human-readable")
+        .action(ArgAction::SetTrue)
+        .help("with -l, print sizes like 1K 234M 2G etc.")
+}
+
+fn paths_arg() -> Arg {
+    Arg::new(ARG_PATHS)
+        .help("The path to list")
+        .value_name("PATHS")
+        .default_value(".")
+        .action(ArgAction::Append)
+        .num_args(0..)
+}
+
+fn slash_arg(mode: CompatMode) -> Arg {
     match mode {
-        CompatMode::Native => Flags::try_parse_from(args),
-        CompatMode::Gnu => GnuFlags::try_parse_from(args).map(Into::into),
+        CompatMode::Native => Arg::new(ARG_SLASH)
+            .short('p')
+            .long("slash-dirs")
+            .action(ArgAction::SetTrue)
+            .help("Append a slash to directories"),
+        CompatMode::Gnu => Arg::new(ARG_SLASH)
+            .short('p')
+            .long("indicator-style")
+            .action(ArgAction::Set)
+            .default_missing_value("slash")
+            .require_equals(true)
+            .num_args(0..=1)
+            .value_name("WORD")
+            .value_parser(["slash"])
+            .help("Append indicator with style WORD to entry names"),
+    }
+}
+
+fn dirs_first_arg(mode: CompatMode) -> Arg {
+    match mode {
+        CompatMode::Native => Arg::new(ARG_DIRS_FIRST)
+            .short('D')
+            .long("sort-dirs")
+            .action(ArgAction::SetTrue)
+            .help("Sort directories first"),
+        CompatMode::Gnu => Arg::new(ARG_DIRS_FIRST)
+            .long("group-directories-first")
+            .action(ArgAction::SetTrue)
+            .help("Group directories before files"),
+    }
+}
+
+fn no_icons_arg() -> Arg {
+    Arg::new(ARG_NO_ICONS)
+        .long("no-icons")
+        .action(ArgAction::SetTrue)
+        .help("Do not display file or folder icons")
+}
+
+fn no_color_arg(mode: CompatMode) -> Arg {
+    match mode {
+        CompatMode::Native => Arg::new(ARG_NO_COLOR)
+            .short('N')
+            .long("no-color")
+            .action(ArgAction::SetTrue)
+            .help("Do not display colored or styled output"),
+        CompatMode::Gnu => Arg::new(ARG_NO_COLOR)
+            .long("no-color")
+            .action(ArgAction::SetTrue)
+            .help("Do not display colored or styled output"),
+    }
+}
+
+fn gitignore_arg(mode: CompatMode) -> Arg {
+    match mode {
+        CompatMode::Native => Arg::new(ARG_GITIGNORE)
+            .short('I')
+            .long("gitignore")
+            .action(ArgAction::SetTrue)
+            .help("Dim entries matched by active .gitignore rules"),
+        CompatMode::Gnu => Arg::new(ARG_GITIGNORE)
+            .long("gitignore")
+            .action(ArgAction::SetTrue)
+            .help("Dim entries matched by active .gitignore rules"),
+    }
+}
+
+fn version_arg() -> Arg {
+    Arg::new(ARG_VERSION)
+        .short('V')
+        .long("version")
+        .action(ArgAction::SetTrue)
+        .global(true)
+        .help("Print version information and exit")
+}
+
+fn fuzzy_time_arg(mode: CompatMode) -> Arg {
+    match mode {
+        CompatMode::Native => Arg::new(ARG_FUZZY_TIME)
+            .short('Z')
+            .long("fuzzy-time")
+            .action(ArgAction::SetTrue)
+            .help("Use fuzzy time format"),
+        CompatMode::Gnu => Arg::new(ARG_FUZZY_TIME)
+            .long("fuzzy-time")
+            .action(ArgAction::SetTrue)
+            .help("Use fuzzy time format"),
+    }
+}
+
+fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
+    Flags {
+        show_all: matches.get_flag(ARG_SHOW_ALL),
+        almost_all: matches.get_flag(ARG_ALMOST_ALL),
+        long: matches.get_flag(ARG_LONG),
+        human_readable: matches.get_flag(ARG_HUMAN_READABLE),
+        paths: matches
+            .get_many::<String>(ARG_PATHS)
+            .map(|values| values.cloned().collect())
+            .unwrap_or_else(|| vec![String::from(".")]),
+        slash: match mode {
+            CompatMode::Native => matches.get_flag(ARG_SLASH),
+            CompatMode::Gnu => matches
+                .get_one::<String>(ARG_SLASH)
+                .is_some_and(|value| value == "slash"),
+        },
+        dirs_first: matches.get_flag(ARG_DIRS_FIRST),
+        no_icons: matches.get_flag(ARG_NO_ICONS),
+        no_color: matches.get_flag(ARG_NO_COLOR),
+        gitignore: matches.get_flag(ARG_GITIGNORE),
+        version: matches.get_flag(ARG_VERSION),
+        fuzzy_time: matches.get_flag(ARG_FUZZY_TIME),
     }
 }
 
@@ -262,14 +302,15 @@ fn print_gnu_help_and_exit_if_requested() {
 }
 
 pub(crate) fn render_gnu_help() -> String {
-    let mut command = GnuFlags::command();
-    command = command.bin_name("lsp");
-
-    command.render_help().to_string().replacen(
-        GNU_INDICATOR_STYLE_HELP_FROM,
-        GNU_INDICATOR_STYLE_HELP_TO,
-        1,
-    )
+    build_command(CompatMode::Gnu)
+        .bin_name("lsp")
+        .render_help()
+        .to_string()
+        .replacen(
+            GNU_INDICATOR_STYLE_HELP_FROM,
+            GNU_INDICATOR_STYLE_HELP_TO,
+            1,
+        )
 }
 
 pub(crate) fn format_version_info(

@@ -2,7 +2,6 @@ use crate::cli::{
     CompatMode, Flags, format_version_info, render_gnu_help,
     try_parse_from_mode, version_info,
 };
-use clap::Parser;
 
 #[test]
 fn test_default_flags() {
