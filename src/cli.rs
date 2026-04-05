@@ -1,7 +1,7 @@
 // Set up the CLI arguments
 use clap::{Arg, ArgAction, ArgMatches, Command};
+use std::env;
 use std::ffi::OsString;
-use std::{env, process::exit};
 
 const ARG_SHOW_ALL: &str = "show_all";
 const ARG_ALMOST_ALL: &str = "almost_all";
@@ -9,6 +9,7 @@ const ARG_LONG: &str = "long";
 const ARG_HUMAN_READABLE: &str = "human_readable";
 const ARG_PATHS: &str = "paths";
 const ARG_SLASH: &str = "slash";
+const ARG_INDICATOR_STYLE: &str = "indicator_style";
 const ARG_DIRS_FIRST: &str = "dirs_first";
 const ARG_NO_ICONS: &str = "no_icons";
 const ARG_NO_COLOR: &str = "no_color";
@@ -16,11 +17,6 @@ const ARG_GITIGNORE: &str = "gitignore";
 const ARG_VERSION: &str = "version";
 const ARG_FUZZY_TIME: &str = "fuzzy_time";
 const ARG_HELP: &str = "help";
-
-const GNU_INDICATOR_STYLE_HELP_FROM: &str = "  -p, --indicator-style[=<WORD>]  Append indicator with style WORD to \
-     entry names [possible values: slash]\n";
-const GNU_INDICATOR_STYLE_HELP_TO: &str =
-    "  -p, --indicator-style=slash     Append / indicator to directories\n";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompatMode {
@@ -77,10 +73,6 @@ impl Flags {
 }
 
 pub fn parse_from_mode(mode: CompatMode) -> Flags {
-    if mode == CompatMode::Gnu {
-        print_gnu_help_and_exit_if_requested();
-    }
-
     let matches = build_command(mode).get_matches();
     flags_from_matches(mode, &matches)
 }
@@ -107,7 +99,7 @@ where
 }
 
 fn build_command(mode: CompatMode) -> Command {
-    Command::new("lsplus")
+    let command = Command::new("lsplus")
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .long_about(None)
@@ -124,7 +116,12 @@ fn build_command(mode: CompatMode) -> Command {
         .arg(gitignore_arg(mode))
         .arg(version_arg())
         .arg(fuzzy_time_arg(mode))
-        .arg(help_arg())
+        .arg(help_arg());
+
+    match mode {
+        CompatMode::Native => command,
+        CompatMode::Gnu => command.arg(indicator_style_arg()),
+    }
 }
 
 fn help_arg() -> Arg {
@@ -184,15 +181,19 @@ fn slash_arg(mode: CompatMode) -> Arg {
             .help("Append a slash to directories"),
         CompatMode::Gnu => Arg::new(ARG_SLASH)
             .short('p')
-            .long("indicator-style")
-            .action(ArgAction::Set)
-            .default_missing_value("slash")
-            .require_equals(true)
-            .num_args(0..=1)
-            .value_name("WORD")
-            .value_parser(["slash"])
-            .help("Append indicator with style WORD to entry names"),
+            .action(ArgAction::SetTrue)
+            .help("Append / indicator to directories"),
     }
+}
+
+fn indicator_style_arg() -> Arg {
+    Arg::new(ARG_INDICATOR_STYLE)
+        .long("indicator-style")
+        .action(ArgAction::Set)
+        .require_equals(true)
+        .value_name("WORD")
+        .value_parser(["slash"])
+        .help("Append indicator with style WORD to entry names")
 }
 
 fn dirs_first_arg(mode: CompatMode) -> Arg {
@@ -279,9 +280,12 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
             .unwrap_or_else(|| vec![String::from(".")]),
         slash: match mode {
             CompatMode::Native => matches.get_flag(ARG_SLASH),
-            CompatMode::Gnu => matches
-                .get_one::<String>(ARG_SLASH)
-                .is_some_and(|value| value == "slash"),
+            CompatMode::Gnu => {
+                matches.get_flag(ARG_SLASH)
+                    || matches
+                        .get_one::<String>(ARG_INDICATOR_STYLE)
+                        .is_some_and(|value| value == "slash")
+            }
         },
         dirs_first: matches.get_flag(ARG_DIRS_FIRST),
         no_icons: matches.get_flag(ARG_NO_ICONS),
@@ -290,27 +294,6 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
         version: matches.get_flag(ARG_VERSION),
         fuzzy_time: matches.get_flag(ARG_FUZZY_TIME),
     }
-}
-
-fn print_gnu_help_and_exit_if_requested() {
-    if !env::args_os().skip(1).any(|arg| arg == "--help") {
-        return;
-    }
-
-    print!("{}", render_gnu_help());
-    exit(0);
-}
-
-pub(crate) fn render_gnu_help() -> String {
-    build_command(CompatMode::Gnu)
-        .bin_name("lsp")
-        .render_help()
-        .to_string()
-        .replacen(
-            GNU_INDICATOR_STYLE_HELP_FROM,
-            GNU_INDICATOR_STYLE_HELP_TO,
-            1,
-        )
 }
 
 pub(crate) fn format_version_info(

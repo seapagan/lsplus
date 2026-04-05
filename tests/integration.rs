@@ -708,11 +708,14 @@ fn test_gnu_compat_mode_help_omits_conflicting_short_flags() {
     assert!(output.status.success());
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains(
-        "-p, --indicator-style=slash     Append / indicator to directories"
-    ));
-    assert!(!stdout.contains("--indicator-style[=<WORD>]"));
+    assert!(stdout.contains("-p"));
+    assert!(stdout.contains("Append / indicator to directories"));
+    assert!(stdout.contains("--indicator-style=<WORD>"));
+    assert!(
+        stdout.contains("Append indicator with style WORD to entry names")
+    );
     assert!(stdout.contains("--group-directories-first"));
+    assert!(!stdout.contains("--slash-dirs"));
     assert!(!stdout.contains("-D,"));
     assert!(!stdout.contains("-I,"));
     assert!(!stdout.contains("-N,"));
@@ -817,6 +820,22 @@ fn test_gnu_compat_mode_accepts_indicator_style_slash() {
     let mut cmd = Command::cargo_bin("lsp").unwrap();
     cmd.env("LSP_COMPAT_MODE", "gnu")
         .arg("--indicator-style=slash")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains("child/"));
+}
+
+#[test]
+fn test_gnu_compat_mode_accepts_short_p() {
+    let temp_dir = tempdir().unwrap();
+    let child_dir = temp_dir.path().join("child");
+    fs::create_dir(&child_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("LSP_COMPAT_MODE", "gnu")
+        .arg("-p")
         .arg("--no-icons")
         .arg(temp_dir.path());
     let (stdout, _stderr) = run_and_capture(&mut cmd);

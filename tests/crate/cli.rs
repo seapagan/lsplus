@@ -1,6 +1,5 @@
 use crate::cli::{
-    CompatMode, Flags, format_version_info, render_gnu_help,
-    try_parse_from_mode, version_info,
+    CompatMode, Flags, format_version_info, try_parse_from_mode, version_info,
 };
 
 #[test]
@@ -156,6 +155,7 @@ fn test_parse_from_mode_gnu_help_omits_conflicting_short_flags() {
         .unwrap_err();
     let help = err.to_string();
 
+    assert!(help.contains("-p"));
     assert!(help.contains("--indicator-style"));
     assert!(help.contains("--group-directories-first"));
     assert!(!help.contains("--slash-dirs"));
@@ -166,13 +166,10 @@ fn test_parse_from_mode_gnu_help_omits_conflicting_short_flags() {
 }
 
 #[test]
-fn test_render_gnu_help_uses_literal_indicator_style_line() {
-    let help = render_gnu_help();
+fn test_parse_from_mode_gnu_short_p_sets_slash() {
+    let args = try_parse_from_mode(CompatMode::Gnu, ["lsplus", "-p"]).unwrap();
 
-    assert!(help.contains(
-        "-p, --indicator-style=slash     Append / indicator to directories"
-    ));
-    assert!(!help.contains("--indicator-style[=<WORD>]"));
+    assert!(args.slash);
 }
 
 #[test]
