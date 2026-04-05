@@ -10,7 +10,14 @@ use crate::utils::file::collect_file_info;
 
 pub fn run_with_flags(args: cli::Flags) -> io::Result<()> {
     let config = settings::load_config();
-    let params = Params::merge(&args, &config);
+    run_with_flags_and_config(args, &config)
+}
+
+pub fn run_with_flags_and_config(
+    args: cli::Flags,
+    config: &Params,
+) -> io::Result<()> {
+    let params = Params::merge(&args, config);
     utils::color::configure_color_output(&params);
     let patterns = patterns_from_args(args.paths);
 

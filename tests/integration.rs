@@ -159,7 +159,9 @@ fn test_dirs_first_lists_directories_before_files() {
     fs::write(temp_dir.path().join("alpha.txt"), "alpha").unwrap();
 
     let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.arg("-D").arg(temp_dir.path());
+    cmd.env("LSP_COMPAT_MODE", "native")
+        .arg("-D")
+        .arg(temp_dir.path());
     let (stdout, _stderr) = run_and_capture(&mut cmd);
 
     let dir_position = stdout.find("zeta_dir").unwrap();
@@ -182,7 +184,10 @@ fn test_fuzzy_time_uses_human_readable_timestamp() {
     filetime::set_file_mtime(&file_path, old_time).unwrap();
 
     let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.arg("-l").arg("-Z").arg(&file_path);
+    cmd.env("LSP_COMPAT_MODE", "native")
+        .arg("-l")
+        .arg("-Z")
+        .arg(&file_path);
     let (stdout, _stderr) = run_and_capture(&mut cmd);
 
     assert!(stdout.contains("aged.txt"));
@@ -256,7 +261,10 @@ fn test_no_color_flag_keeps_short_output_plain() {
     fs::write(&file_path, "plain").unwrap();
 
     let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.arg("-N").arg("--no-icons").arg(&file_path);
+    cmd.env("LSP_COMPAT_MODE", "native")
+        .arg("-N")
+        .arg("--no-icons")
+        .arg(&file_path);
     let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
 
     assert!(!has_ansi(&stdout));
@@ -345,7 +353,10 @@ fn test_gitignore_flag_keeps_captured_short_output_plain() {
     fs::write(temp_dir.path().join(visible_name), "visible").unwrap();
 
     let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.arg("-I").arg("--no-icons").arg(temp_dir.path());
+    cmd.env("LSP_COMPAT_MODE", "native")
+        .arg("-I")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
     let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
 
     let ignored_line = stdout
@@ -370,7 +381,8 @@ fn test_gitignore_flag_keeps_captured_long_output_plain() {
     fs::write(temp_dir.path().join("visible.txt"), "visible").unwrap();
 
     let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.arg("-l")
+    cmd.env("LSP_COMPAT_MODE", "native")
+        .arg("-l")
         .arg("-I")
         .arg("--no-icons")
         .arg(temp_dir.path());
@@ -405,7 +417,10 @@ fn test_gitignore_flag_honors_nested_unignore_rules() {
     fs::write(nested_dir.join(kept_name), "kept").unwrap();
 
     let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.arg("-I").arg("--no-icons").arg(&nested_dir);
+    cmd.env("LSP_COMPAT_MODE", "native")
+        .arg("-I")
+        .arg("--no-icons")
+        .arg(&nested_dir);
     let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
 
     let ignored_line = stdout
@@ -430,7 +445,10 @@ fn test_gitignore_flag_dims_explicit_file_arguments() {
     fs::write(&ignored_file, "ignored").unwrap();
 
     let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.arg("-I").arg("--no-icons").arg(&ignored_file);
+    cmd.env("LSP_COMPAT_MODE", "native")
+        .arg("-I")
+        .arg("--no-icons")
+        .arg(&ignored_file);
     let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
 
     let ignored_line = stdout
@@ -447,7 +465,10 @@ fn test_gitignore_flag_does_not_dim_outside_git_worktree() {
     fs::write(temp_dir.path().join("plain.log"), "plain").unwrap();
 
     let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.arg("-I").arg("--no-icons").arg(temp_dir.path());
+    cmd.env("LSP_COMPAT_MODE", "native")
+        .arg("-I")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
     let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
 
     let plain_line = stdout
@@ -480,7 +501,8 @@ fn test_gitignore_flag_honors_git_info_exclude() {
     fs::write(temp_dir.path().join(visible_name), "visible").unwrap();
 
     let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.arg("-I")
+    cmd.env("LSP_COMPAT_MODE", "native")
+        .arg("-I")
         .arg("--no-icons")
         .arg(&ignored_file)
         .arg(temp_dir.path().join(visible_name));
@@ -534,6 +556,7 @@ fn test_gitignore_flag_honors_global_excludes() {
     let mut cmd = Command::cargo_bin("lsp").unwrap();
     cmd.current_dir(&repo_dir)
         .env("HOME", &home_dir)
+        .env("LSP_COMPAT_MODE", "native")
         .arg("-I")
         .arg("--no-icons")
         .arg(&ignored_file)
@@ -593,4 +616,222 @@ fn test_broken_symlink_argument_long_format() {
         .success()
         .stdout(predicates::str::contains("[Broken Link]"))
         .stdout(predicates::str::contains("broken_link"));
+}
+
+#[test]
+fn test_gnu_compat_mode_from_env_rejects_conflicting_short_flag() {
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("LSP_COMPAT_MODE", "gnu")
+        .arg("-D")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("unexpected argument '-D'"));
+}
+
+#[test]
+fn test_gnu_compat_mode_from_config_rejects_conflicting_short_flag() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(config_dir.join("config.toml"), "compat_mode = \"gnu\"\n")
+        .unwrap();
+
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        let mut cmd = Command::cargo_bin("lsp").unwrap();
+        cmd.arg("-N")
+            .assert()
+            .failure()
+            .stderr(predicates::str::contains("unexpected argument '-N'"));
+    });
+}
+
+#[test]
+fn test_invalid_env_compat_mode_fails_startup() {
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("LSP_COMPAT_MODE", "bogus")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("invalid LSP_COMPAT_MODE value"))
+        .stderr(predicates::str::contains("bogus"));
+}
+
+#[test]
+fn test_invalid_config_compat_mode_fails_startup() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(config_dir.join("config.toml"), "compat_mode = \"bogus\"\n")
+        .unwrap();
+
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        let mut cmd = Command::cargo_bin("lsp").unwrap();
+        cmd.assert()
+            .failure()
+            .stderr(predicates::str::contains("invalid compat_mode setting"))
+            .stderr(predicates::str::contains("bogus"));
+    });
+}
+
+#[test]
+fn test_env_compat_mode_overrides_config_mode() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(config_dir.join("config.toml"), "compat_mode = \"gnu\"\n")
+        .unwrap();
+    fs::create_dir(temp_dir.path().join("zeta_dir")).unwrap();
+    fs::write(temp_dir.path().join("alpha.txt"), "alpha").unwrap();
+
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        let mut cmd = Command::cargo_bin("lsp").unwrap();
+        cmd.env("LSP_COMPAT_MODE", "native")
+            .arg("-D")
+            .arg(temp_dir.path());
+        let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+        let dir_position = stdout.find("zeta_dir").unwrap();
+        let file_position = stdout.find("alpha.txt").unwrap();
+
+        assert!(dir_position < file_position);
+    });
+}
+
+#[test]
+fn test_gnu_compat_mode_help_omits_conflicting_short_flags() {
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("LSP_COMPAT_MODE", "gnu").arg("--help");
+    let output = cmd.output().unwrap();
+
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains(
+        "-p, --indicator-style=slash     Append / indicator to directories"
+    ));
+    assert!(!stdout.contains("--indicator-style[=<WORD>]"));
+    assert!(stdout.contains("--group-directories-first"));
+    assert!(!stdout.contains("-D,"));
+    assert!(!stdout.contains("-I,"));
+    assert!(!stdout.contains("-N,"));
+    assert!(!stdout.contains("-Z,"));
+}
+
+#[test]
+fn test_gnu_compat_mode_accepts_group_directories_first_long_option() {
+    let temp_dir = tempdir().unwrap();
+    fs::create_dir(temp_dir.path().join("zeta_dir")).unwrap();
+    fs::write(temp_dir.path().join("alpha.txt"), "alpha").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("LSP_COMPAT_MODE", "gnu")
+        .arg("--group-directories-first")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    let dir_position = stdout.find("zeta_dir").unwrap();
+    let file_position = stdout.find("alpha.txt").unwrap();
+
+    assert!(dir_position < file_position);
+}
+
+#[test]
+fn test_gnu_compat_mode_rejects_native_sort_dirs_long_option() {
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("LSP_COMPAT_MODE", "gnu")
+        .arg("--sort-dirs")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains(
+            "unexpected argument '--sort-dirs'",
+        ));
+}
+
+#[test]
+fn test_gnu_compat_mode_accepts_no_color_long_option() {
+    let temp_dir = tempdir().unwrap();
+    let file_path = temp_dir.path().join("plain.txt");
+    fs::write(&file_path, "plain").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("LSP_COMPAT_MODE", "gnu")
+        .arg("--no-color")
+        .arg("--no-icons")
+        .arg(&file_path);
+    let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
+
+    assert!(!has_ansi(&stdout));
+    assert!(stdout.contains("plain.txt"));
+}
+
+#[test]
+fn test_gnu_compat_mode_accepts_gitignore_long_option() {
+    let temp_dir = tempdir().unwrap();
+    let ignored_file = temp_dir.path().join("ignored.log");
+    fs::create_dir(temp_dir.path().join(".git")).unwrap();
+    fs::write(temp_dir.path().join(".gitignore"), "*.log\n").unwrap();
+    fs::write(&ignored_file, "ignored").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("LSP_COMPAT_MODE", "gnu")
+        .arg("--gitignore")
+        .arg("--no-icons")
+        .arg(&ignored_file);
+    let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
+
+    assert!(stdout.contains("ignored.log"));
+}
+
+#[test]
+fn test_gnu_compat_mode_accepts_fuzzy_time_long_option() {
+    let temp_dir = tempdir().unwrap();
+    let file_path = temp_dir.path().join("aged.txt");
+    fs::write(&file_path, "aged").unwrap();
+
+    let old_time = FileTime::from_system_time(
+        SystemTime::now()
+            .checked_sub(Duration::from_secs(2 * 60 * 60))
+            .unwrap(),
+    );
+    filetime::set_file_mtime(&file_path, old_time).unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("LSP_COMPAT_MODE", "gnu")
+        .arg("-l")
+        .arg("--fuzzy-time")
+        .arg(&file_path);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains("aged.txt"));
+    assert!(stdout.contains("2 hours ago"));
+}
+
+#[test]
+fn test_gnu_compat_mode_accepts_indicator_style_slash() {
+    let temp_dir = tempdir().unwrap();
+    let child_dir = temp_dir.path().join("child");
+    fs::create_dir(&child_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("LSP_COMPAT_MODE", "gnu")
+        .arg("--indicator-style=slash")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains("child/"));
+}
+
+#[test]
+fn test_gnu_compat_mode_rejects_native_slash_dirs_long_option() {
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("LSP_COMPAT_MODE", "gnu")
+        .arg("--slash-dirs")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains(
+            "unexpected argument '--slash-dirs'",
+        ));
 }

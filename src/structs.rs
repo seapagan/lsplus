@@ -18,6 +18,7 @@ macro_rules! config_to_params {
 }
 
 #[derive(Debug, Deserialize, PartialEq, Default)]
+#[serde(default)]
 pub struct Params {
     pub show_all: bool,
     pub append_slash: bool,

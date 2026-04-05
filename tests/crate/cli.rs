@@ -1,4 +1,7 @@
-use crate::cli::{Flags, format_version_info, version_info};
+use crate::cli::{
+    CompatMode, Flags, format_version_info, render_gnu_help,
+    try_parse_from_mode, version_info,
+};
 use clap::Parser;
 
 #[test]
@@ -99,4 +102,94 @@ fn test_help_flag() {
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(err.to_string().contains("Usage:"));
+}
+
+#[test]
+fn test_parse_from_mode_native_keeps_conflicting_short_flags() {
+    let args = try_parse_from_mode(
+        CompatMode::Native,
+        ["lsplus", "-D", "-I", "-N", "-Z"],
+    )
+    .unwrap();
+
+    assert!(args.dirs_first);
+    assert!(args.gitignore);
+    assert!(args.no_color);
+    assert!(args.fuzzy_time);
+}
+
+#[test]
+fn test_parse_from_mode_gnu_rejects_conflicting_short_flags() {
+    for flag in ["-D", "-I", "-N", "-Z"] {
+        let err = try_parse_from_mode(CompatMode::Gnu, ["lsplus", flag])
+            .unwrap_err();
+
+        assert!(err.to_string().contains("unexpected argument"));
+        assert!(err.to_string().contains(flag));
+    }
+}
+
+#[test]
+fn test_parse_from_mode_gnu_accepts_long_options_for_conflicts() {
+    let args = try_parse_from_mode(
+        CompatMode::Gnu,
+        [
+            "lsplus",
+            "--indicator-style=slash",
+            "--group-directories-first",
+            "--gitignore",
+            "--no-color",
+            "--fuzzy-time",
+        ],
+    )
+    .unwrap();
+
+    assert!(args.slash);
+    assert!(args.dirs_first);
+    assert!(args.gitignore);
+    assert!(args.no_color);
+    assert!(args.fuzzy_time);
+}
+
+#[test]
+fn test_parse_from_mode_gnu_help_omits_conflicting_short_flags() {
+    let err = try_parse_from_mode(CompatMode::Gnu, ["lsplus", "--help"])
+        .unwrap_err();
+    let help = err.to_string();
+
+    assert!(help.contains("--indicator-style"));
+    assert!(help.contains("--group-directories-first"));
+    assert!(!help.contains("--slash-dirs"));
+    assert!(!help.contains("-D,"));
+    assert!(!help.contains("-I,"));
+    assert!(!help.contains("-N,"));
+    assert!(!help.contains("-Z,"));
+}
+
+#[test]
+fn test_render_gnu_help_uses_literal_indicator_style_line() {
+    let help = render_gnu_help();
+
+    assert!(help.contains(
+        "-p, --indicator-style=slash     Append / indicator to directories"
+    ));
+    assert!(!help.contains("--indicator-style[=<WORD>]"));
+}
+
+#[test]
+fn test_parse_from_mode_gnu_rejects_native_slash_dirs_long_option() {
+    let err = try_parse_from_mode(CompatMode::Gnu, ["lsplus", "--slash-dirs"])
+        .unwrap_err();
+
+    assert!(err.to_string().contains("unexpected argument"));
+    assert!(err.to_string().contains("--slash-dirs"));
+}
+
+#[test]
+fn test_parse_from_mode_gnu_rejects_native_sort_dirs_long_option() {
+    let err = try_parse_from_mode(CompatMode::Gnu, ["lsplus", "--sort-dirs"])
+        .unwrap_err();
+
+    assert!(err.to_string().contains("unexpected argument"));
+    assert!(err.to_string().contains("--sort-dirs"));
 }
