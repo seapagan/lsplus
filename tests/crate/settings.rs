@@ -1,6 +1,8 @@
 use crate::Params;
+use crate::cli::CompatMode;
 use crate::settings::{
-    config_path_from_home, load_config, load_config_from_path,
+    StartupConfig, config_path_from_home, load_config, load_config_from_path,
+    load_startup_config_from,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -81,4 +83,96 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
             }
         );
     });
+}
+
+#[test]
+fn test_load_startup_config_defaults_to_native_without_sources() {
+    assert_eq!(
+        load_startup_config_from(None, None).unwrap(),
+        StartupConfig {
+            params: Params::default(),
+            compat_mode: CompatMode::Native,
+        }
+    );
+}
+
+#[test]
+fn test_load_startup_config_reads_compat_mode_from_config() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(
+        config_dir.join("config.toml"),
+        r#"
+            compat_mode = "gnu"
+            no_color = true
+        "#,
+    )
+    .unwrap();
+
+    assert_eq!(
+        load_startup_config_from(Some(config_dir.join("config.toml")), None,)
+            .unwrap(),
+        StartupConfig {
+            params: Params {
+                no_color: true,
+                ..Params::default()
+            },
+            compat_mode: CompatMode::Gnu,
+        }
+    );
+}
+
+#[test]
+fn test_load_startup_config_env_overrides_config_mode() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(
+        config_dir.join("config.toml"),
+        r#"
+            compat_mode = "native"
+            fuzzy_time = true
+        "#,
+    )
+    .unwrap();
+
+    let startup = load_startup_config_from(
+        Some(config_dir.join("config.toml")),
+        Some(String::from("gnu")),
+    )
+    .unwrap();
+
+    assert_eq!(startup.compat_mode, CompatMode::Gnu);
+    assert!(startup.params.fuzzy_time);
+}
+
+#[test]
+fn test_load_startup_config_rejects_invalid_env_mode() {
+    let err = load_startup_config_from(None, Some(String::from("bogus")))
+        .unwrap_err();
+
+    assert!(err.contains("LSP_COMPAT_MODE"));
+    assert!(err.contains("bogus"));
+}
+
+#[test]
+fn test_load_startup_config_rejects_invalid_config_mode() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(
+        config_dir.join("config.toml"),
+        r#"
+            compat_mode = "bogus"
+        "#,
+    )
+    .unwrap();
+
+    let err =
+        load_startup_config_from(Some(config_dir.join("config.toml")), None)
+            .unwrap_err();
+
+    assert!(err.contains("compat_mode"));
+    assert!(err.contains("bogus"));
 }

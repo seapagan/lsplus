@@ -25,6 +25,7 @@ with time! 😁
 - [Usage](#usage)
   - [Fuzzy Time](#fuzzy-time)
   - [Icons](#icons)
+  - [Compatibility Mode](#compatibility-mode)
   - [Configuration File](#configuration-file)
   - [Aliases](#aliases)
 - [Development](#development)
@@ -139,6 +140,44 @@ a Pull Request implementing it! 😁
 
 You can disable the icons by using the `--no-icons` option.
 
+### Compatibility Mode
+
+`lsp` has two CLI modes:
+
+- `native` - the default `lsplus` command-line interface
+- `gnu` - a GNU `ls` compatibility mode intended for aliases and scripts
+
+You can enable GNU compatibility mode in either of these ways:
+
+```toml
+compat_mode = "gnu"
+```
+
+or:
+
+```sh
+LSP_COMPAT_MODE=gnu lsp
+```
+
+The `LSP_COMPAT_MODE` environment variable takes precedence over the config
+file.
+
+At the moment, compatibility mode only changes the CLI surface and help output.
+It does not yet implement the missing GNU meanings for the conflicting short
+flags `-D`, `-I`, `-N`, and `-Z`; those flags are reserved in `gnu` mode and
+will error until their GNU behavior is implemented.
+
+The current `lsplus` features behind those four native short flags are still
+available in `gnu` mode through their long forms only:
+
+- `--group-directories-first` (replaces the original `--sort-dirs`)
+- `--gitignore`
+- `--no-color`
+- `--fuzzy-time`
+
+In `gnu` mode, `-p` uses the GNU-style long form `--indicator-style=slash`
+instead of the native `--slash-dirs`.
+
 ### Configuration File
 
 You can set options using the configuration file so they will apply to every run
@@ -153,6 +192,10 @@ The `lsp` command can be aliased to `ls` by adding the following line to your
 ```sh
 alias ls='lsp'
 ```
+
+If you want that alias to behave more like GNU `ls`, enable `gnu`
+compatibility mode in your config file or set `LSP_COMPAT_MODE=gnu` in your
+shell environment.
 
 You will need to restart your shell or source your configuration file for the
 alias to take effect.

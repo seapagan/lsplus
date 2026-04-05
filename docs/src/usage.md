@@ -39,6 +39,33 @@ When `-I` is enabled, `lsp` checks the same ignore sources Git normally uses:
 merged `.gitignore` files in the worktree, `.git/info/exclude`, and the
 configured global Git excludes file.
 
+## Compatibility Mode
+
+`lsp` has two CLI modes:
+
+- `native` - the default `lsplus` command-line interface
+- `gnu` - a GNU `ls` compatibility mode intended for aliases and scripts
+
+You can enable GNU compatibility mode by setting `compat_mode = "gnu"` in the
+config file or by setting `LSP_COMPAT_MODE=gnu` in the environment. The
+environment variable takes precedence over the config file.
+
+At the moment, `gnu` mode changes the CLI surface and help output only. It does
+not yet implement the missing GNU meanings for the conflicting short flags
+`-D`, `-I`, `-N`, and `-Z`; those flags are reserved in `gnu` mode and will
+error until their GNU behavior is implemented.
+
+The current `lsplus` features behind those four native short flags are still
+available in `gnu` mode through their long forms only:
+
+- `--group-directories-first` (replaces the original `--sort-dirs`)
+- `--gitignore`
+- `--no-color`
+- `--fuzzy-time`
+
+In `gnu` mode, `-p` uses the GNU-style long form `--indicator-style=slash`
+instead of the native `--slash-dirs`.
+
 ## Fuzzy Time
 
 The `-Z` option will show a fuzzy time for file modification times. This will
@@ -64,6 +91,10 @@ The `lsp` command can be aliased to `ls` by adding the following line to your
 alias ls='lsp'
 ```
 
+If you want that alias to behave more like GNU `ls`, enable `gnu`
+compatibility mode in your config file or set `LSP_COMPAT_MODE=gnu` in your
+shell environment.
+
 You will need to restart your shell or source your configuration file for the
 alias to take effect.
 
@@ -80,6 +111,7 @@ You can also use the configuration file to set the default options you want.
 
 ![lsp output](./images/screenshot.png)
 
-If you add the '-D' option to the command, directories will be sorted first:
+If you add the `-D` option to the command (native mode only; use
+`--group-directories-first` in gnu mode), directories will be sorted first:
 
 ![lsp output](./images/screenshot2.png)

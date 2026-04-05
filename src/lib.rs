@@ -1,3 +1,10 @@
+//! Library entry points for `lsplus`.
+//!
+//! The crate exposes the runtime building blocks behind the `lsp` binary,
+//! including CLI parsing, startup configuration, and file-listing helpers.
+//! `lsplus` supports both its native CLI surface and a GNU compatibility mode
+//! for users who want `ls`-style option parsing.
+
 pub mod app;
 pub mod cli;
 pub mod settings;

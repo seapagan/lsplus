@@ -10,10 +10,26 @@ location:
 The configuration file is optional and if it is not found, `lsplus` will use the
 default settings.
 
+`lsplus` also supports an `LSP_COMPAT_MODE` environment variable. When set, it
+overrides the `compat_mode` value from the config file.
+
 ## Available Options
 
 The following options are available in the configuration file and correspond to
 the relevant command line options:
+
+### compat_mode
+
+- Permitted values: `"native"` or `"gnu"`
+- Default value: `"native"`
+
+This option selects which command-line interface `lsp` uses at startup.
+`native` keeps the standard `lsplus` CLI, while `gnu` enables the GNU `ls`
+compatibility surface intended for aliases and scripts.
+
+At the moment, `gnu` mode changes the CLI surface and help output only. The
+conflicting GNU short flags `-D`, `-I`, `-N`, and `-Z` are reserved in that
+mode and will error until their GNU behavior is implemented.
 
 ### show_all
 
@@ -38,14 +54,18 @@ will display all files and directories if set to `true`, except for `.` and
 - Default value: `false`
 
 This option corresponds to the `-p` or `--slash-dirs` command line option and
-will append a slash to directories if set to `true`.
+will append a slash to directories if set to `true`. In `gnu` compatibility
+mode, the equivalent long option is `--indicator-style=slash`.
 
 ### dirs_first
 
 - Permitted values: `true` or `false`
 - Default value: `false`
 
-This option corresponds to the `--sort-dirs` command line option and will
+This option corresponds to the `--sort-dirs` command line option and will sort
+directories before files when set to `true`. In `gnu` compatibility mode, the
+equivalent long option is `--group-directories-first` (replacing the original
+`--sort-dirs`).
 
 ### long_format
 
@@ -103,6 +123,7 @@ The following is an example configuration file that sets several options. Any
 options that are not set will use the default values:
 
 ```toml
+# compat_mode = "native"  # or "gnu" for GNU ls compatibility
 show_all = true
 append_slash = true
 dirs_first = true

@@ -8,9 +8,21 @@ use crate::settings;
 use crate::utils;
 use crate::utils::file::collect_file_info;
 
+/// Run `lsplus` using parsed CLI flags and config loaded from disk.
 pub fn run_with_flags(args: cli::Flags) -> io::Result<()> {
     let config = settings::load_config();
-    let params = Params::merge(&args, &config);
+    run_with_flags_and_config(args, &config)
+}
+
+/// Run `lsplus` using parsed CLI flags and an explicit config value.
+///
+/// This is primarily useful in tests and library-style entry points that want
+/// to inject config without relying on filesystem state.
+pub fn run_with_flags_and_config(
+    args: cli::Flags,
+    config: &Params,
+) -> io::Result<()> {
+    let params = Params::merge(&args, config);
     utils::color::configure_color_output(&params);
     let patterns = patterns_from_args(args.paths);
 
