@@ -6,6 +6,7 @@ use serde::Deserialize;
 
 use crate::Params;
 use crate::cli::CompatMode;
+use crate::structs::RawParams;
 
 /// Environment variable that forces the startup compatibility mode.
 ///
@@ -24,7 +25,7 @@ pub struct StartupConfig {
 #[derive(Debug, Deserialize, PartialEq, Default)]
 struct ParsedConfig {
     #[serde(default, flatten)]
-    params: Params,
+    params: RawParams,
     compat_mode: Option<String>,
 }
 
@@ -47,7 +48,7 @@ pub fn load_config() -> Params {
 
 pub(crate) fn load_config_from_path(config_path: Option<PathBuf>) -> Params {
     load_parsed_config_from_path(config_path)
-        .map(|config| config.params)
+        .map(|config| config.params.into())
         .unwrap_or_default()
 }
 
@@ -73,7 +74,7 @@ pub(crate) fn load_startup_config_from(
 
     Ok(StartupConfig {
         params: parsed_config
-            .map(|config| config.params)
+            .map(|config| config.params.into())
             .unwrap_or_default(),
         compat_mode,
     })

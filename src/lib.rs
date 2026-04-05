@@ -11,7 +11,7 @@ pub mod settings;
 pub mod structs;
 pub mod utils;
 
-pub use structs::{FileInfo, NameStyle, Params};
+pub use structs::{FileInfo, IndicatorStyle, NameStyle, Params};
 
 #[cfg(test)]
 #[path = "../tests/crate/app.rs"]
