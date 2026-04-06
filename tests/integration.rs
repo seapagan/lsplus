@@ -878,8 +878,11 @@ fn test_gnu_compat_mode_accepts_indicator_style_slash() {
     let (stdout, _stderr) = run_and_capture(&mut cmd);
 
     assert!(stdout.contains("child/"));
-    assert!(stdout.contains("link"));
-    assert!(!stdout.contains("link@"));
+    #[cfg(unix)]
+    {
+        assert!(stdout.contains("link"));
+        assert!(!stdout.contains("link@"));
+    }
 }
 
 #[test]
@@ -901,8 +904,11 @@ fn test_gnu_compat_mode_accepts_short_p() {
     let (stdout, _stderr) = run_and_capture(&mut cmd);
 
     assert!(stdout.contains("child/"));
-    assert!(stdout.contains("link"));
-    assert!(!stdout.contains("link@"));
+    #[cfg(unix)]
+    {
+        assert!(stdout.contains("link"));
+        assert!(!stdout.contains("link@"));
+    }
 }
 
 #[cfg(unix)]

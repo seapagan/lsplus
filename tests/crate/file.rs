@@ -19,6 +19,8 @@ use tempfile::tempdir;
 
 #[cfg(unix)]
 use std::os::unix::ffi::OsStringExt;
+#[cfg(unix)]
+use std::os::unix::net::UnixListener;
 
 const BLUE_DOT: &str = "\u{1b}[34m.\u{1b}[0m";
 const BLUE_DOTDOT: &str = "\u{1b}[34m..\u{1b}[0m";
@@ -398,6 +400,40 @@ fn test_create_file_info_marks_fifo_as_unknown_type() {
     let info = create_file_info(&fifo_path, &Params::default()).unwrap();
 
     assert_eq!(info.file_type, "?");
+}
+
+#[cfg(unix)]
+#[test]
+fn test_create_file_info_classify_prefers_fifo_and_socket_indicators() {
+    let temp_dir = tempdir().unwrap();
+    let fifo_path = temp_dir.path().join("pipe");
+    let socket_path = temp_dir.path().join("socket");
+    let status = Command::new("mkfifo").arg(&fifo_path).status().unwrap();
+    assert!(status.success());
+
+    let _listener = UnixListener::bind(&socket_path).unwrap();
+
+    fs::set_permissions(&fifo_path, fs::Permissions::from_mode(0o755))
+        .unwrap();
+    fs::set_permissions(&socket_path, fs::Permissions::from_mode(0o755))
+        .unwrap();
+
+    let fifo_metadata = fs::symlink_metadata(&fifo_path).unwrap();
+    let socket_metadata = fs::symlink_metadata(&socket_path).unwrap();
+    assert_ne!(fifo_metadata.permissions().mode() & 0o111, 0);
+    assert_ne!(socket_metadata.permissions().mode() & 0o111, 0);
+
+    let params = Params {
+        indicator_style: IndicatorStyle::Classify,
+        ..Params::default()
+    };
+    let fifo_info = create_file_info(&fifo_path, &params).unwrap();
+    let socket_info = create_file_info(&socket_path, &params).unwrap();
+
+    assert!(strip_str(&fifo_info.display_name).ends_with('|'));
+    assert!(!strip_str(&fifo_info.display_name).ends_with('*'));
+    assert!(strip_str(&socket_info.display_name).ends_with('='));
+    assert!(!strip_str(&socket_info.display_name).ends_with('*'));
 }
 
 #[cfg(unix)]

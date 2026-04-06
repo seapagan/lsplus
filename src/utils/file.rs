@@ -433,12 +433,12 @@ fn file_type_indicator_suffix(
         "/"
     } else if metadata.is_symlink() {
         "@"
-    } else if classify_executables && is_executable(metadata) {
-        "*"
     } else if metadata.file_type().is_fifo() {
         "|"
     } else if metadata.file_type().is_socket() {
         "="
+    } else if classify_executables && is_executable(metadata) {
+        "*"
     } else {
         ""
     }
