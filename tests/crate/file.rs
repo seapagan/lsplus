@@ -736,4 +736,5 @@ fn test_format_symlink_display_name_unreadable_short_format_omits_marker_without
 
     assert!(short.contains("link"));
     assert!(!short.contains('*'));
+    assert!(!short.contains('@'));
 }

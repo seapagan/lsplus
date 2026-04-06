@@ -1030,6 +1030,7 @@ fn test_gnu_compat_mode_omits_symlink_at_indicator_in_long_mode() {
 
     assert!(stdout.contains("link -> "));
     assert!(!stdout.contains("link@ -> "));
+    assert!(stdout.contains("target.txt"));
 }
 
 #[cfg(unix)]
