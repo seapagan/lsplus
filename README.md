@@ -98,7 +98,7 @@ be used which are similar to the `ls` command.
 Curently, only a sub-set of the standard `ls` options are supported. These are:
 
 - `-a` / `--all` - Show hidden files
-- `-A` / `--almost-all` - Show hidden files, but don't show `.` and `..
+- `-A` / `--almost-all` - Show hidden files, but don't show `.` and `..`
 - `-p` / `--slash-dirs` - Append a '/' to directories
 - `--file-type` - Append type indicators except `*` for executables
 - `-F` / `--classify` - Append type indicators, including `*` for executables
