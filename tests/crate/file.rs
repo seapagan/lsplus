@@ -553,31 +553,7 @@ fn test_format_symlink_display_name_short_format_uses_at_for_file_type() {
 
 #[test]
 #[cfg(unix)]
-fn test_create_file_info_omits_symlink_at_in_native_long_mode() {
-    let temp_dir = tempdir().unwrap();
-    let target = temp_dir.path().join("target.txt");
-    let link = temp_dir.path().join("link");
-
-    fs::write(&target, "target").unwrap();
-    std::os::unix::fs::symlink(&target, &link).unwrap();
-
-    let info = create_file_info(
-        &link,
-        &Params {
-            long_format: true,
-            indicator_style: IndicatorStyle::FileType,
-            ..Params::default()
-        },
-    )
-    .unwrap();
-
-    assert!(strip_str(&info.display_name).contains("link -> "));
-    assert!(!strip_str(&info.display_name).contains("link@ -> "));
-}
-
-#[test]
-#[cfg(unix)]
-fn test_create_file_info_keeps_symlink_at_in_gnu_long_mode() {
+fn test_create_file_info_omits_symlink_at_in_long_mode() {
     let temp_dir = tempdir().unwrap();
     let target = temp_dir.path().join("target.txt");
     let link = temp_dir.path().join("link");
