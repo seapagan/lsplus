@@ -4,9 +4,12 @@
 //! compatibility mode. Both modes map into the same internal [`Flags`] type so
 //! the rest of the application can work with one normalized representation.
 
+use clap::ArgGroup;
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::env;
 use std::ffi::OsString;
+
+use crate::IndicatorStyle;
 
 const ARG_SHOW_ALL: &str = "show_all";
 const ARG_ALMOST_ALL: &str = "almost_all";
@@ -15,6 +18,9 @@ const ARG_HUMAN_READABLE: &str = "human_readable";
 const ARG_PATHS: &str = "paths";
 const ARG_SLASH: &str = "slash";
 const ARG_INDICATOR_STYLE: &str = "indicator_style";
+const ARG_FILE_TYPE: &str = "file_type";
+const ARG_CLASSIFY: &str = "classify";
+const ARG_NO_INDICATORS: &str = "no_indicators";
 const ARG_DIRS_FIRST: &str = "dirs_first";
 const ARG_NO_ICONS: &str = "no_icons";
 const ARG_NO_COLOR: &str = "no_color";
@@ -22,10 +28,12 @@ const ARG_GITIGNORE: &str = "gitignore";
 const ARG_VERSION: &str = "version";
 const ARG_FUZZY_TIME: &str = "fuzzy_time";
 const ARG_HELP: &str = "help";
+const ARG_INDICATOR_GROUP: &str = "indicator_style_group";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CompatMode {
     /// Parse arguments using the native `lsplus` option set.
+    #[default]
     Native,
     /// Parse arguments using the GNU-compatible option set.
     Gnu,
@@ -57,8 +65,8 @@ pub struct Flags {
     pub human_readable: bool,
     /// Raw path arguments collected from the CLI.
     pub paths: Vec<String>,
-    /// Append a directory indicator in the active CLI mode.
-    pub slash: bool,
+    /// Override the configured indicator style for this invocation.
+    pub indicator_style: Option<IndicatorStyle>,
     /// Group directories before files.
     pub dirs_first: bool,
     /// Disable file and directory icons.
@@ -134,18 +142,36 @@ fn build_command(mode: CompatMode) -> Command {
         .arg(human_readable_arg())
         .arg(paths_arg())
         .arg(slash_arg(mode))
+        .arg(file_type_arg(mode))
+        .arg(classify_arg(mode))
         .arg(dirs_first_arg(mode))
         .arg(no_icons_arg())
         .arg(no_color_arg(mode))
         .arg(gitignore_arg(mode))
         .arg(version_arg())
         .arg(fuzzy_time_arg(mode))
-        .arg(help_arg());
+        .arg(help_arg())
+        .group(indicator_group(mode));
 
     match mode {
-        CompatMode::Native => command,
+        CompatMode::Native => command.arg(no_indicators_arg()),
         CompatMode::Gnu => command.arg(indicator_style_arg()),
     }
+}
+
+fn indicator_group(mode: CompatMode) -> ArgGroup {
+    let args = match mode {
+        CompatMode::Native => {
+            vec![ARG_SLASH, ARG_FILE_TYPE, ARG_CLASSIFY, ARG_NO_INDICATORS]
+        }
+        CompatMode::Gnu => {
+            vec![ARG_SLASH, ARG_INDICATOR_STYLE, ARG_FILE_TYPE, ARG_CLASSIFY]
+        }
+    };
+
+    ArgGroup::new(ARG_INDICATOR_GROUP)
+        .multiple(false)
+        .args(args)
 }
 
 fn help_arg() -> Arg {
@@ -210,13 +236,39 @@ fn slash_arg(mode: CompatMode) -> Arg {
     }
 }
 
+fn file_type_arg(_mode: CompatMode) -> Arg {
+    Arg::new(ARG_FILE_TYPE)
+        .long("file-type")
+        .action(ArgAction::SetTrue)
+        .help("Append type indicators except '*' for executables")
+}
+
+fn classify_arg(mode: CompatMode) -> Arg {
+    let arg = Arg::new(ARG_CLASSIFY)
+        .short('F')
+        .action(ArgAction::SetTrue)
+        .help("Append type indicators, including '*' for executables");
+
+    match mode {
+        CompatMode::Native => arg.long("classify"),
+        CompatMode::Gnu => arg,
+    }
+}
+
+fn no_indicators_arg() -> Arg {
+    Arg::new(ARG_NO_INDICATORS)
+        .long("no-indicators")
+        .action(ArgAction::SetTrue)
+        .help("Do not append file type indicators")
+}
+
 fn indicator_style_arg() -> Arg {
     Arg::new(ARG_INDICATOR_STYLE)
         .long("indicator-style")
         .action(ArgAction::Set)
         .require_equals(true)
         .value_name("WORD")
-        .value_parser(["slash"])
+        .value_parser(["none", "slash", "file-type", "classify"])
         .help("Append indicator with style WORD to entry names")
 }
 
@@ -302,21 +354,49 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
             .get_many::<String>(ARG_PATHS)
             .map(|values| values.cloned().collect())
             .unwrap_or_else(|| vec![String::from(".")]),
-        slash: match mode {
-            CompatMode::Native => matches.get_flag(ARG_SLASH),
-            CompatMode::Gnu => {
-                matches.get_flag(ARG_SLASH)
-                    || matches
-                        .get_one::<String>(ARG_INDICATOR_STYLE)
-                        .is_some_and(|value| value == "slash")
-            }
-        },
+        indicator_style: indicator_style_from_matches(mode, matches),
         dirs_first: matches.get_flag(ARG_DIRS_FIRST),
         no_icons: matches.get_flag(ARG_NO_ICONS),
         no_color: matches.get_flag(ARG_NO_COLOR),
         gitignore: matches.get_flag(ARG_GITIGNORE),
         version: matches.get_flag(ARG_VERSION),
         fuzzy_time: matches.get_flag(ARG_FUZZY_TIME),
+    }
+}
+
+fn indicator_style_from_matches(
+    mode: CompatMode,
+    matches: &ArgMatches,
+) -> Option<IndicatorStyle> {
+    if matches.get_flag(ARG_SLASH) {
+        return Some(IndicatorStyle::Slash);
+    }
+
+    if matches.get_flag(ARG_FILE_TYPE) {
+        return Some(IndicatorStyle::FileType);
+    }
+
+    if matches.get_flag(ARG_CLASSIFY) {
+        return Some(IndicatorStyle::Classify);
+    }
+
+    match mode {
+        CompatMode::Native => {
+            if matches.get_flag(ARG_NO_INDICATORS) {
+                Some(IndicatorStyle::None)
+            } else {
+                None
+            }
+        }
+        CompatMode::Gnu => matches
+            .get_one::<String>(ARG_INDICATOR_STYLE)
+            .and_then(|value| match value.as_str() {
+                "none" => Some(IndicatorStyle::None),
+                "slash" => Some(IndicatorStyle::Slash),
+                "file-type" => Some(IndicatorStyle::FileType),
+                "classify" => Some(IndicatorStyle::Classify),
+                _ => None,
+            }),
     }
 }
 

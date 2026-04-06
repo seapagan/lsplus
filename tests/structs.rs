@@ -1,6 +1,6 @@
 use config::Config;
-use lsplus::Params;
 use lsplus::cli::Flags;
+use lsplus::{IndicatorStyle, Params};
 use std::fs;
 use tempfile::tempdir;
 
@@ -8,7 +8,7 @@ use tempfile::tempdir;
 fn test_default_params() {
     let params = Params::default();
     assert!(!params.show_all);
-    assert!(!params.append_slash);
+    assert_eq!(params.indicator_style, IndicatorStyle::None);
     assert!(!params.dirs_first);
     assert!(!params.almost_all);
     assert!(!params.long_format);
@@ -28,7 +28,7 @@ fn test_config_conversion() {
         &config_path,
         r#"
             show_all = true
-            append_slash = true
+            indicator_style = "file-type"
             dirs_first = true
             almost_all = true
             long_format = true
@@ -52,7 +52,7 @@ fn test_config_conversion() {
         params,
         Params {
             show_all: true,
-            append_slash: true,
+            indicator_style: IndicatorStyle::FileType,
             dirs_first: true,
             almost_all: true,
             long_format: true,
@@ -66,10 +66,48 @@ fn test_config_conversion() {
 }
 
 #[test]
+fn test_config_conversion_maps_append_slash_alias_to_slash_style() {
+    let temp_dir = tempdir().unwrap();
+    let config_path = temp_dir.path().join("config.toml");
+
+    fs::write(&config_path, "append_slash = true\n").unwrap();
+
+    let config = Config::builder()
+        .add_source(config::File::from(config_path))
+        .build()
+        .unwrap();
+
+    let params: Params = config.into();
+
+    assert_eq!(params.indicator_style, IndicatorStyle::Slash);
+}
+
+#[test]
+fn test_config_conversion_prefers_indicator_style_over_append_slash_alias() {
+    let temp_dir = tempdir().unwrap();
+    let config_path = temp_dir.path().join("config.toml");
+
+    fs::write(
+        &config_path,
+        "append_slash = true\nindicator_style = \"classify\"\n",
+    )
+    .unwrap();
+
+    let config = Config::builder()
+        .add_source(config::File::from(config_path))
+        .build()
+        .unwrap();
+
+    let params: Params = config.into();
+
+    assert_eq!(params.indicator_style, IndicatorStyle::Classify);
+}
+
+#[test]
 fn test_params_merge_prefers_true_from_either_source() {
     let config = Params {
         show_all: true,
-        append_slash: true,
+        indicator_style: IndicatorStyle::FileType,
         dirs_first: false,
         almost_all: false,
         long_format: true,
@@ -85,7 +123,7 @@ fn test_params_merge_prefers_true_from_either_source() {
         paths: vec![],
         show_all: false,
         almost_all: true,
-        slash: false,
+        indicator_style: Some(IndicatorStyle::Classify),
         dirs_first: true,
         long: false,
         human_readable: false,
@@ -98,7 +136,7 @@ fn test_params_merge_prefers_true_from_either_source() {
     let params = Params::merge(&flags, &config);
 
     assert!(params.show_all);
-    assert!(params.append_slash);
+    assert_eq!(params.indicator_style, IndicatorStyle::Classify);
     assert!(params.dirs_first);
     assert!(params.almost_all);
     assert!(params.long_format);
@@ -116,7 +154,7 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
         paths: vec![],
         show_all: false,
         almost_all: false,
-        slash: false,
+        indicator_style: None,
         dirs_first: false,
         long: false,
         human_readable: false,

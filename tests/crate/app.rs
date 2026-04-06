@@ -78,7 +78,7 @@ fn test_run_with_flags_lists_matching_entries() {
             long: false,
             human_readable: false,
             paths: vec![temp_dir.path().display().to_string()],
-            slash: false,
+            indicator_style: None,
             dirs_first: false,
             no_icons: true,
             no_color: false,

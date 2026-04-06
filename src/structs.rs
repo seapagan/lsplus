@@ -7,23 +7,22 @@ use std::time::SystemTime;
 
 use crate::cli;
 
-macro_rules! config_to_params {
-    ($settings:expr_2021, $params:ident, $( $field:ident ),* ) => {
-        $(
-            if let Ok(value) = $settings.get_bool(stringify!($field)) {
-                $params.$field = value;
-            }
-        )*
-    };
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum IndicatorStyle {
+    #[default]
+    None,
+    Slash,
+    FileType,
+    Classify,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Default)]
-#[serde(default)]
+#[derive(Debug, PartialEq, Default)]
 pub struct Params {
     /// Show entries whose names start with `.`.
     pub show_all: bool,
-    /// Append a trailing `/` to directory names.
-    pub append_slash: bool,
+    /// Select which file indicator style to render.
+    pub indicator_style: IndicatorStyle,
     /// Group directories before files.
     pub dirs_first: bool,
     /// Hide `.` and `..` while still showing other dotfiles.
@@ -42,6 +41,22 @@ pub struct Params {
     pub fuzzy_time: bool,
 }
 
+#[derive(Debug, Deserialize, PartialEq, Default)]
+#[serde(default)]
+pub(crate) struct RawParams {
+    show_all: bool,
+    dirs_first: bool,
+    almost_all: bool,
+    long_format: bool,
+    human_readable: bool,
+    no_icons: bool,
+    no_color: bool,
+    gitignore: bool,
+    fuzzy_time: bool,
+    indicator_style: Option<IndicatorStyle>,
+    append_slash: Option<bool>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum NameStyle {
     #[default]
@@ -53,24 +68,33 @@ pub enum NameStyle {
 
 impl From<Config> for Params {
     fn from(settings: Config) -> Self {
-        let mut params = Params::default();
+        settings
+            .try_deserialize::<RawParams>()
+            .map(Into::into)
+            .unwrap_or_default()
+    }
+}
 
-        config_to_params!(
-            settings,
-            params,
-            show_all,
-            append_slash,
-            dirs_first,
-            almost_all,
-            long_format,
-            human_readable,
-            no_icons,
-            no_color,
-            gitignore,
-            fuzzy_time
-        );
-
-        params
+impl From<RawParams> for Params {
+    fn from(raw: RawParams) -> Self {
+        Self {
+            show_all: raw.show_all,
+            indicator_style: raw.indicator_style.unwrap_or_else(|| {
+                if raw.append_slash.unwrap_or(false) {
+                    IndicatorStyle::Slash
+                } else {
+                    IndicatorStyle::None
+                }
+            }),
+            dirs_first: raw.dirs_first,
+            almost_all: raw.almost_all,
+            long_format: raw.long_format,
+            human_readable: raw.human_readable,
+            no_icons: raw.no_icons,
+            no_color: raw.no_color,
+            gitignore: raw.gitignore,
+            fuzzy_time: raw.fuzzy_time,
+        }
     }
 }
 
@@ -78,11 +102,15 @@ impl Params {
     /// Merge parsed CLI flags with config-file defaults.
     ///
     /// Boolean options are treated as opt-in toggles, so a value is enabled if
-    /// either the command line or the config file enables it.
+    /// either the command line or the config file enables it. Indicator style
+    /// is selected by explicit CLI override when present, otherwise the config
+    /// value is used.
     pub fn merge(flags: &cli::Flags, config: &Self) -> Self {
         Self {
             show_all: flags.show_all || config.show_all,
-            append_slash: flags.slash || config.append_slash,
+            indicator_style: flags
+                .indicator_style
+                .unwrap_or(config.indicator_style),
             dirs_first: flags.dirs_first || config.dirs_first,
             almost_all: flags.almost_all || config.almost_all,
             long_format: flags.long || config.long_format,

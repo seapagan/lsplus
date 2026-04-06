@@ -6,6 +6,9 @@ use std::time::{Duration, SystemTime};
 use strip_ansi_escapes::strip_str;
 use tempfile::tempdir;
 
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+
 fn run_and_capture(cmd: &mut Command) -> (String, String) {
     let output = cmd.output().unwrap();
     assert!(
@@ -37,13 +40,35 @@ fn has_ansi(text: &str) -> bool {
     text.contains("\u{1b}[")
 }
 
+#[cfg(unix)]
+fn create_indicator_fixture() -> tempfile::TempDir {
+    let temp_dir = tempdir().unwrap();
+    let child_dir = temp_dir.path().join("child");
+    let exec_path = temp_dir.path().join("run.sh");
+    let target_path = temp_dir.path().join("target.txt");
+    let link_path = temp_dir.path().join("link");
+
+    fs::create_dir(&child_dir).unwrap();
+    fs::write(&exec_path, "#!/bin/sh\nexit 0\n").unwrap();
+    fs::set_permissions(&exec_path, fs::Permissions::from_mode(0o755))
+        .unwrap();
+    fs::write(&target_path, "target").unwrap();
+    std::os::unix::fs::symlink(&target_path, &link_path).unwrap();
+
+    temp_dir
+}
+
 #[test]
 fn test_version_flag() {
-    let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.arg("--version")
-        .assert()
-        .success()
-        .stdout(predicates::str::contains("lsplus"));
+    let temp_dir = tempdir().unwrap();
+
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        let mut cmd = Command::cargo_bin("lsp").unwrap();
+        cmd.arg("--version")
+            .assert()
+            .success()
+            .stdout(predicates::str::contains("lsplus"));
+    });
 }
 
 #[test]
@@ -123,17 +148,20 @@ fn test_no_icons_omits_file_icons() {
     let rust_file = temp_dir.path().join("example.rs");
     fs::write(&rust_file, "fn main() {}").unwrap();
 
-    let mut with_icons = Command::cargo_bin("lsp").unwrap();
-    with_icons.arg(&rust_file);
-    let (stdout_with_icons, _stderr) = run_and_capture(&mut with_icons);
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        let mut with_icons = Command::cargo_bin("lsp").unwrap();
+        with_icons.arg(&rust_file);
+        let (stdout_with_icons, _stderr) = run_and_capture(&mut with_icons);
 
-    let mut without_icons = Command::cargo_bin("lsp").unwrap();
-    without_icons.arg("--no-icons").arg(&rust_file);
-    let (stdout_without_icons, _stderr) = run_and_capture(&mut without_icons);
+        let mut without_icons = Command::cargo_bin("lsp").unwrap();
+        without_icons.arg("--no-icons").arg(&rust_file);
+        let (stdout_without_icons, _stderr) =
+            run_and_capture(&mut without_icons);
 
-    assert!(stdout_with_icons.contains(""));
-    assert!(!stdout_without_icons.contains(""));
-    assert!(stdout_without_icons.contains("example.rs"));
+        assert!(stdout_with_icons.contains(""));
+        assert!(!stdout_without_icons.contains(""));
+        assert!(stdout_without_icons.contains("example.rs"));
+    });
 }
 
 #[test]
@@ -835,7 +863,12 @@ fn test_gnu_compat_mode_accepts_fuzzy_time_long_option() {
 fn test_gnu_compat_mode_accepts_indicator_style_slash() {
     let temp_dir = tempdir().unwrap();
     let child_dir = temp_dir.path().join("child");
+    let target_path = temp_dir.path().join("target.txt");
+    let link_path = temp_dir.path().join("link");
     fs::create_dir(&child_dir).unwrap();
+    fs::write(&target_path, "target").unwrap();
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(&target_path, &link_path).unwrap();
 
     let mut cmd = Command::cargo_bin("lsp").unwrap();
     cmd.env("LSP_COMPAT_MODE", "gnu")
@@ -845,13 +878,23 @@ fn test_gnu_compat_mode_accepts_indicator_style_slash() {
     let (stdout, _stderr) = run_and_capture(&mut cmd);
 
     assert!(stdout.contains("child/"));
+    #[cfg(unix)]
+    {
+        assert!(stdout.contains("link"));
+        assert!(!stdout.contains("link@"));
+    }
 }
 
 #[test]
 fn test_gnu_compat_mode_accepts_short_p() {
     let temp_dir = tempdir().unwrap();
     let child_dir = temp_dir.path().join("child");
+    let target_path = temp_dir.path().join("target.txt");
+    let link_path = temp_dir.path().join("link");
     fs::create_dir(&child_dir).unwrap();
+    fs::write(&target_path, "target").unwrap();
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(&target_path, &link_path).unwrap();
 
     let mut cmd = Command::cargo_bin("lsp").unwrap();
     cmd.env("LSP_COMPAT_MODE", "gnu")
@@ -861,6 +904,153 @@ fn test_gnu_compat_mode_accepts_short_p() {
     let (stdout, _stderr) = run_and_capture(&mut cmd);
 
     assert!(stdout.contains("child/"));
+    #[cfg(unix)]
+    {
+        assert!(stdout.contains("link"));
+        assert!(!stdout.contains("link@"));
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn test_native_file_type_and_classify_indicator_output() {
+    let temp_dir = create_indicator_fixture();
+
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        let mut file_type = Command::cargo_bin("lsp").unwrap();
+        file_type
+            .arg("--file-type")
+            .arg("--no-icons")
+            .arg(temp_dir.path());
+        let (file_type_stdout, _stderr) = run_and_capture(&mut file_type);
+
+        assert!(file_type_stdout.contains("child/"));
+        assert!(file_type_stdout.contains("link@"));
+        assert!(file_type_stdout.contains("run.sh"));
+        assert!(!file_type_stdout.contains("run.sh*"));
+
+        let mut classify = Command::cargo_bin("lsp").unwrap();
+        classify.arg("-F").arg("--no-icons").arg(temp_dir.path());
+        let (classify_stdout, _stderr) = run_and_capture(&mut classify);
+
+        assert!(classify_stdout.contains("child/"));
+        assert!(classify_stdout.contains("link@"));
+        assert!(classify_stdout.contains("run.sh*"));
+    });
+}
+
+#[cfg(unix)]
+#[test]
+fn test_native_long_mode_omits_symlink_at_indicator() {
+    let temp_dir = create_indicator_fixture();
+
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        let mut cmd = Command::cargo_bin("lsp").unwrap();
+        cmd.arg("-l")
+            .arg("--file-type")
+            .arg("--no-icons")
+            .arg(temp_dir.path());
+        let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+        assert!(stdout.contains("link -> "));
+        assert!(!stdout.contains("link@ -> "));
+    });
+}
+
+#[cfg(unix)]
+#[test]
+fn test_native_no_indicators_overrides_config_indicator_style() {
+    let temp_dir = create_indicator_fixture();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(
+        config_dir.join("config.toml"),
+        "indicator_style = \"classify\"\n",
+    )
+    .unwrap();
+
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        let mut cmd = Command::cargo_bin("lsp").unwrap();
+        cmd.arg("--no-indicators")
+            .arg("--no-icons")
+            .arg(temp_dir.path());
+        let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+        assert!(stdout.contains("child"));
+        assert!(stdout.contains("link"));
+        assert!(stdout.contains("run.sh"));
+        assert!(!stdout.contains("child/"));
+        assert!(!stdout.contains("link@"));
+        assert!(!stdout.contains("run.sh*"));
+    });
+}
+
+#[cfg(unix)]
+#[test]
+fn test_gnu_compat_mode_accepts_file_type_and_classify_output() {
+    let temp_dir = create_indicator_fixture();
+
+    let mut file_type = Command::cargo_bin("lsp").unwrap();
+    file_type
+        .env("LSP_COMPAT_MODE", "gnu")
+        .arg("--file-type")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (file_type_stdout, _stderr) = run_and_capture(&mut file_type);
+
+    assert!(file_type_stdout.contains("child/"));
+    assert!(file_type_stdout.contains("link@"));
+    assert!(!file_type_stdout.contains("run.sh*"));
+
+    let mut classify = Command::cargo_bin("lsp").unwrap();
+    classify
+        .env("LSP_COMPAT_MODE", "gnu")
+        .arg("-F")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (classify_stdout, _stderr) = run_and_capture(&mut classify);
+
+    assert!(classify_stdout.contains("child/"));
+    assert!(classify_stdout.contains("link@"));
+    assert!(classify_stdout.contains("run.sh*"));
+}
+
+#[cfg(unix)]
+#[test]
+fn test_gnu_compat_mode_omits_symlink_at_indicator_in_long_mode() {
+    let temp_dir = create_indicator_fixture();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("LSP_COMPAT_MODE", "gnu")
+        .arg("-l")
+        .arg("--file-type")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains("link -> "));
+    assert!(!stdout.contains("link@ -> "));
+    assert!(stdout.contains("target.txt"));
+}
+
+#[cfg(unix)]
+#[test]
+fn test_gnu_compat_mode_accepts_indicator_style_none() {
+    let temp_dir = create_indicator_fixture();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("LSP_COMPAT_MODE", "gnu")
+        .arg("--indicator-style=none")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains("child"));
+    assert!(stdout.contains("link"));
+    assert!(stdout.contains("run.sh"));
+    assert!(!stdout.contains("child/"));
+    assert!(!stdout.contains("link@"));
+    assert!(!stdout.contains("run.sh*"));
 }
 
 #[test]

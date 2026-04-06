@@ -1,7 +1,7 @@
-use lsplus::Params;
 use lsplus::app::run_with_flags;
 use lsplus::cli::Flags;
 use lsplus::utils::file::create_file_info;
+use lsplus::{IndicatorStyle, Params};
 use std::fs;
 use tempfile::tempdir;
 
@@ -18,16 +18,17 @@ fn test_public_create_file_info_formats_short_symlinks() {
     let short = create_file_info(&link, &Params::default()).unwrap();
     assert!(short.display_name.contains("link"));
     assert!(!short.display_name.contains('*'));
+    assert!(!short.display_name.contains('@'));
 
     let short_with_marker = create_file_info(
         &link,
         &Params {
-            append_slash: true,
+            indicator_style: IndicatorStyle::FileType,
             ..Params::default()
         },
     )
     .unwrap();
-    assert!(short_with_marker.display_name.contains('*'));
+    assert!(short_with_marker.display_name.contains('@'));
 }
 
 #[test]
@@ -38,7 +39,7 @@ fn test_public_run_with_flags_accepts_missing_patterns() {
         long: false,
         human_readable: false,
         paths: vec![String::from("**/definitely_missing_coverage_pattern")],
-        slash: false,
+        indicator_style: None,
         dirs_first: false,
         no_icons: false,
         no_color: false,

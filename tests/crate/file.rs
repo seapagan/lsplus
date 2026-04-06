@@ -4,7 +4,7 @@ use crate::utils::file::{
     create_file_info, format_path_error, format_symlink_display_name_with_dim,
     get_groupname, get_username, sanitize_for_terminal,
 };
-use crate::{FileInfo, NameStyle, Params};
+use crate::{FileInfo, IndicatorStyle, NameStyle, Params};
 use colored_text::{ColorMode, ColorizeConfig};
 use std::ffi::OsString;
 use std::fs::{self, File};
@@ -19,6 +19,8 @@ use tempfile::tempdir;
 
 #[cfg(unix)]
 use std::os::unix::ffi::OsStringExt;
+#[cfg(unix)]
+use std::os::unix::net::UnixListener;
 
 const BLUE_DOT: &str = "\u{1b}[34m.\u{1b}[0m";
 const BLUE_DOTDOT: &str = "\u{1b}[34m..\u{1b}[0m";
@@ -304,7 +306,7 @@ fn test_create_file_info_handles_regular_files_symlinks_and_special_cases() {
     let dir_info = create_file_info(
         &dir_path,
         &Params {
-            append_slash: true,
+            indicator_style: IndicatorStyle::Slash,
             ..Params::default()
         },
     )
@@ -402,6 +404,40 @@ fn test_create_file_info_marks_fifo_as_unknown_type() {
 
 #[cfg(unix)]
 #[test]
+fn test_create_file_info_classify_prefers_fifo_and_socket_indicators() {
+    let temp_dir = tempdir().unwrap();
+    let fifo_path = temp_dir.path().join("pipe");
+    let socket_path = temp_dir.path().join("socket");
+    let status = Command::new("mkfifo").arg(&fifo_path).status().unwrap();
+    assert!(status.success());
+
+    let _listener = UnixListener::bind(&socket_path).unwrap();
+
+    fs::set_permissions(&fifo_path, fs::Permissions::from_mode(0o755))
+        .unwrap();
+    fs::set_permissions(&socket_path, fs::Permissions::from_mode(0o755))
+        .unwrap();
+
+    let fifo_metadata = fs::symlink_metadata(&fifo_path).unwrap();
+    let socket_metadata = fs::symlink_metadata(&socket_path).unwrap();
+    assert_ne!(fifo_metadata.permissions().mode() & 0o111, 0);
+    assert_ne!(socket_metadata.permissions().mode() & 0o111, 0);
+
+    let params = Params {
+        indicator_style: IndicatorStyle::Classify,
+        ..Params::default()
+    };
+    let fifo_info = create_file_info(&fifo_path, &params).unwrap();
+    let socket_info = create_file_info(&socket_path, &params).unwrap();
+
+    assert!(strip_str(&fifo_info.display_name).ends_with('|'));
+    assert!(!strip_str(&fifo_info.display_name).ends_with('*'));
+    assert!(strip_str(&socket_info.display_name).ends_with('='));
+    assert!(!strip_str(&socket_info.display_name).ends_with('*'));
+}
+
+#[cfg(unix)]
+#[test]
 fn test_create_file_info_handles_non_utf8_names_and_control_characters() {
     let temp_dir = tempdir().unwrap();
     let invalid_name = OsString::from_vec(vec![b'f', b'o', 0xff, b'o']);
@@ -469,7 +505,7 @@ fn test_get_username_and_groupname_fall_back_to_ids() {
 fn test_format_symlink_display_name_handles_unreadable_targets() {
     let params = Params {
         long_format: true,
-        append_slash: true,
+        indicator_style: IndicatorStyle::FileType,
         ..Params::default()
     };
     let unreadable = format_symlink_display_name_with_dim(
@@ -482,16 +518,16 @@ fn test_format_symlink_display_name_handles_unreadable_targets() {
     assert!(unreadable.contains("(unreadable)"));
 
     let short = format_symlink_display_name_with_dim(
-        "broken-link",
+        "broken-link@",
         Path::new("/tmp/broken-link"),
         Err(io::Error::other("boom")),
         &Params {
-            append_slash: true,
+            indicator_style: IndicatorStyle::FileType,
             ..Params::default()
         },
         false,
     );
-    assert!(short.contains('*'));
+    assert!(short.contains('@'));
 }
 
 #[test]
@@ -518,7 +554,7 @@ fn test_collect_visible_file_names_handles_empty_entries() {
 }
 
 #[test]
-fn test_format_symlink_display_name_short_format_omits_marker_without_append_slash()
+fn test_format_symlink_display_name_short_format_omits_marker_without_indicator()
  {
     let short = format_symlink_display_name_with_dim(
         "link",
@@ -530,23 +566,49 @@ fn test_format_symlink_display_name_short_format_omits_marker_without_append_sla
 
     assert!(short.contains("link"));
     assert!(!short.contains('*'));
+    assert!(!short.contains('@'));
 }
 
 #[test]
-fn test_format_symlink_display_name_short_format_marks_append_slash() {
+fn test_format_symlink_display_name_short_format_uses_at_for_file_type() {
     let short = format_symlink_display_name_with_dim(
-        "link",
+        "link@",
         Path::new("/tmp/link"),
         Ok(PathBuf::from("target")),
         &Params {
-            append_slash: true,
+            indicator_style: IndicatorStyle::FileType,
             ..Params::default()
         },
         false,
     );
 
     assert!(short.contains("link"));
-    assert!(short.contains('*'));
+    assert!(short.contains('@'));
+    assert!(!short.contains('*'));
+}
+
+#[test]
+#[cfg(unix)]
+fn test_create_file_info_omits_symlink_at_in_long_mode() {
+    let temp_dir = tempdir().unwrap();
+    let target = temp_dir.path().join("target.txt");
+    let link = temp_dir.path().join("link");
+
+    fs::write(&target, "target").unwrap();
+    std::os::unix::fs::symlink(&target, &link).unwrap();
+
+    let info = create_file_info(
+        &link,
+        &Params {
+            long_format: true,
+            indicator_style: IndicatorStyle::FileType,
+            ..Params::default()
+        },
+    )
+    .unwrap();
+
+    assert!(strip_str(&info.display_name).contains("link -> "));
+    assert!(!strip_str(&info.display_name).contains("link@ -> "));
 }
 
 #[test]
@@ -662,7 +724,7 @@ fn test_gitignored_entries_are_dimmed_when_color_is_enabled() {
 }
 
 #[test]
-fn test_format_symlink_display_name_unreadable_short_format_omits_marker_without_append_slash()
+fn test_format_symlink_display_name_unreadable_short_format_omits_marker_without_indicator()
  {
     let short = format_symlink_display_name_with_dim(
         "link",
@@ -674,4 +736,5 @@ fn test_format_symlink_display_name_unreadable_short_format_omits_marker_without
 
     assert!(short.contains("link"));
     assert!(!short.contains('*'));
+    assert!(!short.contains('@'));
 }

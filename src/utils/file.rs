@@ -3,10 +3,11 @@ use nix::unistd::{Group, User};
 use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::io;
-use std::os::unix::fs::{MetadataExt, PermissionsExt};
+use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
+use crate::IndicatorStyle;
 use crate::Params;
 use crate::structs::FileInfo;
 use crate::structs::NameStyle;
@@ -282,11 +283,9 @@ fn create_file_info_from_metadata_with_gitignore(
         file_name = file_name.replacen("./", "", 1);
     }
 
-    let mut safe_file_name = sanitize_for_terminal(&file_name);
-
-    if params.append_slash && metadata.is_dir() {
-        safe_file_name.push('/');
-    }
+    let safe_file_name = sanitize_for_terminal(&file_name);
+    let indicated_file_name =
+        format_name_with_indicator(&safe_file_name, metadata, params);
 
     let ignored = params.gitignore
         && gitignore_cache.is_ignored(path, metadata.is_dir());
@@ -294,19 +293,19 @@ fn create_file_info_from_metadata_with_gitignore(
     let (display_name, short_name, name_style) = if metadata.is_symlink() {
         (
             format_symlink_display_name_with_dim(
-                &safe_file_name,
+                &indicated_file_name,
                 path,
                 fs::read_link(path),
                 params,
                 ignored,
             ),
-            format!("{safe_file_name}{}", symlink_short_suffix(params)),
+            indicated_file_name.clone(),
             NameStyle::Symlink,
         )
     } else {
         (
-            colorize_name_by_metadata(&safe_file_name, metadata, ignored),
-            safe_file_name.clone(),
+            colorize_name_by_metadata(&indicated_file_name, metadata, ignored),
+            indicated_file_name.clone(),
             name_style_by_metadata(metadata),
         )
     };
@@ -397,8 +396,52 @@ fn sanitize_path_for_terminal(path: &Path) -> String {
     sanitize_for_terminal(&path.to_string_lossy())
 }
 
-fn symlink_short_suffix(params: &Params) -> &'static str {
-    if params.append_slash { "*" } else { "" }
+fn format_name_with_indicator(
+    safe_name: &str,
+    metadata: &fs::Metadata,
+    params: &Params,
+) -> String {
+    format!("{safe_name}{}", indicator_suffix(metadata, params))
+}
+
+fn indicator_suffix(metadata: &fs::Metadata, params: &Params) -> &'static str {
+    if metadata.is_symlink() && params.long_format {
+        return "";
+    }
+
+    match params.indicator_style {
+        IndicatorStyle::None => "",
+        IndicatorStyle::Slash => {
+            if metadata.is_dir() {
+                "/"
+            } else {
+                ""
+            }
+        }
+        IndicatorStyle::FileType => {
+            file_type_indicator_suffix(metadata, false)
+        }
+        IndicatorStyle::Classify => file_type_indicator_suffix(metadata, true),
+    }
+}
+
+fn file_type_indicator_suffix(
+    metadata: &fs::Metadata,
+    classify_executables: bool,
+) -> &'static str {
+    if metadata.is_dir() {
+        "/"
+    } else if metadata.is_symlink() {
+        "@"
+    } else if metadata.file_type().is_fifo() {
+        "|"
+    } else if metadata.file_type().is_socket() {
+        "="
+    } else if classify_executables && is_executable(metadata) {
+        "*"
+    } else {
+        ""
+    }
 }
 
 fn apply_dim(style: StyledText, dimmed: bool) -> StyledText {
@@ -451,7 +494,7 @@ fn is_executable(metadata: &fs::Metadata) -> bool {
 }
 
 pub(crate) fn format_symlink_display_name_with_dim(
-    safe_file_name: &str,
+    source_name: &str,
     path: &Path,
     target: io::Result<PathBuf>,
     params: &Params,
@@ -479,14 +522,14 @@ pub(crate) fn format_symlink_display_name_with_dim(
                 if target_path.exists() {
                     format!(
                         "{}{}{}",
-                        apply_dim(safe_file_name.cyan(), dimmed),
+                        apply_dim(source_name.cyan(), dimmed),
                         plain_text(" -> ", dimmed),
                         display_target
                     )
                 } else {
                     format!(
                         "{}{}{}{}{}",
-                        apply_dim(safe_file_name.cyan(), dimmed),
+                        apply_dim(source_name.cyan(), dimmed),
                         plain_text(" -> ", dimmed),
                         display_target,
                         plain_text(" ", dimmed),
@@ -494,34 +537,18 @@ pub(crate) fn format_symlink_display_name_with_dim(
                     )
                 }
             } else {
-                apply_dim(
-                    format!(
-                        "{safe_file_name}{}",
-                        symlink_short_suffix(params)
-                    )
-                    .cyan(),
-                    dimmed,
-                )
-                .to_string()
+                apply_dim(source_name.cyan(), dimmed).to_string()
             }
         }
         Err(_) => {
             if params.long_format {
                 apply_dim(
-                    format!("{safe_file_name} -> (unreadable)").red(),
+                    format!("{source_name} -> (unreadable)").red(),
                     dimmed,
                 )
                 .to_string()
             } else {
-                apply_dim(
-                    format!(
-                        "{safe_file_name}{}",
-                        symlink_short_suffix(params)
-                    )
-                    .cyan(),
-                    dimmed,
-                )
-                .to_string()
+                apply_dim(source_name.cyan(), dimmed).to_string()
             }
         }
     }
