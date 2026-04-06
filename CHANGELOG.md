@@ -6,6 +6,15 @@ project since the first release.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased](https://github.com/seapagan/lsplus/tree/HEAD)
+
+**New Features**
+
+- Feat: add indicator style support ([#117](https://github.com/seapagan/lsplus/pull/117)) by [seapagan](https://github.com/seapagan)
+- Feat: add GNU `ls` compatibility mode ([#116](https://github.com/seapagan/lsplus/pull/116)) by [seapagan](https://github.com/seapagan)
+
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.8.0...HEAD) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.8.0...HEAD.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.8.0...HEAD.patch)
+
 ## [0.8.0](https://github.com/seapagan/lsplus/releases/tag/0.8.0) (2026-04-04)
 
 **Closed Issues**

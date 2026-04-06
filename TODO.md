@@ -9,12 +9,6 @@
 - [ ] using the config file, allow extending the existing file and folder
       mapping, or deleting specific maps.
 - [ ] add a -R flag to recursively list files in a directory.
-- [ ] Rework short-mode file indicators so symlinks use `@` independently of
-      `-p`, and implement the remaining GNU-style indicator modes together,
-      including their preferred GNU short forms where they exist
-      (`--indicator-style=file-type` / `--file-type`,
-      `--indicator-style=classify` / `-F`, and
-      `--indicator-style=none`).
 - [ ] When adding recursion or tree-style output, revisit whether directory
       traversal should move over to the `ignore` crate instead of the current
       custom walker.
