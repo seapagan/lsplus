@@ -150,7 +150,7 @@ fn test_build_long_format_table_colors_permissions_by_default() {
         let rendered = normalized_table(build_long_format_table(
             &[info],
             &Params {
-                time_colors: false,
+                time_gradient: false,
                 ..Params::default()
             },
         ));
@@ -175,7 +175,7 @@ fn test_build_long_format_table_omits_permission_colors_when_disabled() {
             &[info],
             &Params {
                 permission_colors: false,
-                time_colors: false,
+                time_gradient: false,
                 ..Params::default()
             },
         ));
@@ -211,7 +211,7 @@ fn test_build_long_format_table_colors_size_boundaries() {
         let params = Params {
             human_readable: true,
             permission_colors: false,
-            time_colors: false,
+            time_gradient: false,
             ..Params::default()
         };
 
@@ -247,7 +247,7 @@ fn test_build_long_format_table_aligns_colored_size_cells() {
         let params = Params {
             human_readable: true,
             permission_colors: false,
-            time_colors: false,
+            time_gradient: false,
             ..Params::default()
         };
 
@@ -282,7 +282,7 @@ fn test_build_long_format_table_omits_size_colors_when_disabled() {
         let params = Params {
             human_readable: true,
             permission_colors: false,
-            time_colors: false,
+            time_gradient: false,
             size_colors: false,
             ..Params::default()
         };
@@ -452,12 +452,13 @@ fn test_build_long_format_table_uses_ansi_256_for_time_when_supported() {
 }
 
 #[test]
-fn test_build_long_format_table_omits_time_colors_when_disabled() {
+fn test_build_long_format_table_uses_fixed_time_color_when_gradient_disabled()
+{
     with_color_output_enabled(|| {
         let info = test_file_info("fresh.txt", None, 12, SystemTime::now());
         let params = Params {
             permission_colors: false,
-            time_colors: false,
+            time_gradient: false,
             size_colors: false,
             ..Params::default()
         };
@@ -465,7 +466,9 @@ fn test_build_long_format_table_omits_time_colors_when_disabled() {
         let rendered =
             normalized_table(build_long_format_table(&[info], &params));
 
-        assert!(!rendered.contains("\u{1b}[33m"));
+        assert!(rendered.contains("\u{1b}[33m"));
+        assert!(!rendered.contains("\u{1b}[1;93m"));
+        assert!(!rendered.contains("\u{1b}[93m"));
         assert!(!rendered.contains("\u{1b}[38;2;"));
         assert!(!rendered.contains("\u{1b}[38;5;"));
     });

@@ -25,7 +25,7 @@ const ARG_DIRS_FIRST: &str = "dirs_first";
 const ARG_NO_ICONS: &str = "no_icons";
 const ARG_NO_COLOR: &str = "no_color";
 const ARG_NO_PERMISSION_COLORS: &str = "no_permission_colors";
-const ARG_NO_TIME_COLORS: &str = "no_time_colors";
+const ARG_NO_TIME_GRADIENT: &str = "no_time_gradient";
 const ARG_NO_SIZE_COLORS: &str = "no_size_colors";
 const ARG_GITIGNORE: &str = "gitignore";
 const ARG_VERSION: &str = "version";
@@ -78,8 +78,8 @@ pub struct Flags {
     pub no_color: bool,
     /// Disable permission and file-type colors in long-format output.
     pub no_permission_colors: bool,
-    /// Disable timestamp freshness colors in long-format output.
-    pub no_time_colors: bool,
+    /// Use the fixed timestamp color instead of age-based colors.
+    pub no_time_gradient: bool,
     /// Disable large-size colors in long-format output.
     pub no_size_colors: bool,
     /// Dim paths matched by `.gitignore` rules.
@@ -157,7 +157,7 @@ fn build_command(mode: CompatMode) -> Command {
         .arg(no_icons_arg())
         .arg(no_color_arg(mode))
         .arg(no_permission_colors_arg())
-        .arg(no_time_colors_arg())
+        .arg(no_time_gradient_arg())
         .arg(no_size_colors_arg())
         .arg(gitignore_arg(mode))
         .arg(version_arg())
@@ -326,11 +326,11 @@ fn no_permission_colors_arg() -> Arg {
         .help("Do not color permission bits in long-format output")
 }
 
-fn no_time_colors_arg() -> Arg {
-    Arg::new(ARG_NO_TIME_COLORS)
-        .long("no-time-colors")
+fn no_time_gradient_arg() -> Arg {
+    Arg::new(ARG_NO_TIME_GRADIENT)
+        .long("no-time-gradient")
         .action(ArgAction::SetTrue)
-        .help("Do not color timestamps in long-format output")
+        .help("Use the fixed timestamp color instead of age-based colors")
 }
 
 fn no_size_colors_arg() -> Arg {
@@ -392,7 +392,7 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
         no_icons: matches.get_flag(ARG_NO_ICONS),
         no_color: matches.get_flag(ARG_NO_COLOR),
         no_permission_colors: matches.get_flag(ARG_NO_PERMISSION_COLORS),
-        no_time_colors: matches.get_flag(ARG_NO_TIME_COLORS),
+        no_time_gradient: matches.get_flag(ARG_NO_TIME_GRADIENT),
         no_size_colors: matches.get_flag(ARG_NO_SIZE_COLORS),
         gitignore: matches.get_flag(ARG_GITIGNORE),
         version: matches.get_flag(ARG_VERSION),

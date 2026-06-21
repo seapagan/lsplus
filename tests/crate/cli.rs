@@ -15,7 +15,7 @@ fn test_default_flags() {
     assert!(!args.no_icons);
     assert!(!args.no_color);
     assert!(!args.no_permission_colors);
-    assert!(!args.no_time_colors);
+    assert!(!args.no_time_gradient);
     assert!(!args.no_size_colors);
     assert!(!args.gitignore);
     assert!(!args.version);
@@ -45,7 +45,7 @@ fn test_all_flags() {
         "--no-icons",
         "--no-color",
         "--no-permission-colors",
-        "--no-time-colors",
+        "--no-time-gradient",
         "--no-size-colors",
         "--gitignore",
         "--fuzzy-time",
@@ -59,7 +59,7 @@ fn test_all_flags() {
     assert!(args.no_icons);
     assert!(args.no_color);
     assert!(args.no_permission_colors);
-    assert!(args.no_time_colors);
+    assert!(args.no_time_gradient);
     assert!(args.no_size_colors);
     assert!(args.gitignore);
     assert!(args.fuzzy_time);
@@ -134,14 +134,14 @@ fn test_parse_from_mode_accepts_long_format_accent_disable_flags() {
             [
                 "lsplus",
                 "--no-permission-colors",
-                "--no-time-colors",
+                "--no-time-gradient",
                 "--no-size-colors",
             ],
         )
         .unwrap();
 
         assert!(args.no_permission_colors);
-        assert!(args.no_time_colors);
+        assert!(args.no_time_gradient);
         assert!(args.no_size_colors);
     }
 }

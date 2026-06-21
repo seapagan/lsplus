@@ -61,7 +61,7 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
             no_icons = true
             no_color = true
             permission_colors = false
-            time_colors = false
+            time_gradient = false
             size_colors = false
             gitignore = true
             fuzzy_time = true
@@ -82,7 +82,7 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
                 no_icons: true,
                 no_color: true,
                 permission_colors: false,
-                time_colors: false,
+                time_gradient: false,
                 size_colors: false,
                 gitignore: true,
                 fuzzy_time: true,

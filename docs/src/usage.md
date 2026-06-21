@@ -24,7 +24,7 @@ Curently, only a sub-set of the standard `ls` options are supported. These are:
 - `-I` / `--gitignore` - Dim entries matched by Git ignore rules
 - `-N` / `--no-color` - Disable colored and styled output
 - `--no-permission-colors` - Disable long-format permission colors
-- `--no-time-colors` - Disable long-format timestamp colors
+- `--no-time-gradient` - Use the fixed long-format timestamp color
 - `--no-size-colors` - Disable long-format large-size colors
 - `--no-icons` - don't show file or folder icons
 - `-V` / `--version` - Print version information and exit
@@ -54,15 +54,16 @@ output explicitly with `--no-color`, `no_color = true` in the config file, or
 the `NO_COLOR` environment variable.
 
 Long-format output colors permission bits, timestamp freshness, and large file
-sizes by default. You can disable those accents independently with
-`--no-permission-colors`, `--no-time-colors`, `--no-size-colors`, or the
-matching `permission_colors = false`, `time_colors = false`, and
+sizes by default. You can adjust those accents independently with
+`--no-permission-colors`, `--no-time-gradient`, `--no-size-colors`, or the
+matching `permission_colors = false`, `time_gradient = false`, and
 `size_colors = false` config options.
 
 Timestamp colors adapt to terminal color capability. Truecolor terminals use a
 smooth age gradient, 256-color terminals use a stepped fallback, and basic ANSI
 terminals use named yellow tones. The timestamp palette distinguishes files
-newer than a day, week, month, and year across all fallbacks.
+newer than a day, week, month, and year across all fallbacks. Disabling
+`time_gradient` keeps the original fixed timestamp color.
 
 When `-I` is enabled, `lsp` checks the same ignore sources Git normally uses:
 merged `.gitignore` files in the worktree, `.git/info/exclude`, and the

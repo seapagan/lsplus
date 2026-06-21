@@ -139,8 +139,8 @@ fn size_colors_enabled(params: &Params) -> bool {
 }
 
 fn long_time_text(text: &str, mtime: SystemTime, params: &Params) -> String {
-    if !params.time_colors {
-        return text.to_string();
+    if !params.time_gradient {
+        return text.yellow().to_string();
     }
 
     let age = SystemTime::now()

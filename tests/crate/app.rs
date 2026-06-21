@@ -83,7 +83,7 @@ fn test_run_with_flags_lists_matching_entries() {
             no_icons: true,
             no_color: false,
             no_permission_colors: false,
-            no_time_colors: false,
+            no_time_gradient: false,
             no_size_colors: false,
             gitignore: false,
             version: false,

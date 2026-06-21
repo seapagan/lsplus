@@ -124,13 +124,14 @@ This option controls long-format colors for the file type character and
 permission bits. Set it to `false`, or pass `--no-permission-colors`, to render
 those fields without accent colors.
 
-### time_colors
+### time_gradient
 
 - Permitted values: `true` or `false`
 - Default value: `true`
 
 This option controls long-format timestamp freshness colors. Set it to `false`,
-or pass `--no-time-colors`, to render timestamps without freshness accents.
+or pass `--no-time-gradient`, to use the fixed timestamp color instead of
+age-based timestamp colors.
 Timestamp colors adapt to terminal color capability: truecolor terminals use a
 smooth age gradient, 256-color terminals use a stepped fallback, and basic ANSI
 terminals use named yellow tones.
@@ -174,7 +175,7 @@ dirs_first = true
 human_readable = true
 no_color = true
 permission_colors = false
-time_colors = false
+time_gradient = false
 size_colors = false
 fuzzy_time = true
 gitignore = true

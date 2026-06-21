@@ -37,8 +37,8 @@ pub struct Params {
     pub no_color: bool,
     /// Color file type and permission bits in long-format output.
     pub permission_colors: bool,
-    /// Color timestamps by freshness in long-format output.
-    pub time_colors: bool,
+    /// Color timestamps by age in long-format output.
+    pub time_gradient: bool,
     /// Color large sizes in long-format output.
     pub size_colors: bool,
     /// Dim paths matched by `.gitignore` rules.
@@ -59,7 +59,7 @@ impl Default for Params {
             no_icons: false,
             no_color: false,
             permission_colors: true,
-            time_colors: true,
+            time_gradient: true,
             size_colors: true,
             gitignore: false,
             fuzzy_time: false,
@@ -78,7 +78,7 @@ pub(crate) struct RawParams {
     no_icons: bool,
     no_color: bool,
     permission_colors: Option<bool>,
-    time_colors: Option<bool>,
+    time_gradient: Option<bool>,
     size_colors: Option<bool>,
     gitignore: bool,
     fuzzy_time: bool,
@@ -122,7 +122,7 @@ impl From<RawParams> for Params {
             no_icons: raw.no_icons,
             no_color: raw.no_color,
             permission_colors: raw.permission_colors.unwrap_or(true),
-            time_colors: raw.time_colors.unwrap_or(true),
+            time_gradient: raw.time_gradient.unwrap_or(true),
             size_colors: raw.size_colors.unwrap_or(true),
             gitignore: raw.gitignore,
             fuzzy_time: raw.fuzzy_time,
@@ -151,7 +151,7 @@ impl Params {
             no_color: flags.no_color || config.no_color,
             permission_colors: config.permission_colors
                 && !flags.no_permission_colors,
-            time_colors: config.time_colors && !flags.no_time_colors,
+            time_gradient: config.time_gradient && !flags.no_time_gradient,
             size_colors: config.size_colors && !flags.no_size_colors,
             gitignore: flags.gitignore || config.gitignore,
             fuzzy_time: flags.fuzzy_time || config.fuzzy_time,
