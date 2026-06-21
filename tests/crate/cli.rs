@@ -14,6 +14,9 @@ fn test_default_flags() {
     assert!(!args.dirs_first);
     assert!(!args.no_icons);
     assert!(!args.no_color);
+    assert!(!args.no_permission_colors);
+    assert!(!args.no_time_gradient);
+    assert!(!args.no_size_colors);
     assert!(!args.gitignore);
     assert!(!args.version);
     assert!(!args.fuzzy_time);
@@ -41,6 +44,9 @@ fn test_all_flags() {
         "--sort-dirs",
         "--no-icons",
         "--no-color",
+        "--no-permission-colors",
+        "--no-time-gradient",
+        "--no-size-colors",
         "--gitignore",
         "--fuzzy-time",
     ]);
@@ -52,6 +58,9 @@ fn test_all_flags() {
     assert!(args.dirs_first);
     assert!(args.no_icons);
     assert!(args.no_color);
+    assert!(args.no_permission_colors);
+    assert!(args.no_time_gradient);
+    assert!(args.no_size_colors);
     assert!(args.gitignore);
     assert!(args.fuzzy_time);
 }
@@ -115,6 +124,26 @@ fn test_parse_from_mode_native_keeps_conflicting_short_flags() {
     assert!(args.gitignore);
     assert!(args.no_color);
     assert!(args.fuzzy_time);
+}
+
+#[test]
+fn test_parse_from_mode_accepts_long_format_accent_disable_flags() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let args = try_parse_from_mode(
+            mode,
+            [
+                "lsplus",
+                "--no-permission-colors",
+                "--no-time-gradient",
+                "--no-size-colors",
+            ],
+        )
+        .unwrap();
+
+        assert!(args.no_permission_colors);
+        assert!(args.no_time_gradient);
+        assert!(args.no_size_colors);
+    }
 }
 
 #[test]

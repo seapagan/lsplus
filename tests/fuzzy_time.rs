@@ -253,11 +253,26 @@ fn test_fuzzy_time_hour_edge_cases() {
     assert_eq!(fuzzy_time(time), "2 hours ago");
 }
 
-#[test]
-fn test_fuzzy_time_uses_zero_seconds_for_future_times() {
-    let future = SystemTime::now()
-        .checked_add(Duration::from_secs(60))
-        .unwrap();
+fn get_future_test_time(seconds_from_now: u64) -> SystemTime {
+    SystemTime::now()
+        .checked_add(Duration::from_secs(seconds_from_now))
+        .unwrap()
+}
 
-    assert_eq!(fuzzy_time(future), "0 seconds ago");
+#[test]
+fn test_fuzzy_time_future_times() {
+    let time = get_future_test_time(90);
+    assert_eq!(fuzzy_time(time), "in 1 minute");
+
+    let time = get_future_test_time(2 * 60 + 30);
+    assert_eq!(fuzzy_time(time), "in 2 minutes");
+
+    let time = get_future_test_time(2 * 60 * 60 + 60);
+    assert_eq!(fuzzy_time(time), "in 2 hours");
+
+    let time = get_future_test_time(14 * 24 * 60 * 60 + 60 * 60);
+    assert_eq!(fuzzy_time(time), "in 2 weeks");
+
+    let time = get_future_test_time(2 * 365 * 24 * 60 * 60 + 24 * 60 * 60);
+    assert_eq!(fuzzy_time(time), "in 2 years");
 }

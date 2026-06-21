@@ -6,5 +6,6 @@ pub mod gitignore;
 pub mod icons;
 pub mod render;
 pub mod table;
+pub(crate) mod time;
 
 pub use fuzzy_time::fuzzy_time;

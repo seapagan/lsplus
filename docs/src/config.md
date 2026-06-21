@@ -115,6 +115,38 @@ display icons if set to `true`.
 This option corresponds to the `-N` or `--no-color` command line option and
 will disable colored and styled output if set to `true`.
 
+### permission_colors
+
+- Permitted values: `true` or `false`
+- Default value: `true`
+
+This option controls long-format colors for the file type character and
+permission bits. Set it to `false`, or pass `--no-permission-colors`, to render
+those fields without accent colors.
+
+### time_gradient
+
+- Permitted values: `true` or `false`
+- Default value: `true`
+
+This option controls long-format timestamp freshness colors. Set it to `false`,
+or pass `--no-time-gradient`, to use the fixed timestamp color instead of
+age-based timestamp colors.
+
+Timestamp colors adapt to terminal color capability: truecolor terminals use a
+smooth age gradient and 256-color terminals use a stepped fallback to
+distinguish day, week, month, and year bands. Basic ANSI terminals use named
+yellow styling. Future-dated timestamps stay red, even with `time_gradient`
+disabled, to make clock-skewed files stand out.
+
+### size_colors
+
+- Permitted values: `true` or `false`
+- Default value: `true`
+
+This option controls long-format large-size colors. Set it to `false`, or pass
+`--no-size-colors`, to render sizes without large-file accents.
+
 ### gitignore
 
 - Permitted values: `true` or `false`
@@ -145,6 +177,9 @@ indicator_style = "classify"
 dirs_first = true
 human_readable = true
 no_color = true
+permission_colors = false
+time_gradient = false
+size_colors = false
 fuzzy_time = true
 gitignore = true
 ```

@@ -1,3 +1,6 @@
+use crate::common_tests::{
+    ColorModeGuard, has_ansi, with_color_output_enabled,
+};
 use crate::utils::file::{
     DirectoryEntryData, append_file_info_for_names, check_display_name,
     collect_file_info, collect_file_names, collect_visible_file_names,
@@ -5,7 +8,7 @@ use crate::utils::file::{
     get_groupname, get_username, sanitize_for_terminal,
 };
 use crate::{FileInfo, IndicatorStyle, NameStyle, Params};
-use colored_text::{ColorMode, ColorizeConfig};
+use colored_text::ColorMode;
 use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io;
@@ -41,33 +44,6 @@ fn basic_info(display_name: &str, full_path: PathBuf) -> FileInfo {
         dimmed: false,
         full_path,
     }
-}
-
-struct ColorModeGuard(ColorMode);
-
-impl ColorModeGuard {
-    fn set(mode: ColorMode) -> Self {
-        let previous = ColorizeConfig::color_mode();
-        ColorizeConfig::set_color_mode(mode);
-        Self(previous)
-    }
-}
-
-impl Drop for ColorModeGuard {
-    fn drop(&mut self) {
-        ColorizeConfig::set_color_mode(self.0);
-    }
-}
-
-fn has_ansi(text: &str) -> bool {
-    text.contains("\u{1b}[")
-}
-
-fn with_color_output_enabled<T>(test: impl FnOnce() -> T) -> T {
-    temp_env::with_var("NO_COLOR", None::<&str>, || {
-        let _guard = ColorModeGuard::set(ColorMode::Always);
-        test()
-    })
 }
 
 #[test]
