@@ -27,6 +27,27 @@ fn test_gitignore_cache_matches_parent_and_child_rules() {
 }
 
 #[test]
+fn test_gitignore_cache_discovers_parent_worktree_rules() {
+    let temp_dir = tempdir().unwrap();
+    let repo_root = temp_dir.path().join("repo");
+    let nested_dir = repo_root.join("nested");
+    let ignored_file = nested_dir.join("ignored.log");
+
+    fs::create_dir_all(repo_root.join(".git")).unwrap();
+    fs::create_dir(&nested_dir).unwrap();
+    fs::write(repo_root.join(".gitignore"), "*.log\n").unwrap();
+    fs::write(&ignored_file, "ignored").unwrap();
+
+    let mut cache = GitignoreCache::default();
+
+    assert_eq!(
+        find_git_paths_parts(&nested_dir),
+        Some((repo_root.clone(), repo_root.join(".git")))
+    );
+    assert!(cache.is_ignored(&ignored_file, false));
+}
+
+#[test]
 fn test_gitignore_cache_returns_false_outside_worktree() {
     let temp_dir = tempdir().unwrap();
     let plain_file = temp_dir.path().join("plain.txt");
@@ -187,10 +208,12 @@ fn test_matcher_ignores_path_returns_false_outside_matcher_root() {
 }
 
 #[test]
-fn test_helper_seams_return_none_when_no_git_metadata_exists() {
+fn test_helper_seams_return_none_without_usable_git_metadata() {
     let temp_dir = tempdir().unwrap();
     let relative_file = std::path::Path::new("plain.txt");
     let mut cache = GitignoreCache::default();
+
+    fs::write(temp_dir.path().join(".git"), "not-a-gitdir-line\n").unwrap();
 
     assert_eq!(find_git_paths_parts(temp_dir.path()), None);
     assert_eq!(
