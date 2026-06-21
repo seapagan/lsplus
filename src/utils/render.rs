@@ -152,14 +152,14 @@ fn long_time_text(text: &str, mtime: SystemTime, params: &Params) -> String {
 }
 
 fn truecolor_time_text(text: &str, age: Duration) -> String {
-    if age >= TIME_COLOR_HORIZON {
-        return text.dim().to_string();
-    }
-
-    let ratio = age.as_secs_f32() / TIME_COLOR_HORIZON.as_secs_f32();
-    let red = interpolate(80, 220, ratio);
-    let green = interpolate(220, 180, ratio);
-    let blue = interpolate(80, 40, ratio);
+    let ratio = if age >= TIME_COLOR_HORIZON {
+        1.0
+    } else {
+        age.as_secs_f32() / TIME_COLOR_HORIZON.as_secs_f32()
+    };
+    let red = interpolate(255, 184, ratio);
+    let green = interpolate(209, 135, ratio);
+    let blue = interpolate(102, 50, ratio);
 
     text.rgb(red, green, blue).to_string()
 }
@@ -169,13 +169,11 @@ fn named_time_text(text: &str, age: Duration) -> String {
     let age_secs = age.as_secs();
 
     if age_secs < horizon / 10 {
-        text.bright_green().to_string()
+        text.bright_yellow().bold().to_string()
     } else if age_secs < horizon / 2 {
-        text.green().to_string()
-    } else if age_secs < horizon {
-        text.yellow().to_string()
+        text.bright_yellow().to_string()
     } else {
-        text.dim().to_string()
+        text.yellow().to_string()
     }
 }
 

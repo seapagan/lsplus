@@ -333,9 +333,8 @@ fn test_build_long_format_table_colors_time_buckets() {
                 let rendered =
                     normalized_table(build_long_format_table(&files, &params));
 
-                assert!(rendered.contains("\u{1b}[92m"));
+                assert!(rendered.contains("\u{1b}[1;93m"));
                 assert!(rendered.contains("\u{1b}[33m"));
-                assert!(rendered.contains("\u{1b}[2m"));
             });
         },
     );
@@ -360,7 +359,7 @@ fn test_build_long_format_table_uses_truecolor_for_time_when_supported() {
                     &params,
                 ));
 
-                assert!(rendered.contains("\u{1b}[38;2;"));
+                assert!(rendered.contains("\u{1b}[38;2;255;209;102m"));
             });
         },
     );
@@ -380,7 +379,7 @@ fn test_build_long_format_table_omits_time_colors_when_disabled() {
         let rendered =
             normalized_table(build_long_format_table(&[info], &params));
 
-        assert!(!rendered.contains("\u{1b}[92m"));
+        assert!(!rendered.contains("\u{1b}[33m"));
         assert!(!rendered.contains("\u{1b}[38;2;"));
     });
 }
