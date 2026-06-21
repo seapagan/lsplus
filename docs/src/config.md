@@ -115,6 +115,31 @@ display icons if set to `true`.
 This option corresponds to the `-N` or `--no-color` command line option and
 will disable colored and styled output if set to `true`.
 
+### permission_colors
+
+- Permitted values: `true` or `false`
+- Default value: `true`
+
+This option controls long-format colors for the file type character and
+permission bits. Set it to `false`, or pass `--no-permission-colors`, to render
+those fields without accent colors.
+
+### time_colors
+
+- Permitted values: `true` or `false`
+- Default value: `true`
+
+This option controls long-format timestamp freshness colors. Set it to `false`,
+or pass `--no-time-colors`, to render timestamps without freshness accents.
+
+### size_colors
+
+- Permitted values: `true` or `false`
+- Default value: `true`
+
+This option controls long-format large-size colors. Set it to `false`, or pass
+`--no-size-colors`, to render sizes without large-file accents.
+
 ### gitignore
 
 - Permitted values: `true` or `false`
@@ -145,6 +170,9 @@ indicator_style = "classify"
 dirs_first = true
 human_readable = true
 no_color = true
+permission_colors = false
+time_colors = false
+size_colors = false
 fuzzy_time = true
 gitignore = true
 ```

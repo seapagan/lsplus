@@ -108,6 +108,9 @@ Curently, only a sub-set of the standard `ls` options are supported. These are:
 - `-D` / `--sort-dirs` - Sort directories first
 - `-I` / `--gitignore` - Dim entries matched by Git ignore rules
 - `-N` / `--no-color` - Disable colored and styled output
+- `--no-permission-colors` - Disable long-format permission colors
+- `--no-time-colors` - Disable long-format timestamp colors
+- `--no-size-colors` - Disable long-format large-size colors
 - `--no-icons` - don't show file or folder icons
 - `-V` / `--version` - Print version information and exit
 - `-Z` / `--fuzzy-time` - Show fuzzy time for file modification times
@@ -138,6 +141,12 @@ Styled output is enabled automatically when writing to a terminal. Captured,
 piped, and redirected output is plain by default. You can also disable styled
 output explicitly with `--no-color`, `no_color = true` in the config file, or
 the `NO_COLOR` environment variable.
+
+Long-format output colors permission bits, timestamp freshness, and large file
+sizes by default. You can disable those accents independently with
+`--no-permission-colors`, `--no-time-colors`, `--no-size-colors`, or the
+matching `permission_colors = false`, `time_colors = false`, and
+`size_colors = false` config options.
 
 ### Fuzzy Time
 
