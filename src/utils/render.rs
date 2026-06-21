@@ -1,8 +1,7 @@
 use chrono::{DateTime, Local};
-use colored_text::{ColorMode, Colorize, ColorizeConfig, StyledText};
+use colored_text::{Colorize, StyledText};
 use prettytable::{Cell, Row, Table};
-use std::env;
-use std::io::{self, IsTerminal, Write};
+use std::io::{self, Write};
 use std::time::{Duration, SystemTime};
 
 use strip_ansi_escapes::strip_str;
@@ -12,6 +11,7 @@ use unicode_width::UnicodeWidthStr;
 use crate::Params;
 use crate::structs::{FileInfo, NameStyle};
 use crate::utils;
+use crate::utils::color::{LongFormatColorLevel, long_format_color_level};
 use crate::utils::file::check_display_name;
 
 const SHORT_CELL_PADDING: usize = 2;
@@ -34,6 +34,7 @@ pub(crate) fn build_long_format_table(
     params: &Params,
 ) -> Table {
     let mut table = utils::table::create_table(0);
+    let color_level = long_format_color_level(params);
 
     for info in file_info {
         let display_time = if params.fuzzy_time {
@@ -55,16 +56,28 @@ pub(crate) fn build_long_format_table(
         row_cells.push(Cell::new(&info.nlink.to_string()));
         row_cells.push(Cell::new(&format!(" {}", info.user.cyan())));
         row_cells.push(Cell::new(&format!("{} ", info.group.green())));
-        row_cells.push(size_cell(&display_size, info.size, params, "r"));
+        row_cells.push(size_cell(
+            &display_size,
+            info.size,
+            params,
+            color_level,
+            "r",
+        ));
 
         if !units.is_empty() {
-            row_cells.push(size_cell(units, info.size, params, ""));
+            row_cells.push(size_cell(
+                units,
+                info.size,
+                params,
+                color_level,
+                "",
+            ));
         }
 
         row_cells.push(
             Cell::new(&format!(
                 " {} ",
-                long_time_text(&display_time, info.mtime, params)
+                long_time_text(&display_time, info.mtime, params, color_level)
             ))
             .style_spec("r"),
         );
@@ -119,16 +132,28 @@ fn style_permission_char(value: char) -> String {
     }
 }
 
-fn size_cell(text: &str, size: u64, params: &Params, base: &str) -> Cell {
-    Cell::new(text).style_spec(size_style_spec(size, params, base))
-}
-
-pub(crate) fn size_style_spec(
+fn size_cell(
+    text: &str,
     size: u64,
     params: &Params,
+    color_level: LongFormatColorLevel,
+    base: &str,
+) -> Cell {
+    Cell::new(text).style_spec(size_style_spec_for_color_level(
+        size,
+        params,
+        color_level,
+        base,
+    ))
+}
+
+pub(crate) fn size_style_spec_for_color_level(
+    size: u64,
+    params: &Params,
+    color_level: LongFormatColorLevel,
     base: &str,
 ) -> &'static str {
-    match (size_colors_enabled(params), size, base) {
+    match (params.size_colors && color_level.is_enabled(), size, base) {
         (true, HUGE_SIZE_BYTES.., "r") => "rFrb",
         (true, HUGE_SIZE_BYTES.., _) => "Frb",
         (true, LARGE_SIZE_BYTES.., "r") => "rFy",
@@ -138,39 +163,44 @@ pub(crate) fn size_style_spec(
     }
 }
 
-fn size_colors_enabled(params: &Params) -> bool {
-    params.size_colors && !params.no_color && env::var_os("NO_COLOR").is_none()
-}
-
-fn long_time_text(text: &str, mtime: SystemTime, params: &Params) -> String {
+fn long_time_text(
+    text: &str,
+    mtime: SystemTime,
+    params: &Params,
+    color_level: LongFormatColorLevel,
+) -> String {
     let age = match SystemTime::now().duration_since(mtime) {
         Ok(age) => age,
-        Err(_) => return future_time_text(text),
+        Err(_) => return future_time_text(text, color_level),
     };
+
+    if color_level == LongFormatColorLevel::None {
+        return text.to_string();
+    }
 
     if !params.time_gradient {
         return text.yellow().to_string();
     }
 
-    if supports_truecolor() {
+    if color_level == LongFormatColorLevel::Truecolor {
         return truecolor_time_text(text, age);
     }
-    if raw_ansi_color_enabled() && supports_ansi_256() {
+    if color_level == LongFormatColorLevel::Ansi256 {
         return ansi_256_time_text(text, age);
     }
 
     named_time_text(text, age)
 }
 
-fn future_time_text(text: &str) -> String {
-    if supports_truecolor() {
-        return text.rgb(220, 80, 70).to_string();
+fn future_time_text(text: &str, color_level: LongFormatColorLevel) -> String {
+    match color_level {
+        LongFormatColorLevel::Truecolor => text.rgb(220, 80, 70).to_string(),
+        LongFormatColorLevel::Ansi256 => {
+            format!("\x1b[1;38;5;203m{text}\x1b[0m")
+        }
+        LongFormatColorLevel::Named => text.red().bold().to_string(),
+        LongFormatColorLevel::None => text.to_string(),
     }
-    if raw_ansi_color_enabled() && supports_ansi_256() {
-        return format!("\x1b[1;38;5;203m{text}\x1b[0m");
-    }
-
-    text.red().bold().to_string()
 }
 
 fn truecolor_time_text(text: &str, age: Duration) -> String {
@@ -247,39 +277,6 @@ fn interpolate(start: u8, end: u8, ratio: f32) -> u8 {
     let ratio = ratio.clamp(0.0, 1.0);
     (f32::from(start) + (f32::from(end) - f32::from(start)) * ratio).round()
         as u8
-}
-
-fn supports_truecolor() -> bool {
-    env_contains_truecolor("COLORTERM") || env_contains_truecolor("TERM")
-}
-
-fn supports_ansi_256() -> bool {
-    env_contains_256color("COLORTERM") || env_contains_256color("TERM")
-}
-
-fn raw_ansi_color_enabled() -> bool {
-    match ColorizeConfig::color_mode() {
-        ColorMode::Never => false,
-        ColorMode::Always => env::var_os("NO_COLOR").is_none(),
-        ColorMode::Auto => {
-            env::var_os("NO_COLOR").is_none() && io::stdout().is_terminal()
-        }
-    }
-}
-
-fn env_contains_truecolor(name: &str) -> bool {
-    env::var(name)
-        .map(|value| {
-            let value = value.to_ascii_lowercase();
-            value.contains("truecolor") || value.contains("24bit")
-        })
-        .unwrap_or(false)
-}
-
-fn env_contains_256color(name: &str) -> bool {
-    env::var(name)
-        .map(|value| value.to_ascii_lowercase().contains("256color"))
-        .unwrap_or(false)
 }
 
 pub fn display_short_format(file_info: &[FileInfo]) -> io::Result<()> {

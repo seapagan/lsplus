@@ -1,7 +1,8 @@
+use crate::utils::color::LongFormatColorLevel;
 use crate::utils::icons::Icon;
 use crate::utils::render::{
-    build_long_format_table, render_short_format_lines, size_style_spec,
-    terminal_width_or_default,
+    build_long_format_table, render_short_format_lines,
+    size_style_spec_for_color_level, terminal_width_or_default,
 };
 use crate::{FileInfo, NameStyle, Params};
 use colored_text::{ColorMode, ColorizeConfig};
@@ -298,49 +299,101 @@ fn test_build_long_format_table_omits_size_colors_when_disabled() {
 
 #[test]
 fn test_size_style_spec_colors_size_boundaries() {
-    temp_env::with_var("NO_COLOR", None::<&str>, || {
-        let params = Params::default();
+    let params = Params::default();
+    let color_level = LongFormatColorLevel::Named;
 
-        assert_eq!(size_style_spec(1024 * 1024 - 1, &params, "r"), "r");
-        assert_eq!(size_style_spec(1024 * 1024 - 1, &params, ""), "");
-        assert_eq!(size_style_spec(1024 * 1024, &params, "r"), "rFy");
-        assert_eq!(size_style_spec(1024 * 1024, &params, ""), "Fy");
-        assert_eq!(size_style_spec(1024 * 1024 * 1024, &params, "r"), "rFrb");
-        assert_eq!(size_style_spec(1024 * 1024 * 1024, &params, ""), "Frb");
-    });
+    assert_eq!(
+        size_style_spec_for_color_level(
+            1024 * 1024 - 1,
+            &params,
+            color_level,
+            "r"
+        ),
+        "r"
+    );
+    assert_eq!(
+        size_style_spec_for_color_level(
+            1024 * 1024 - 1,
+            &params,
+            color_level,
+            ""
+        ),
+        ""
+    );
+    assert_eq!(
+        size_style_spec_for_color_level(
+            1024 * 1024,
+            &params,
+            color_level,
+            "r"
+        ),
+        "rFy"
+    );
+    assert_eq!(
+        size_style_spec_for_color_level(1024 * 1024, &params, color_level, ""),
+        "Fy"
+    );
+    assert_eq!(
+        size_style_spec_for_color_level(
+            1024 * 1024 * 1024,
+            &params,
+            color_level,
+            "r"
+        ),
+        "rFrb"
+    );
+    assert_eq!(
+        size_style_spec_for_color_level(
+            1024 * 1024 * 1024,
+            &params,
+            color_level,
+            ""
+        ),
+        "Frb"
+    );
 }
 
 #[test]
 fn test_size_style_spec_omits_size_colors_when_disabled() {
-    temp_env::with_var("NO_COLOR", None::<&str>, || {
-        let params = Params {
-            size_colors: false,
-            ..Params::default()
-        };
+    let params = Params {
+        size_colors: false,
+        ..Params::default()
+    };
+    let color_level = LongFormatColorLevel::Named;
 
-        assert_eq!(size_style_spec(1024 * 1024, &params, "r"), "r");
-        assert_eq!(size_style_spec(1024 * 1024, &params, ""), "");
-    });
+    assert_eq!(
+        size_style_spec_for_color_level(
+            1024 * 1024,
+            &params,
+            color_level,
+            "r"
+        ),
+        "r"
+    );
+    assert_eq!(
+        size_style_spec_for_color_level(1024 * 1024, &params, color_level, ""),
+        ""
+    );
 }
 
 #[test]
 fn test_size_style_spec_omits_size_colors_when_global_color_is_disabled() {
-    temp_env::with_var("NO_COLOR", None::<&str>, || {
-        let params = Params {
-            no_color: true,
-            ..Params::default()
-        };
+    let params = Params::default();
+    let color_level = LongFormatColorLevel::None;
 
-        assert_eq!(size_style_spec(1024 * 1024, &params, "r"), "r");
-        assert_eq!(size_style_spec(1024 * 1024, &params, ""), "");
-    });
-
-    temp_env::with_var("NO_COLOR", Some("1"), || {
-        let params = Params::default();
-
-        assert_eq!(size_style_spec(1024 * 1024, &params, "r"), "r");
-        assert_eq!(size_style_spec(1024 * 1024, &params, ""), "");
-    });
+    assert_eq!(
+        size_style_spec_for_color_level(
+            1024 * 1024,
+            &params,
+            color_level,
+            "r"
+        ),
+        "r"
+    );
+    assert_eq!(
+        size_style_spec_for_color_level(1024 * 1024, &params, color_level, ""),
+        ""
+    );
 }
 
 #[test]
