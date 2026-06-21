@@ -63,7 +63,8 @@ Timestamp colors adapt to terminal color capability. Truecolor terminals use a
 smooth age gradient and 256-color terminals use a stepped fallback to
 distinguish files newer than a day, week, month, and year. Basic ANSI terminals
 use named yellow styling. Disabling `time_gradient` keeps
-the original fixed timestamp color.
+the original fixed timestamp color. Future-dated timestamps are red to make
+clock-skewed files stand out.
 
 When `-I` is enabled, `lsp` checks the same ignore sources Git normally uses:
 merged `.gitignore` files in the worktree, `.git/info/exclude`, and the

@@ -143,14 +143,14 @@ fn size_colors_enabled(params: &Params) -> bool {
 }
 
 fn long_time_text(text: &str, mtime: SystemTime, params: &Params) -> String {
-    if !params.time_gradient {
-        return text.yellow().to_string();
-    }
-
     let age = match SystemTime::now().duration_since(mtime) {
         Ok(age) => age,
         Err(_) => return future_time_text(text),
     };
+
+    if !params.time_gradient {
+        return text.yellow().to_string();
+    }
 
     if supports_truecolor() {
         return truecolor_time_text(text, age);
