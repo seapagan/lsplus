@@ -498,6 +498,102 @@ fn test_build_long_format_table_uses_ansi_256_for_time_when_supported() {
 }
 
 #[test]
+fn test_build_long_format_table_colors_future_time_truecolor() {
+    temp_env::with_vars(
+        [("COLORTERM", Some("truecolor")), ("TERM", None::<&str>)],
+        || {
+            with_color_output_enabled(|| {
+                let info = test_file_info(
+                    "future.txt",
+                    None,
+                    12,
+                    SystemTime::now()
+                        .checked_add(Duration::from_secs(60 * 60))
+                        .unwrap(),
+                );
+                let params = Params {
+                    permission_colors: false,
+                    size_colors: false,
+                    ..Params::default()
+                };
+
+                let rendered = normalized_table(build_long_format_table(
+                    &[info],
+                    &params,
+                ));
+
+                assert!(rendered.contains("\u{1b}[38;2;220;80;70m"));
+            });
+        },
+    );
+}
+
+#[test]
+fn test_build_long_format_table_colors_future_time_ansi_256() {
+    temp_env::with_vars(
+        [
+            ("COLORTERM", None::<&str>),
+            ("TERM", Some("xterm-256color")),
+        ],
+        || {
+            with_color_output_enabled(|| {
+                let info = test_file_info(
+                    "future.txt",
+                    None,
+                    12,
+                    SystemTime::now()
+                        .checked_add(Duration::from_secs(60 * 60))
+                        .unwrap(),
+                );
+                let params = Params {
+                    permission_colors: false,
+                    size_colors: false,
+                    ..Params::default()
+                };
+
+                let rendered = normalized_table(build_long_format_table(
+                    &[info],
+                    &params,
+                ));
+
+                assert!(rendered.contains("\u{1b}[1;38;5;203m"));
+            });
+        },
+    );
+}
+
+#[test]
+fn test_build_long_format_table_colors_future_time_named_ansi() {
+    temp_env::with_vars(
+        [("COLORTERM", None::<&str>), ("TERM", Some("xterm"))],
+        || {
+            with_color_output_enabled(|| {
+                let info = test_file_info(
+                    "future.txt",
+                    None,
+                    12,
+                    SystemTime::now()
+                        .checked_add(Duration::from_secs(60 * 60))
+                        .unwrap(),
+                );
+                let params = Params {
+                    permission_colors: false,
+                    size_colors: false,
+                    ..Params::default()
+                };
+
+                let rendered = normalized_table(build_long_format_table(
+                    &[info],
+                    &params,
+                ));
+
+                assert!(rendered.contains("\u{1b}[1;31m"));
+            });
+        },
+    );
+}
+
+#[test]
 fn test_build_long_format_table_omits_ansi_256_time_when_color_disabled() {
     temp_env::with_vars(
         [

@@ -147,9 +147,10 @@ fn long_time_text(text: &str, mtime: SystemTime, params: &Params) -> String {
         return text.yellow().to_string();
     }
 
-    let age = SystemTime::now()
-        .duration_since(mtime)
-        .unwrap_or(Duration::ZERO);
+    let age = match SystemTime::now().duration_since(mtime) {
+        Ok(age) => age,
+        Err(_) => return future_time_text(text),
+    };
 
     if supports_truecolor() {
         return truecolor_time_text(text, age);
@@ -159,6 +160,17 @@ fn long_time_text(text: &str, mtime: SystemTime, params: &Params) -> String {
     }
 
     named_time_text(text, age)
+}
+
+fn future_time_text(text: &str) -> String {
+    if supports_truecolor() {
+        return text.rgb(220, 80, 70).to_string();
+    }
+    if raw_ansi_color_enabled() && supports_ansi_256() {
+        return format!("\x1b[1;38;5;203m{text}\x1b[0m");
+    }
+
+    text.red().bold().to_string()
 }
 
 fn truecolor_time_text(text: &str, age: Duration) -> String {
