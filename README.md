@@ -108,7 +108,8 @@ Curently, only a sub-set of the standard `ls` options are supported. These are:
 - `-D` / `--sort-dirs` - Sort directories first
 - `-I` / `--gitignore` - Dim entries matched by Git ignore rules
 - `-N` / `--no-color` - Disable colored and styled output
-- `--no-permission-colors` - Disable long-format permission colors
+- `--no-permission-colors` - Disable long-format file type character and
+  permission colors
 - `--no-time-gradient` - Use the fixed long-format timestamp color
 - `--no-size-colors` - Disable long-format large-size colors
 - `--no-icons` - don't show file or folder icons

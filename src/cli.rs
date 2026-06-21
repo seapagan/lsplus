@@ -323,7 +323,9 @@ fn no_permission_colors_arg() -> Arg {
     Arg::new(ARG_NO_PERMISSION_COLORS)
         .long("no-permission-colors")
         .action(ArgAction::SetTrue)
-        .help("Do not color permission bits in long-format output")
+        .help(
+            "Do not color file type character or permission bits in long-format output",
+        )
 }
 
 fn no_time_gradient_arg() -> Arg {
