@@ -132,6 +132,7 @@ those fields without accent colors.
 This option controls long-format timestamp freshness colors. Set it to `false`,
 or pass `--no-time-gradient`, to use the fixed timestamp color instead of
 age-based timestamp colors.
+
 Timestamp colors adapt to terminal color capability: truecolor terminals use a
 smooth age gradient and 256-color terminals use a stepped fallback to
 distinguish day, week, month, and year bands. Basic ANSI terminals use named

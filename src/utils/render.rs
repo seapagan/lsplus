@@ -440,6 +440,7 @@ fn visible_text_width(text: &str) -> usize {
 }
 
 fn print_table(table: &Table) -> io::Result<()> {
+    // Use tty-aware output so prettytable style_spec colors stay out of pipes.
     table.print_tty(false)?;
     io::stdout().flush()
 }
