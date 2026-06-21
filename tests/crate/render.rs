@@ -299,14 +299,21 @@ fn test_build_long_format_table_omits_size_colors_when_disabled() {
 #[test]
 fn test_build_long_format_table_colors_time_buckets() {
     temp_env::with_vars(
-        [("COLORTERM", None::<&str>), ("TERM", Some("dumb"))],
+        [("COLORTERM", None::<&str>), ("TERM", Some("xterm"))],
         || {
             with_color_output_enabled(|| {
                 let now = SystemTime::now();
                 let files = [
                     test_file_info("fresh.txt", None, 12, now),
                     test_file_info(
-                        "middle.txt",
+                        "week.txt",
+                        None,
+                        12,
+                        now.checked_sub(Duration::from_secs(2 * 24 * 60 * 60))
+                            .unwrap(),
+                    ),
+                    test_file_info(
+                        "month.txt",
                         None,
                         12,
                         now.checked_sub(Duration::from_secs(
@@ -315,11 +322,11 @@ fn test_build_long_format_table_colors_time_buckets() {
                         .unwrap(),
                     ),
                     test_file_info(
-                        "old.txt",
+                        "year.txt",
                         None,
                         12,
                         now.checked_sub(Duration::from_secs(
-                            31 * 24 * 60 * 60,
+                            400 * 24 * 60 * 60,
                         ))
                         .unwrap(),
                     ),
@@ -334,7 +341,9 @@ fn test_build_long_format_table_colors_time_buckets() {
                     normalized_table(build_long_format_table(&files, &params));
 
                 assert!(rendered.contains("\u{1b}[1;93m"));
+                assert!(rendered.contains("\u{1b}[93m"));
                 assert!(rendered.contains("\u{1b}[33m"));
+                assert!(rendered.contains("\u{1b}[2;33m"));
             });
         },
     );
@@ -346,20 +355,97 @@ fn test_build_long_format_table_uses_truecolor_for_time_when_supported() {
         [("COLORTERM", Some("truecolor")), ("TERM", None::<&str>)],
         || {
             with_color_output_enabled(|| {
-                let info =
-                    test_file_info("fresh.txt", None, 12, SystemTime::now());
+                let now = SystemTime::now();
+                let files = [
+                    test_file_info("fresh.txt", None, 12, now),
+                    test_file_info(
+                        "old.txt",
+                        None,
+                        12,
+                        now.checked_sub(Duration::from_secs(
+                            400 * 24 * 60 * 60,
+                        ))
+                        .unwrap(),
+                    ),
+                ];
                 let params = Params {
                     permission_colors: false,
                     size_colors: false,
                     ..Params::default()
                 };
 
-                let rendered = normalized_table(build_long_format_table(
-                    &[info],
-                    &params,
-                ));
+                let rendered =
+                    normalized_table(build_long_format_table(&files, &params));
 
                 assert!(rendered.contains("\u{1b}[38;2;255;209;102m"));
+                assert!(rendered.contains("\u{1b}[38;2;150;103;38m"));
+            });
+        },
+    );
+}
+
+#[test]
+fn test_build_long_format_table_uses_ansi_256_for_time_when_supported() {
+    temp_env::with_vars(
+        [
+            ("COLORTERM", None::<&str>),
+            ("TERM", Some("xterm-256color")),
+        ],
+        || {
+            with_color_output_enabled(|| {
+                let now = SystemTime::now();
+                let files = [
+                    test_file_info("fresh.txt", None, 12, now),
+                    test_file_info(
+                        "week.txt",
+                        None,
+                        12,
+                        now.checked_sub(Duration::from_secs(2 * 24 * 60 * 60))
+                            .unwrap(),
+                    ),
+                    test_file_info(
+                        "month.txt",
+                        None,
+                        12,
+                        now.checked_sub(Duration::from_secs(
+                            14 * 24 * 60 * 60,
+                        ))
+                        .unwrap(),
+                    ),
+                    test_file_info(
+                        "year.txt",
+                        None,
+                        12,
+                        now.checked_sub(Duration::from_secs(
+                            31 * 24 * 60 * 60,
+                        ))
+                        .unwrap(),
+                    ),
+                    test_file_info(
+                        "older.txt",
+                        None,
+                        12,
+                        now.checked_sub(Duration::from_secs(
+                            400 * 24 * 60 * 60,
+                        ))
+                        .unwrap(),
+                    ),
+                ];
+                let params = Params {
+                    permission_colors: false,
+                    size_colors: false,
+                    ..Params::default()
+                };
+
+                let rendered =
+                    normalized_table(build_long_format_table(&files, &params));
+
+                assert!(rendered.contains("\u{1b}[1;38;5;222m"));
+                assert!(rendered.contains("\u{1b}[38;5;221m"));
+                assert!(rendered.contains("\u{1b}[38;5;178m"));
+                assert!(rendered.contains("\u{1b}[38;5;136m"));
+                assert!(rendered.contains("\u{1b}[38;5;130m"));
+                assert!(!rendered.contains("\u{1b}[38;2;"));
             });
         },
     );
@@ -381,6 +467,7 @@ fn test_build_long_format_table_omits_time_colors_when_disabled() {
 
         assert!(!rendered.contains("\u{1b}[33m"));
         assert!(!rendered.contains("\u{1b}[38;2;"));
+        assert!(!rendered.contains("\u{1b}[38;5;"));
     });
 }
 

@@ -131,6 +131,9 @@ those fields without accent colors.
 
 This option controls long-format timestamp freshness colors. Set it to `false`,
 or pass `--no-time-colors`, to render timestamps without freshness accents.
+Timestamp colors adapt to terminal color capability: truecolor terminals use a
+smooth age gradient, 256-color terminals use a stepped fallback, and basic ANSI
+terminals use named yellow tones.
 
 ### size_colors
 

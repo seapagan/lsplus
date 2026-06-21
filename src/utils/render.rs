@@ -17,7 +17,10 @@ use crate::utils::file::check_display_name;
 const SHORT_CELL_PADDING: usize = 2;
 const LARGE_SIZE_BYTES: u64 = 1024 * 1024;
 const HUGE_SIZE_BYTES: u64 = 1024 * 1024 * 1024;
-const TIME_COLOR_HORIZON: Duration = Duration::from_secs(30 * 24 * 60 * 60);
+const DAY: Duration = Duration::from_secs(24 * 60 * 60);
+const WEEK: Duration = Duration::from_secs(7 * 24 * 60 * 60);
+const MONTH: Duration = Duration::from_secs(30 * 24 * 60 * 60);
+const YEAR: Duration = Duration::from_secs(365 * 24 * 60 * 60);
 
 pub fn display_long_format(
     file_info: &[FileInfo],
@@ -147,34 +150,83 @@ fn long_time_text(text: &str, mtime: SystemTime, params: &Params) -> String {
     if supports_truecolor() {
         return truecolor_time_text(text, age);
     }
+    if supports_ansi_256() {
+        return ansi_256_time_text(text, age);
+    }
 
     named_time_text(text, age)
 }
 
 fn truecolor_time_text(text: &str, age: Duration) -> String {
-    let ratio = if age >= TIME_COLOR_HORIZON {
-        1.0
-    } else {
-        age.as_secs_f32() / TIME_COLOR_HORIZON.as_secs_f32()
-    };
-    let red = interpolate(255, 184, ratio);
-    let green = interpolate(209, 135, ratio);
-    let blue = interpolate(102, 50, ratio);
+    let (start, end, ratio) = time_color_segment(
+        age,
+        [
+            (255, 209, 102),
+            (236, 187, 82),
+            (208, 159, 65),
+            (150, 103, 38),
+        ],
+    );
+    let red = interpolate(start.0, end.0, ratio);
+    let green = interpolate(start.1, end.1, ratio);
+    let blue = interpolate(start.2, end.2, ratio);
 
     text.rgb(red, green, blue).to_string()
 }
 
-fn named_time_text(text: &str, age: Duration) -> String {
-    let horizon = TIME_COLOR_HORIZON.as_secs();
-    let age_secs = age.as_secs();
-
-    if age_secs < horizon / 10 {
-        text.bright_yellow().bold().to_string()
-    } else if age_secs < horizon / 2 {
-        text.bright_yellow().to_string()
+fn ansi_256_time_text(text: &str, age: Duration) -> String {
+    let (color, bold) = if age < DAY {
+        (222, true)
+    } else if age < WEEK {
+        (221, false)
+    } else if age < MONTH {
+        (178, false)
+    } else if age < YEAR {
+        (136, false)
     } else {
-        text.yellow().to_string()
+        (130, false)
+    };
+
+    if bold {
+        format!("\x1b[1;38;5;{color}m{text}\x1b[0m")
+    } else {
+        format!("\x1b[38;5;{color}m{text}\x1b[0m")
     }
+}
+
+fn named_time_text(text: &str, age: Duration) -> String {
+    if age < DAY {
+        text.bright_yellow().bold().to_string()
+    } else if age < WEEK {
+        text.bright_yellow().to_string()
+    } else if age < YEAR {
+        text.yellow().to_string()
+    } else {
+        text.yellow().dim().to_string()
+    }
+}
+
+fn time_color_segment(
+    age: Duration,
+    colors: [(u8, u8, u8); 4],
+) -> ((u8, u8, u8), (u8, u8, u8), f32) {
+    if age < DAY {
+        (colors[0], colors[0], 0.0)
+    } else if age < WEEK {
+        (colors[0], colors[1], segment_ratio(age, DAY, WEEK))
+    } else if age < MONTH {
+        (colors[1], colors[2], segment_ratio(age, WEEK, MONTH))
+    } else if age < YEAR {
+        (colors[2], colors[3], segment_ratio(age, MONTH, YEAR))
+    } else {
+        (colors[3], colors[3], 0.0)
+    }
+}
+
+fn segment_ratio(age: Duration, start: Duration, end: Duration) -> f32 {
+    let elapsed = age.saturating_sub(start).as_secs_f32();
+    let span = end.saturating_sub(start).as_secs_f32();
+    (elapsed / span).clamp(0.0, 1.0)
 }
 
 fn interpolate(start: u8, end: u8, ratio: f32) -> u8 {
@@ -187,12 +239,22 @@ fn supports_truecolor() -> bool {
     env_contains_truecolor("COLORTERM") || env_contains_truecolor("TERM")
 }
 
+fn supports_ansi_256() -> bool {
+    env_contains_256color("COLORTERM") || env_contains_256color("TERM")
+}
+
 fn env_contains_truecolor(name: &str) -> bool {
     env::var(name)
         .map(|value| {
             let value = value.to_ascii_lowercase();
             value.contains("truecolor") || value.contains("24bit")
         })
+        .unwrap_or(false)
+}
+
+fn env_contains_256color(name: &str) -> bool {
+    env::var(name)
+        .map(|value| value.to_ascii_lowercase().contains("256color"))
         .unwrap_or(false)
 }
 

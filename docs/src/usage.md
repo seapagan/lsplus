@@ -59,6 +59,11 @@ sizes by default. You can disable those accents independently with
 matching `permission_colors = false`, `time_colors = false`, and
 `size_colors = false` config options.
 
+Timestamp colors adapt to terminal color capability. Truecolor terminals use a
+smooth age gradient, 256-color terminals use a stepped fallback, and basic ANSI
+terminals use named yellow tones. The timestamp palette distinguishes files
+newer than a day, week, month, and year across all fallbacks.
+
 When `-I` is enabled, `lsp` checks the same ignore sources Git normally uses:
 merged `.gitignore` files in the worktree, `.git/info/exclude`, and the
 configured global Git excludes file.
