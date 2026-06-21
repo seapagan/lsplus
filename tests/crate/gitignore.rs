@@ -210,17 +210,18 @@ fn test_matcher_ignores_path_returns_false_outside_matcher_root() {
 #[test]
 fn test_helper_seams_return_none_without_usable_git_metadata() {
     let temp_dir = tempdir().unwrap();
-    let relative_file = std::path::Path::new("plain.txt");
+    let relative_file = temp_dir.path().join("plain.txt");
     let mut cache = GitignoreCache::default();
 
     fs::write(temp_dir.path().join(".git"), "not-a-gitdir-line\n").unwrap();
+    fs::write(&relative_file, "plain").unwrap();
 
     assert_eq!(find_git_paths_parts(temp_dir.path()), None);
     assert_eq!(
         matcher_ignores_path(temp_dir.path(), temp_dir.path(), true),
         None
     );
-    assert!(!cache.is_ignored(relative_file, false));
+    assert!(!cache.is_ignored(&relative_file, false));
 }
 
 #[test]

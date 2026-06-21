@@ -311,7 +311,7 @@ fn test_create_file_info_handles_regular_files_symlinks_and_special_cases() {
         },
     )
     .unwrap();
-    assert!(dir_info.display_name.ends_with('/'));
+    assert!(strip_str(&dir_info.display_name).ends_with('/'));
 
     let link_info = create_file_info(
         &valid_symlink,
