@@ -1,28 +1,13 @@
 use crate::Params;
 use crate::app::{collect_matches, patterns_from_args, run_with_flags};
 use crate::cli::Flags;
+use crate::common_tests::ColorModeGuard;
 use crate::utils::color::{
     LongFormatColorLevel, color_mode_for, long_format_color_level,
 };
-use colored_text::{ColorMode, ColorizeConfig};
+use colored_text::ColorMode;
 use std::fs;
 use tempfile::tempdir;
-
-struct ColorModeGuard(ColorMode);
-
-impl ColorModeGuard {
-    fn set(mode: ColorMode) -> Self {
-        let previous = ColorizeConfig::color_mode();
-        ColorizeConfig::set_color_mode(mode);
-        Self(previous)
-    }
-}
-
-impl Drop for ColorModeGuard {
-    fn drop(&mut self) {
-        ColorizeConfig::set_color_mode(self.0);
-    }
-}
 
 #[test]
 fn test_patterns_from_args_defaults_to_current_directory() {

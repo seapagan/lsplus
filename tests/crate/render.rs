@@ -1,3 +1,6 @@
+use crate::common_tests::{
+    ColorModeGuard, has_ansi, with_color_output_enabled,
+};
 use crate::utils::color::LongFormatColorLevel;
 use crate::utils::icons::Icon;
 use crate::utils::render::{
@@ -5,7 +8,7 @@ use crate::utils::render::{
     size_style_spec_for_color_level, terminal_width_or_default,
 };
 use crate::{FileInfo, NameStyle, Params};
-use colored_text::{ColorMode, ColorizeConfig};
+use colored_text::ColorMode;
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 use strip_ansi_escapes::strip_str;
@@ -40,33 +43,6 @@ fn normalized_lines(lines: Vec<String>) -> String {
 
 fn normalized_table(table: prettytable::Table) -> String {
     table.to_string().replace("\r\n", "\n")
-}
-
-struct ColorModeGuard(ColorMode);
-
-impl ColorModeGuard {
-    fn set(mode: ColorMode) -> Self {
-        let previous = ColorizeConfig::color_mode();
-        ColorizeConfig::set_color_mode(mode);
-        Self(previous)
-    }
-}
-
-impl Drop for ColorModeGuard {
-    fn drop(&mut self) {
-        ColorizeConfig::set_color_mode(self.0);
-    }
-}
-
-fn has_ansi(text: &str) -> bool {
-    text.contains("\u{1b}[")
-}
-
-fn with_color_output_enabled<T>(test: impl FnOnce() -> T) -> T {
-    temp_env::with_var("NO_COLOR", None::<&str>, || {
-        let _guard = ColorModeGuard::set(ColorMode::Always);
-        test()
-    })
 }
 
 #[test]

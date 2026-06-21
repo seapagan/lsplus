@@ -20,6 +20,9 @@ mod app_tests;
 #[path = "../tests/crate/cli.rs"]
 mod cli_tests;
 #[cfg(test)]
+#[path = "../tests/crate/common.rs"]
+mod common_tests;
+#[cfg(test)]
 #[path = "../tests/crate/file.rs"]
 mod file_tests;
 #[cfg(test)]
