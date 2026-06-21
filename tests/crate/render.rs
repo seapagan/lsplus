@@ -217,12 +217,60 @@ fn test_build_long_format_table_colors_size_boundaries() {
 
         let rendered =
             normalized_table(build_long_format_table(&files, &params));
+        let stripped = strip_str(&rendered);
 
-        assert!(!rendered.contains("\u{1b}[33m1024\u{1b}[0m"));
-        assert!(rendered.contains("\u{1b}[33m1\u{1b}[0m"));
-        assert!(rendered.contains("\u{1b}[33mMB\u{1b}[0m"));
-        assert!(rendered.contains("\u{1b}[1;31m1\u{1b}[0m"));
-        assert!(rendered.contains("\u{1b}[1;31mGB\u{1b}[0m"));
+        assert!(stripped.contains("1024"));
+        assert!(stripped.contains("KB"));
+        assert!(stripped.contains("1 MB"));
+        assert!(stripped.contains("1 GB"));
+    });
+}
+
+#[test]
+fn test_build_long_format_table_aligns_colored_size_cells() {
+    with_color_output_enabled(|| {
+        let files = [
+            test_file_info("plain.bin", None, 808, SystemTime::now()),
+            test_file_info(
+                "large.bin",
+                None,
+                8 * 1024 * 1024,
+                SystemTime::now(),
+            ),
+            test_file_info(
+                "huge.bin",
+                None,
+                57 * 1024 * 1024 * 1024,
+                SystemTime::now(),
+            ),
+        ];
+        let params = Params {
+            human_readable: true,
+            permission_colors: false,
+            time_colors: false,
+            ..Params::default()
+        };
+
+        let rendered =
+            normalized_table(build_long_format_table(&files, &params));
+        let stripped = strip_str(&rendered);
+        let rows: Vec<_> = stripped
+            .lines()
+            .filter(|line| line.contains(".bin"))
+            .collect();
+
+        assert_eq!(rows.len(), 3);
+        let plain_size_end = rows[0].find("808").unwrap() + "808".len();
+        let large_size_end = rows[1].find('8').unwrap() + "8".len();
+        let huge_size_end = rows[2].find("57").unwrap() + "57".len();
+        let plain_unit_start = rows[0].find("B   ").unwrap();
+        let large_unit_start = rows[1].find("MB ").unwrap();
+        let huge_unit_start = rows[2].find("GB ").unwrap();
+
+        assert_eq!(plain_size_end, large_size_end);
+        assert_eq!(large_size_end, huge_size_end);
+        assert_eq!(plain_unit_start, large_unit_start);
+        assert_eq!(large_unit_start, huge_unit_start);
     });
 }
 

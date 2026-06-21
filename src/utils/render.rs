@@ -52,14 +52,10 @@ pub(crate) fn build_long_format_table(
         row_cells.push(Cell::new(&info.nlink.to_string()));
         row_cells.push(Cell::new(&format!(" {}", info.user.cyan())));
         row_cells.push(Cell::new(&format!("{} ", info.group.green())));
-        row_cells.push(
-            Cell::new(&long_size_text(&display_size, info.size, params))
-                .style_spec("r"),
-        );
+        row_cells.push(size_cell(&display_size, info.size, params, "r"));
 
         if !units.is_empty() {
-            row_cells
-                .push(Cell::new(&long_size_text(units, info.size, params)));
+            row_cells.push(size_cell(units, info.size, params, ""));
         }
 
         row_cells.push(
@@ -120,16 +116,23 @@ fn style_permission_char(value: char) -> String {
     }
 }
 
-fn long_size_text(text: &str, size: u64, params: &Params) -> String {
-    if !params.size_colors {
-        return text.to_string();
-    }
+fn size_cell(text: &str, size: u64, params: &Params, base: &str) -> Cell {
+    Cell::new(text).style_spec(size_style_spec(size, params, base))
+}
 
-    match size {
-        HUGE_SIZE_BYTES.. => text.red().bold().to_string(),
-        LARGE_SIZE_BYTES.. => text.yellow().to_string(),
-        _ => text.to_string(),
+fn size_style_spec(size: u64, params: &Params, base: &str) -> &'static str {
+    match (size_colors_enabled(params), size, base) {
+        (true, HUGE_SIZE_BYTES.., "r") => "rFrb",
+        (true, HUGE_SIZE_BYTES.., _) => "Frb",
+        (true, LARGE_SIZE_BYTES.., "r") => "rFy",
+        (true, LARGE_SIZE_BYTES.., _) => "Fy",
+        (_, _, "r") => "r",
+        _ => "",
     }
+}
+
+fn size_colors_enabled(params: &Params) -> bool {
+    params.size_colors && !params.no_color && env::var_os("NO_COLOR").is_none()
 }
 
 fn long_time_text(text: &str, mtime: SystemTime, params: &Params) -> String {
@@ -360,9 +363,8 @@ fn visible_text_width(text: &str) -> usize {
 }
 
 fn print_table(table: &Table) -> io::Result<()> {
-    let mut stdout = io::stdout();
-    table.print(&mut stdout)?;
-    stdout.flush()
+    table.print_tty(false)?;
+    io::stdout().flush()
 }
 
 fn print_short_lines(lines: &[String]) -> io::Result<()> {
