@@ -1,7 +1,8 @@
 use chrono::{DateTime, Local};
 use colored_text::{Colorize, StyledText};
 use prettytable::{Cell, Row, Table};
-use std::io::{self, Write};
+use std::fmt::Write as FmtWrite;
+use std::io::{self, Write as IoWrite};
 use std::time::{Duration, SystemTime};
 
 use strip_ansi_escapes::strip_str;
@@ -99,36 +100,34 @@ fn long_permission_text(info: &FileInfo, params: &Params) -> String {
         return format!("{}{}", info.file_type, info.mode);
     }
 
-    let file_type = info
-        .file_type
-        .chars()
-        .map(style_file_type_char)
-        .collect::<String>();
-    let mode = info
-        .mode
-        .chars()
-        .map(style_permission_char)
-        .collect::<String>();
+    let mut output =
+        String::with_capacity(info.file_type.len() + info.mode.len());
+    for value in info.file_type.chars() {
+        write_file_type_char(&mut output, value);
+    }
+    for value in info.mode.chars() {
+        write_permission_char(&mut output, value);
+    }
 
-    format!("{file_type}{mode}")
+    output
 }
 
-fn style_file_type_char(value: char) -> String {
+fn write_file_type_char(output: &mut String, value: char) {
     match value {
-        'd' => value.to_string().blue().to_string(),
-        'l' => value.to_string().cyan().to_string(),
-        '-' => value.to_string().dim().to_string(),
-        _ => value.to_string(),
+        'd' => write!(output, "{}", value.blue()).unwrap(),
+        'l' => write!(output, "{}", value.cyan()).unwrap(),
+        '-' => write!(output, "{}", value.dim()).unwrap(),
+        _ => output.push(value),
     }
 }
 
-fn style_permission_char(value: char) -> String {
+fn write_permission_char(output: &mut String, value: char) {
     match value {
-        'r' => value.to_string().green().to_string(),
-        'w' => value.to_string().yellow().to_string(),
-        'x' => value.to_string().red().bold().to_string(),
-        '-' => value.to_string().dim().to_string(),
-        _ => value.to_string(),
+        'r' => write!(output, "{}", value.green()).unwrap(),
+        'w' => write!(output, "{}", value.yellow()).unwrap(),
+        'x' => write!(output, "{}", value.red().bold()).unwrap(),
+        '-' => write!(output, "{}", value.dim()).unwrap(),
+        _ => output.push(value),
     }
 }
 
