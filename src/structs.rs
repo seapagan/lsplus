@@ -133,10 +133,11 @@ impl From<RawParams> for Params {
 impl Params {
     /// Merge parsed CLI flags with config-file defaults.
     ///
-    /// Boolean options are treated as opt-in toggles, so a value is enabled if
-    /// either the command line or the config file enables it. Indicator style
-    /// is selected by explicit CLI override when present, otherwise the config
-    /// value is used.
+    /// Most boolean options are opt-in toggles, so a value is enabled if
+    /// either the command line or the config file enables it. Long-format
+    /// accent options are config-driven defaults that can be disabled by their
+    /// corresponding `--no-*` CLI flags. Indicator style is selected by
+    /// explicit CLI override when present, otherwise the config value is used.
     pub fn merge(flags: &cli::Flags, config: &Self) -> Self {
         Self {
             show_all: flags.show_all || config.show_all,
