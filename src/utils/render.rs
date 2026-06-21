@@ -14,14 +14,11 @@ use crate::structs::{FileInfo, NameStyle};
 use crate::utils;
 use crate::utils::color::{LongFormatColorLevel, long_format_color_level};
 use crate::utils::file::check_display_name;
+use crate::utils::time::{DAY, MONTH, WEEK, YEAR};
 
 const SHORT_CELL_PADDING: usize = 2;
 const LARGE_SIZE_BYTES: u64 = 1024 * 1024;
 const HUGE_SIZE_BYTES: u64 = 1024 * 1024 * 1024;
-const DAY: Duration = Duration::from_secs(24 * 60 * 60);
-const WEEK: Duration = Duration::from_secs(7 * 24 * 60 * 60);
-const MONTH: Duration = Duration::from_secs(30 * 24 * 60 * 60);
-const YEAR: Duration = Duration::from_secs(365 * 24 * 60 * 60);
 
 pub fn display_long_format(
     file_info: &[FileInfo],

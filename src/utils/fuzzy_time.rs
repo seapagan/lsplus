@@ -1,6 +1,8 @@
 use std::fmt;
 use std::time::{Duration, SystemTime};
 
+use crate::utils::time::{DAY, MONTH, WEEK, YEAR};
+
 #[derive(Debug)]
 enum FuzzyTime {
     SecondsAgo(u64),
@@ -56,18 +58,18 @@ fn format_future_time(duration: Duration) -> String {
     let seconds = duration.as_secs();
     let minutes = seconds / 60;
     let hours = minutes / 60;
-    let days = hours / 24;
-    let weeks = days / 7;
-    let months = days / 30;
-    let years = days / 365;
+    let days = seconds / DAY.as_secs();
+    let weeks = seconds / WEEK.as_secs();
+    let months = seconds / MONTH.as_secs();
+    let years = seconds / YEAR.as_secs();
 
     let (unit, n) = match seconds {
         s if s < 60 => ("second", s),
         _ if minutes < 60 => ("minute", minutes),
         _ if hours < 24 => ("hour", hours),
-        _ if days < 7 => ("day", days),
-        _ if days < 30 => ("week", weeks),
-        _ if days < 365 => ("month", months),
+        _ if duration < WEEK => ("day", days),
+        _ if duration < MONTH => ("week", weeks),
+        _ if duration < YEAR => ("month", months),
         _ => ("year", years),
     };
 
@@ -78,22 +80,22 @@ fn get_fuzzy_time(duration: Duration) -> FuzzyTime {
     let seconds = duration.as_secs();
     let minutes = seconds / 60;
     let hours = minutes / 60;
-    let days = hours / 24;
-    let weeks = days / 7;
-    let months = days / 30;
-    let years = days / 365;
+    let days = seconds / DAY.as_secs();
+    let weeks = seconds / WEEK.as_secs();
+    let months = seconds / MONTH.as_secs();
+    let years = seconds / YEAR.as_secs();
 
     match seconds {
         s if s < 60 => FuzzyTime::SecondsAgo(s),
         _ if minutes < 60 => FuzzyTime::MinutesAgo(minutes),
         _ if hours < 24 => FuzzyTime::HoursAgo(hours),
         _ if days == 1 => FuzzyTime::Yesterday,
-        _ if days < 7 => FuzzyTime::DaysAgo(days),
-        _ if days < 14 => FuzzyTime::LastWeek,
-        _ if days < 30 => FuzzyTime::WeeksAgo(weeks),
-        _ if days < 60 => FuzzyTime::LastMonth,
-        _ if days < 365 => FuzzyTime::MonthsAgo(months),
-        _ if days < 730 => FuzzyTime::LastYear,
+        _ if duration < WEEK => FuzzyTime::DaysAgo(days),
+        _ if duration < 2 * WEEK => FuzzyTime::LastWeek,
+        _ if duration < MONTH => FuzzyTime::WeeksAgo(weeks),
+        _ if duration < 2 * MONTH => FuzzyTime::LastMonth,
+        _ if duration < YEAR => FuzzyTime::MonthsAgo(months),
+        _ if duration < 2 * YEAR => FuzzyTime::LastYear,
         _ => FuzzyTime::YearsAgo(years),
     }
 }
