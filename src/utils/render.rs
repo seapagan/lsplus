@@ -123,7 +123,11 @@ fn size_cell(text: &str, size: u64, params: &Params, base: &str) -> Cell {
     Cell::new(text).style_spec(size_style_spec(size, params, base))
 }
 
-fn size_style_spec(size: u64, params: &Params, base: &str) -> &'static str {
+pub(crate) fn size_style_spec(
+    size: u64,
+    params: &Params,
+    base: &str,
+) -> &'static str {
     match (size_colors_enabled(params), size, base) {
         (true, HUGE_SIZE_BYTES.., "r") => "rFrb",
         (true, HUGE_SIZE_BYTES.., _) => "Frb",

@@ -1,6 +1,6 @@
 use crate::utils::icons::Icon;
 use crate::utils::render::{
-    build_long_format_table, render_short_format_lines,
+    build_long_format_table, render_short_format_lines, size_style_spec,
     terminal_width_or_default,
 };
 use crate::{FileInfo, NameStyle, Params};
@@ -293,6 +293,53 @@ fn test_build_long_format_table_omits_size_colors_when_disabled() {
         assert!(rendered.contains("1 MB"));
         assert!(!rendered.contains("\u{1b}[33m1\u{1b}[0m"));
         assert!(!rendered.contains("\u{1b}[33mMB\u{1b}[0m"));
+    });
+}
+
+#[test]
+fn test_size_style_spec_colors_size_boundaries() {
+    temp_env::with_var("NO_COLOR", None::<&str>, || {
+        let params = Params::default();
+
+        assert_eq!(size_style_spec(1024 * 1024 - 1, &params, "r"), "r");
+        assert_eq!(size_style_spec(1024 * 1024 - 1, &params, ""), "");
+        assert_eq!(size_style_spec(1024 * 1024, &params, "r"), "rFy");
+        assert_eq!(size_style_spec(1024 * 1024, &params, ""), "Fy");
+        assert_eq!(size_style_spec(1024 * 1024 * 1024, &params, "r"), "rFrb");
+        assert_eq!(size_style_spec(1024 * 1024 * 1024, &params, ""), "Frb");
+    });
+}
+
+#[test]
+fn test_size_style_spec_omits_size_colors_when_disabled() {
+    temp_env::with_var("NO_COLOR", None::<&str>, || {
+        let params = Params {
+            size_colors: false,
+            ..Params::default()
+        };
+
+        assert_eq!(size_style_spec(1024 * 1024, &params, "r"), "r");
+        assert_eq!(size_style_spec(1024 * 1024, &params, ""), "");
+    });
+}
+
+#[test]
+fn test_size_style_spec_omits_size_colors_when_global_color_is_disabled() {
+    temp_env::with_var("NO_COLOR", None::<&str>, || {
+        let params = Params {
+            no_color: true,
+            ..Params::default()
+        };
+
+        assert_eq!(size_style_spec(1024 * 1024, &params, "r"), "r");
+        assert_eq!(size_style_spec(1024 * 1024, &params, ""), "");
+    });
+
+    temp_env::with_var("NO_COLOR", Some("1"), || {
+        let params = Params::default();
+
+        assert_eq!(size_style_spec(1024 * 1024, &params, "r"), "r");
+        assert_eq!(size_style_spec(1024 * 1024, &params, ""), "");
     });
 }
 
