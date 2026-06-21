@@ -4,5 +4,8 @@
 .windsurfrules
 
 # AI stuff
-.codex
+.codex/
+.agents/
+.claude/
 AGENTS.md
+CLAUDE.md
