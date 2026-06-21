@@ -499,6 +499,28 @@ fn test_build_long_format_table_uses_ansi_256_for_time_when_supported() {
 }
 
 #[test]
+fn test_build_long_format_table_omits_ansi_256_time_when_color_disabled() {
+    temp_env::with_vars(
+        [
+            ("COLORTERM", None::<&str>),
+            ("TERM", Some("xterm-256color")),
+        ],
+        || {
+            let _guard = ColorModeGuard::set(ColorMode::Never);
+            let info =
+                test_file_info("future.txt", None, 12, SystemTime::now());
+
+            let rendered = normalized_table(build_long_format_table(
+                &[info],
+                &Params::default(),
+            ));
+
+            assert!(!has_ansi(&rendered));
+        },
+    );
+}
+
+#[test]
 fn test_build_long_format_table_uses_fixed_time_color_when_gradient_disabled()
 {
     with_color_output_enabled(|| {

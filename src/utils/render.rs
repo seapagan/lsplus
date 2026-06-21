@@ -1,8 +1,8 @@
 use chrono::{DateTime, Local};
-use colored_text::{Colorize, StyledText};
+use colored_text::{ColorMode, Colorize, ColorizeConfig, StyledText};
 use prettytable::{Cell, Row, Table};
 use std::env;
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
 use std::time::{Duration, SystemTime};
 
 use strip_ansi_escapes::strip_str;
@@ -154,7 +154,7 @@ fn long_time_text(text: &str, mtime: SystemTime, params: &Params) -> String {
     if supports_truecolor() {
         return truecolor_time_text(text, age);
     }
-    if supports_ansi_256() {
+    if raw_ansi_color_enabled() && supports_ansi_256() {
         return ansi_256_time_text(text, age);
     }
 
@@ -245,6 +245,16 @@ fn supports_truecolor() -> bool {
 
 fn supports_ansi_256() -> bool {
     env_contains_256color("COLORTERM") || env_contains_256color("TERM")
+}
+
+fn raw_ansi_color_enabled() -> bool {
+    match ColorizeConfig::color_mode() {
+        ColorMode::Never => false,
+        ColorMode::Always => env::var_os("NO_COLOR").is_none(),
+        ColorMode::Auto => {
+            env::var_os("NO_COLOR").is_none() && io::stdout().is_terminal()
+        }
+    }
 }
 
 fn env_contains_truecolor(name: &str) -> bool {
