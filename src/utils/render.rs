@@ -1,7 +1,9 @@
 use chrono::{DateTime, Local};
 use colored_text::{Colorize, StyledText};
 use prettytable::{Cell, Row, Table};
+use std::env;
 use std::io::{self, Write};
+use std::time::{Duration, SystemTime};
 
 use strip_ansi_escapes::strip_str;
 use terminal_size::{Height, Width, terminal_size};
@@ -13,6 +15,9 @@ use crate::utils;
 use crate::utils::file::check_display_name;
 
 const SHORT_CELL_PADDING: usize = 2;
+const LARGE_SIZE_BYTES: u64 = 1024 * 1024;
+const HUGE_SIZE_BYTES: u64 = 1024 * 1024 * 1024;
+const TIME_COLOR_HORIZON: Duration = Duration::from_secs(30 * 24 * 60 * 60);
 
 pub fn display_long_format(
     file_info: &[FileInfo],
@@ -40,19 +45,29 @@ pub(crate) fn build_long_format_table(
 
         let mut row_cells = Vec::with_capacity(9);
 
-        row_cells
-            .push(Cell::new(&format!("{}{} ", info.file_type, info.mode)));
+        row_cells.push(Cell::new(&format!(
+            "{} ",
+            long_permission_text(info, params)
+        )));
         row_cells.push(Cell::new(&info.nlink.to_string()));
         row_cells.push(Cell::new(&format!(" {}", info.user.cyan())));
         row_cells.push(Cell::new(&format!("{} ", info.group.green())));
-        row_cells.push(Cell::new(&display_size).style_spec("r"));
+        row_cells.push(
+            Cell::new(&long_size_text(&display_size, info.size, params))
+                .style_spec("r"),
+        );
 
         if !units.is_empty() {
-            row_cells.push(Cell::new(units));
+            row_cells
+                .push(Cell::new(&long_size_text(units, info.size, params)));
         }
 
         row_cells.push(
-            Cell::new(&format!(" {} ", display_time.yellow())).style_spec("r"),
+            Cell::new(&format!(
+                " {} ",
+                long_time_text(&display_time, info.mtime, params)
+            ))
+            .style_spec("r"),
         );
 
         if let Some(icon) = &info.item_icon {
@@ -65,6 +80,119 @@ pub(crate) fn build_long_format_table(
     }
 
     table
+}
+
+fn long_permission_text(info: &FileInfo, params: &Params) -> String {
+    if !params.permission_colors {
+        return format!("{}{}", info.file_type, info.mode);
+    }
+
+    let file_type = info
+        .file_type
+        .chars()
+        .map(style_file_type_char)
+        .collect::<String>();
+    let mode = info
+        .mode
+        .chars()
+        .map(style_permission_char)
+        .collect::<String>();
+
+    format!("{file_type}{mode}")
+}
+
+fn style_file_type_char(value: char) -> String {
+    match value {
+        'd' => value.to_string().blue().to_string(),
+        'l' => value.to_string().cyan().to_string(),
+        '-' => value.to_string().dim().to_string(),
+        _ => value.to_string(),
+    }
+}
+
+fn style_permission_char(value: char) -> String {
+    match value {
+        'r' => value.to_string().green().to_string(),
+        'w' => value.to_string().yellow().to_string(),
+        'x' => value.to_string().red().bold().to_string(),
+        '-' => value.to_string().dim().to_string(),
+        _ => value.to_string(),
+    }
+}
+
+fn long_size_text(text: &str, size: u64, params: &Params) -> String {
+    if !params.size_colors {
+        return text.to_string();
+    }
+
+    match size {
+        HUGE_SIZE_BYTES.. => text.red().bold().to_string(),
+        LARGE_SIZE_BYTES.. => text.yellow().to_string(),
+        _ => text.to_string(),
+    }
+}
+
+fn long_time_text(text: &str, mtime: SystemTime, params: &Params) -> String {
+    if !params.time_colors {
+        return text.to_string();
+    }
+
+    let age = SystemTime::now()
+        .duration_since(mtime)
+        .unwrap_or(Duration::ZERO);
+
+    if supports_truecolor() {
+        return truecolor_time_text(text, age);
+    }
+
+    named_time_text(text, age)
+}
+
+fn truecolor_time_text(text: &str, age: Duration) -> String {
+    if age >= TIME_COLOR_HORIZON {
+        return text.dim().to_string();
+    }
+
+    let ratio = age.as_secs_f32() / TIME_COLOR_HORIZON.as_secs_f32();
+    let red = interpolate(80, 220, ratio);
+    let green = interpolate(220, 180, ratio);
+    let blue = interpolate(80, 40, ratio);
+
+    text.rgb(red, green, blue).to_string()
+}
+
+fn named_time_text(text: &str, age: Duration) -> String {
+    let horizon = TIME_COLOR_HORIZON.as_secs();
+    let age_secs = age.as_secs();
+
+    if age_secs < horizon / 10 {
+        text.bright_green().to_string()
+    } else if age_secs < horizon / 2 {
+        text.green().to_string()
+    } else if age_secs < horizon {
+        text.yellow().to_string()
+    } else {
+        text.dim().to_string()
+    }
+}
+
+fn interpolate(start: u8, end: u8, ratio: f32) -> u8 {
+    let ratio = ratio.clamp(0.0, 1.0);
+    (f32::from(start) + (f32::from(end) - f32::from(start)) * ratio).round()
+        as u8
+}
+
+fn supports_truecolor() -> bool {
+    env_contains_truecolor("COLORTERM") || env_contains_truecolor("TERM")
+}
+
+fn env_contains_truecolor(name: &str) -> bool {
+    env::var(name)
+        .map(|value| {
+            let value = value.to_ascii_lowercase();
+            value.contains("truecolor") || value.contains("24bit")
+        })
+        .unwrap_or(false)
 }
 
 pub fn display_short_format(file_info: &[FileInfo]) -> io::Result<()> {
