@@ -149,10 +149,10 @@ matching `permission_colors = false`, `time_gradient = false`, and
 `size_colors = false` config options.
 
 Timestamp colors adapt to terminal color capability. Truecolor terminals use a
-smooth age gradient, 256-color terminals use a stepped fallback, and basic ANSI
-terminals use named yellow tones. The timestamp palette distinguishes files
-newer than a day, week, month, and year across all fallbacks. Disabling
-`time_gradient` keeps the original fixed timestamp color.
+smooth age gradient and 256-color terminals use a stepped fallback to
+distinguish files newer than a day, week, month, and year. Basic ANSI terminals
+use named yellow styling. Disabling `time_gradient` keeps
+the original fixed timestamp color.
 
 ### Fuzzy Time
 

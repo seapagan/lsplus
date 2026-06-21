@@ -133,8 +133,9 @@ This option controls long-format timestamp freshness colors. Set it to `false`,
 or pass `--no-time-gradient`, to use the fixed timestamp color instead of
 age-based timestamp colors.
 Timestamp colors adapt to terminal color capability: truecolor terminals use a
-smooth age gradient, 256-color terminals use a stepped fallback, and basic ANSI
-terminals use named yellow tones.
+smooth age gradient and 256-color terminals use a stepped fallback to
+distinguish day, week, month, and year bands. Basic ANSI terminals use named
+yellow styling.
 
 ### size_colors
 

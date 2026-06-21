@@ -369,7 +369,7 @@ fn test_build_long_format_table_colors_time_buckets() {
                         .unwrap(),
                     ),
                     test_file_info(
-                        "year.txt",
+                        "old.txt",
                         None,
                         12,
                         now.checked_sub(Duration::from_secs(
@@ -387,8 +387,7 @@ fn test_build_long_format_table_colors_time_buckets() {
                 let rendered =
                     normalized_table(build_long_format_table(&files, &params));
 
-                assert!(rendered.contains("\u{1b}[1;93m"));
-                assert!(rendered.contains("\u{1b}[93m"));
+                assert!(rendered.contains("\u{1b}[1;33m"));
                 assert!(rendered.contains("\u{1b}[33m"));
                 assert!(rendered.contains("\u{1b}[2;33m"));
             });

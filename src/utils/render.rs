@@ -200,9 +200,7 @@ fn ansi_256_time_text(text: &str, age: Duration) -> String {
 
 fn named_time_text(text: &str, age: Duration) -> String {
     if age < DAY {
-        text.bright_yellow().bold().to_string()
-    } else if age < WEEK {
-        text.bright_yellow().to_string()
+        text.yellow().bold().to_string()
     } else if age < YEAR {
         text.yellow().to_string()
     } else {
