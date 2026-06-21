@@ -24,6 +24,9 @@ const ARG_NO_INDICATORS: &str = "no_indicators";
 const ARG_DIRS_FIRST: &str = "dirs_first";
 const ARG_NO_ICONS: &str = "no_icons";
 const ARG_NO_COLOR: &str = "no_color";
+const ARG_NO_PERMISSION_COLORS: &str = "no_permission_colors";
+const ARG_NO_TIME_COLORS: &str = "no_time_colors";
+const ARG_NO_SIZE_COLORS: &str = "no_size_colors";
 const ARG_GITIGNORE: &str = "gitignore";
 const ARG_VERSION: &str = "version";
 const ARG_FUZZY_TIME: &str = "fuzzy_time";
@@ -73,6 +76,12 @@ pub struct Flags {
     pub no_icons: bool,
     /// Disable colored or styled output.
     pub no_color: bool,
+    /// Disable permission and file-type colors in long-format output.
+    pub no_permission_colors: bool,
+    /// Disable timestamp freshness colors in long-format output.
+    pub no_time_colors: bool,
+    /// Disable large-size colors in long-format output.
+    pub no_size_colors: bool,
     /// Dim paths matched by `.gitignore` rules.
     pub gitignore: bool,
     /// Print version information and exit.
@@ -147,6 +156,9 @@ fn build_command(mode: CompatMode) -> Command {
         .arg(dirs_first_arg(mode))
         .arg(no_icons_arg())
         .arg(no_color_arg(mode))
+        .arg(no_permission_colors_arg())
+        .arg(no_time_colors_arg())
+        .arg(no_size_colors_arg())
         .arg(gitignore_arg(mode))
         .arg(version_arg())
         .arg(fuzzy_time_arg(mode))
@@ -307,6 +319,27 @@ fn no_color_arg(mode: CompatMode) -> Arg {
     }
 }
 
+fn no_permission_colors_arg() -> Arg {
+    Arg::new(ARG_NO_PERMISSION_COLORS)
+        .long("no-permission-colors")
+        .action(ArgAction::SetTrue)
+        .help("Do not color permission bits in long-format output")
+}
+
+fn no_time_colors_arg() -> Arg {
+    Arg::new(ARG_NO_TIME_COLORS)
+        .long("no-time-colors")
+        .action(ArgAction::SetTrue)
+        .help("Do not color timestamps in long-format output")
+}
+
+fn no_size_colors_arg() -> Arg {
+    Arg::new(ARG_NO_SIZE_COLORS)
+        .long("no-size-colors")
+        .action(ArgAction::SetTrue)
+        .help("Do not color large sizes in long-format output")
+}
+
 fn gitignore_arg(mode: CompatMode) -> Arg {
     match mode {
         CompatMode::Native => Arg::new(ARG_GITIGNORE)
@@ -358,6 +391,9 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
         dirs_first: matches.get_flag(ARG_DIRS_FIRST),
         no_icons: matches.get_flag(ARG_NO_ICONS),
         no_color: matches.get_flag(ARG_NO_COLOR),
+        no_permission_colors: matches.get_flag(ARG_NO_PERMISSION_COLORS),
+        no_time_colors: matches.get_flag(ARG_NO_TIME_COLORS),
+        no_size_colors: matches.get_flag(ARG_NO_SIZE_COLORS),
         gitignore: matches.get_flag(ARG_GITIGNORE),
         version: matches.get_flag(ARG_VERSION),
         fuzzy_time: matches.get_flag(ARG_FUZZY_TIME),

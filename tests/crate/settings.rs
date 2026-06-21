@@ -60,6 +60,9 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
             human_readable = true
             no_icons = true
             no_color = true
+            permission_colors = false
+            time_colors = false
+            size_colors = false
             gitignore = true
             fuzzy_time = true
         "#,
@@ -78,6 +81,9 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
                 human_readable: true,
                 no_icons: true,
                 no_color: true,
+                permission_colors: false,
+                time_colors: false,
+                size_colors: false,
                 gitignore: true,
                 fuzzy_time: true,
             }

@@ -15,6 +15,9 @@ fn test_default_params() {
     assert!(!params.human_readable);
     assert!(!params.no_icons);
     assert!(!params.no_color);
+    assert!(params.permission_colors);
+    assert!(params.time_colors);
+    assert!(params.size_colors);
     assert!(!params.gitignore);
     assert!(!params.fuzzy_time);
 }
@@ -35,6 +38,9 @@ fn test_config_conversion() {
             human_readable = true
             no_icons = true
             no_color = true
+            permission_colors = false
+            time_colors = false
+            size_colors = false
             gitignore = true
             fuzzy_time = true
         "#,
@@ -59,6 +65,9 @@ fn test_config_conversion() {
             human_readable: true,
             no_icons: true,
             no_color: true,
+            permission_colors: false,
+            time_colors: false,
+            size_colors: false,
             gitignore: true,
             fuzzy_time: true,
         }
@@ -114,6 +123,9 @@ fn test_params_merge_prefers_true_from_either_source() {
         human_readable: true,
         no_icons: false,
         no_color: true,
+        permission_colors: true,
+        time_colors: false,
+        size_colors: true,
         gitignore: true,
         fuzzy_time: false,
     };
@@ -129,6 +141,9 @@ fn test_params_merge_prefers_true_from_either_source() {
         human_readable: false,
         no_icons: true,
         no_color: false,
+        no_permission_colors: true,
+        no_time_colors: false,
+        no_size_colors: true,
         gitignore: false,
         fuzzy_time: true,
     };
@@ -143,6 +158,9 @@ fn test_params_merge_prefers_true_from_either_source() {
     assert!(params.human_readable);
     assert!(params.no_icons);
     assert!(params.no_color);
+    assert!(!params.permission_colors);
+    assert!(!params.time_colors);
+    assert!(!params.size_colors);
     assert!(params.gitignore);
     assert!(params.fuzzy_time);
 }
@@ -160,6 +178,9 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
         human_readable: false,
         no_icons: false,
         no_color: false,
+        no_permission_colors: false,
+        no_time_colors: false,
+        no_size_colors: false,
         gitignore: false,
         fuzzy_time: false,
     };

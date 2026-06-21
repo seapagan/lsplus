@@ -17,7 +17,7 @@ pub enum IndicatorStyle {
     Classify,
 }
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq)]
 pub struct Params {
     /// Show entries whose names start with `.`.
     pub show_all: bool,
@@ -35,10 +35,36 @@ pub struct Params {
     pub no_icons: bool,
     /// Disable colored or styled output.
     pub no_color: bool,
+    /// Color file type and permission bits in long-format output.
+    pub permission_colors: bool,
+    /// Color timestamps by freshness in long-format output.
+    pub time_colors: bool,
+    /// Color large sizes in long-format output.
+    pub size_colors: bool,
     /// Dim paths matched by `.gitignore` rules.
     pub gitignore: bool,
     /// Render humanized relative timestamps.
     pub fuzzy_time: bool,
+}
+
+impl Default for Params {
+    fn default() -> Self {
+        Self {
+            show_all: false,
+            indicator_style: IndicatorStyle::None,
+            dirs_first: false,
+            almost_all: false,
+            long_format: false,
+            human_readable: false,
+            no_icons: false,
+            no_color: false,
+            permission_colors: true,
+            time_colors: true,
+            size_colors: true,
+            gitignore: false,
+            fuzzy_time: false,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, PartialEq, Default)]
@@ -51,6 +77,9 @@ pub(crate) struct RawParams {
     human_readable: bool,
     no_icons: bool,
     no_color: bool,
+    permission_colors: Option<bool>,
+    time_colors: Option<bool>,
+    size_colors: Option<bool>,
     gitignore: bool,
     fuzzy_time: bool,
     indicator_style: Option<IndicatorStyle>,
@@ -92,6 +121,9 @@ impl From<RawParams> for Params {
             human_readable: raw.human_readable,
             no_icons: raw.no_icons,
             no_color: raw.no_color,
+            permission_colors: raw.permission_colors.unwrap_or(true),
+            time_colors: raw.time_colors.unwrap_or(true),
+            size_colors: raw.size_colors.unwrap_or(true),
             gitignore: raw.gitignore,
             fuzzy_time: raw.fuzzy_time,
         }
@@ -117,6 +149,10 @@ impl Params {
             human_readable: flags.human_readable || config.human_readable,
             no_icons: flags.no_icons || config.no_icons,
             no_color: flags.no_color || config.no_color,
+            permission_colors: config.permission_colors
+                && !flags.no_permission_colors,
+            time_colors: config.time_colors && !flags.no_time_colors,
+            size_colors: config.size_colors && !flags.no_size_colors,
             gitignore: flags.gitignore || config.gitignore,
             fuzzy_time: flags.fuzzy_time || config.fuzzy_time,
         }
