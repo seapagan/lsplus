@@ -16,6 +16,9 @@
 - [ ] option to list dotfiles (and folders) before non-dotfiles
 - [ ] Investigate an optional name-shortening mode for very long filenames
       that preserves extensions without changing the default wrap behavior.
+- [ ] Consider colouring special permission bits (`s`, `S`, `t`, `T`) in
+      long-format permission output, with tests for setuid, setgid, and sticky
+      modes.
 - [ ] Consider separating config-loaded values from effective runtime params so
       merge behavior is more explicit than the current shared `Params` type.
 - [ ] Review crate/module visibility and reduce the public surface where items
