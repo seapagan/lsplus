@@ -1,5 +1,7 @@
 use colored_text::{ColorMode, ColorizeConfig};
 
+use crate::Params;
+
 pub(crate) struct ColorModeGuard(ColorMode);
 
 impl ColorModeGuard {
@@ -25,4 +27,36 @@ pub(crate) fn with_color_output_enabled<T>(test: impl FnOnce() -> T) -> T {
         let _guard = ColorModeGuard::set(ColorMode::Always);
         test()
     })
+}
+
+pub(crate) fn fixed_time_params() -> Params {
+    Params {
+        time_gradient: false,
+        ..Params::default()
+    }
+}
+
+pub(crate) fn plain_permission_params() -> Params {
+    Params {
+        permission_colors: false,
+        time_gradient: false,
+        ..Params::default()
+    }
+}
+
+pub(crate) fn accentless_params() -> Params {
+    Params {
+        permission_colors: false,
+        time_gradient: false,
+        size_colors: false,
+        ..Params::default()
+    }
+}
+
+pub(crate) fn time_only_params() -> Params {
+    Params {
+        permission_colors: false,
+        size_colors: false,
+        ..Params::default()
+    }
 }

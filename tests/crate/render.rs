@@ -1,5 +1,6 @@
 use crate::common_tests::{
-    ColorModeGuard, has_ansi, with_color_output_enabled,
+    ColorModeGuard, accentless_params, fixed_time_params, has_ansi,
+    plain_permission_params, time_only_params, with_color_output_enabled,
 };
 use crate::utils::color::LongFormatColorLevel;
 use crate::utils::icons::Icon;
@@ -126,10 +127,7 @@ fn test_build_long_format_table_colors_permissions_by_default() {
 
         let rendered = normalized_table(build_long_format_table(
             &[info],
-            &Params {
-                time_gradient: false,
-                ..Params::default()
-            },
+            &fixed_time_params(),
         ));
 
         assert!(rendered.contains("\u{1b}[34md\u{1b}[0m"));
@@ -150,11 +148,7 @@ fn test_build_long_format_table_omits_permission_colors_when_disabled() {
 
         let rendered = normalized_table(build_long_format_table(
             &[info],
-            &Params {
-                permission_colors: false,
-                time_gradient: false,
-                ..Params::default()
-            },
+            &plain_permission_params(),
         ));
         let line = rendered
             .lines()
@@ -187,9 +181,7 @@ fn test_build_long_format_table_colors_size_boundaries() {
         ];
         let params = Params {
             human_readable: true,
-            permission_colors: false,
-            time_gradient: false,
-            ..Params::default()
+            ..plain_permission_params()
         };
 
         let rendered =
@@ -223,9 +215,7 @@ fn test_build_long_format_table_aligns_colored_size_cells() {
         ];
         let params = Params {
             human_readable: true,
-            permission_colors: false,
-            time_gradient: false,
-            ..Params::default()
+            ..plain_permission_params()
         };
 
         let rendered =
@@ -258,10 +248,7 @@ fn test_build_long_format_table_omits_size_colors_when_disabled() {
             test_file_info("large.bin", None, 1024 * 1024, SystemTime::now());
         let params = Params {
             human_readable: true,
-            permission_colors: false,
-            time_gradient: false,
-            size_colors: false,
-            ..Params::default()
+            ..accentless_params()
         };
 
         let rendered =
@@ -407,11 +394,7 @@ fn test_build_long_format_table_colors_time_buckets() {
                         .unwrap(),
                     ),
                 ];
-                let params = Params {
-                    permission_colors: false,
-                    size_colors: false,
-                    ..Params::default()
-                };
+                let params = time_only_params();
 
                 let rendered =
                     normalized_table(build_long_format_table(&files, &params));
@@ -443,11 +426,7 @@ fn test_build_long_format_table_uses_truecolor_for_time_when_supported() {
                         .unwrap(),
                     ),
                 ];
-                let params = Params {
-                    permission_colors: false,
-                    size_colors: false,
-                    ..Params::default()
-                };
+                let params = time_only_params();
 
                 let rendered =
                     normalized_table(build_long_format_table(&files, &params));
@@ -506,11 +485,7 @@ fn test_build_long_format_table_uses_ansi_256_for_time_when_supported() {
                         .unwrap(),
                     ),
                 ];
-                let params = Params {
-                    permission_colors: false,
-                    size_colors: false,
-                    ..Params::default()
-                };
+                let params = time_only_params();
 
                 let rendered =
                     normalized_table(build_long_format_table(&files, &params));
@@ -540,11 +515,7 @@ fn test_build_long_format_table_colors_future_time_truecolor() {
                         .checked_add(Duration::from_secs(60 * 60))
                         .unwrap(),
                 );
-                let params = Params {
-                    permission_colors: false,
-                    size_colors: false,
-                    ..Params::default()
-                };
+                let params = time_only_params();
 
                 let rendered = normalized_table(build_long_format_table(
                     &[info],
@@ -574,11 +545,7 @@ fn test_build_long_format_table_colors_future_time_ansi_256() {
                         .checked_add(Duration::from_secs(60 * 60))
                         .unwrap(),
                 );
-                let params = Params {
-                    permission_colors: false,
-                    size_colors: false,
-                    ..Params::default()
-                };
+                let params = time_only_params();
 
                 let rendered = normalized_table(build_long_format_table(
                     &[info],
@@ -605,11 +572,7 @@ fn test_build_long_format_table_colors_future_time_named_ansi() {
                         .checked_add(Duration::from_secs(60 * 60))
                         .unwrap(),
                 );
-                let params = Params {
-                    permission_colors: false,
-                    size_colors: false,
-                    ..Params::default()
-                };
+                let params = time_only_params();
 
                 let rendered = normalized_table(build_long_format_table(
                     &[info],
@@ -649,12 +612,7 @@ fn test_build_long_format_table_uses_fixed_time_color_when_gradient_disabled()
 {
     with_color_output_enabled(|| {
         let info = test_file_info("fresh.txt", None, 12, SystemTime::now());
-        let params = Params {
-            permission_colors: false,
-            time_gradient: false,
-            size_colors: false,
-            ..Params::default()
-        };
+        let params = accentless_params();
 
         let rendered =
             normalized_table(build_long_format_table(&[info], &params));
@@ -683,10 +641,7 @@ fn test_build_long_format_table_colors_future_time_when_gradient_disabled() {
                 );
                 let params = Params {
                     fuzzy_time: false,
-                    permission_colors: false,
-                    time_gradient: false,
-                    size_colors: false,
-                    ..Params::default()
+                    ..accentless_params()
                 };
 
                 let rendered = normalized_table(build_long_format_table(
