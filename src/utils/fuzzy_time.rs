@@ -16,12 +16,12 @@ enum FuzzyTime {
     Yesterday,
 }
 
+fn format_unit(unit: &str, n: u64) -> String {
+    format!("{} {}{}", n, unit, if n == 1 { "" } else { "s" })
+}
+
 impl fmt::Display for FuzzyTime {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fn format_unit(unit: &str, n: u64) -> String {
-            format!("{} {}{}", n, unit, if n == 1 { "" } else { "s" })
-        }
-
         match self {
             FuzzyTime::SecondsAgo(n) => {
                 write!(f, "{} ago", format_unit("second", *n))
@@ -52,6 +52,28 @@ impl fmt::Display for FuzzyTime {
     }
 }
 
+fn format_future_time(duration: Duration) -> String {
+    let seconds = duration.as_secs();
+    let minutes = seconds / 60;
+    let hours = minutes / 60;
+    let days = hours / 24;
+    let weeks = days / 7;
+    let months = days / 30;
+    let years = days / 365;
+
+    let (unit, n) = match seconds {
+        s if s < 60 => ("second", s),
+        _ if minutes < 60 => ("minute", minutes),
+        _ if hours < 24 => ("hour", hours),
+        _ if days < 7 => ("day", days),
+        _ if days < 30 => ("week", weeks),
+        _ if days < 365 => ("month", months),
+        _ => ("year", years),
+    };
+
+    format!("in {}", format_unit(unit, n))
+}
+
 fn get_fuzzy_time(duration: Duration) -> FuzzyTime {
     let seconds = duration.as_secs();
     let minutes = seconds / 60;
@@ -78,8 +100,8 @@ fn get_fuzzy_time(duration: Duration) -> FuzzyTime {
 
 pub fn fuzzy_time(time: SystemTime) -> String {
     let now = SystemTime::now();
-    let duration = now
-        .duration_since(time)
-        .unwrap_or_else(|_| Duration::from_secs(0));
-    get_fuzzy_time(duration).to_string()
+    match now.duration_since(time) {
+        Ok(duration) => get_fuzzy_time(duration).to_string(),
+        Err(error) => format_future_time(error.duration()),
+    }
 }
