@@ -24,7 +24,7 @@ pub(crate) fn configure_color_output(params: &Params) {
     ColorizeConfig::set_color_mode(color_mode_for(params));
 }
 
-/// Terminal color capability available to long-format accent rendering.
+/// Terminal color capability for long-format accent rendering.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum LongFormatColorLevel {
     /// Do not emit long-format accent colors.
@@ -38,7 +38,7 @@ pub(crate) enum LongFormatColorLevel {
 }
 
 impl LongFormatColorLevel {
-    /// Return whether any long-format accent colors can be emitted.
+    /// Return true when long-format accents may emit color.
     pub(crate) fn is_enabled(self) -> bool {
         self != Self::None
     }

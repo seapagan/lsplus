@@ -1,7 +1,8 @@
 //! Config-file and startup-mode loading.
 //!
-//! Runtime display options come from `~/.config/lsplus/config.toml`, while
-//! compatibility mode can be forced with [`COMPAT_MODE_ENV_VAR`].
+//! `lsplus` reads runtime display options from
+//! `~/.config/lsplus/config.toml`; [`COMPAT_MODE_ENV_VAR`] overrides config
+//! compatibility mode.
 
 use std::path::PathBuf;
 

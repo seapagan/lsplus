@@ -1,7 +1,7 @@
 //! Nerd Font icon selection for files and directories.
 //!
-//! Icons are selected by directory name, exact file name, or longest matching
-//! extension. Unknown files and folders fall back to generic icons.
+//! Directory names, exact file names, and file extensions map entries to Nerd
+//! Font glyphs. Unknown entries use generic file or folder icons.
 
 use std::collections::HashMap;
 use std::collections::HashSet;

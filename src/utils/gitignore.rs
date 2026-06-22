@@ -1,8 +1,8 @@
 //! Gitignore matcher discovery and caching.
 //!
-//! Matchers are built from the worktree root to the listed directory so nested
-//! `.gitignore` files, `.git/info/exclude`, and global gitignore rules can be
-//! applied in the same order as Git-style ignore matching.
+//! The cache builds matchers from the worktree root to the listed directory so
+//! nested `.gitignore` files, `.git/info/exclude`, and global rules match Git
+//! order.
 
 use std::collections::HashMap;
 use std::fs;

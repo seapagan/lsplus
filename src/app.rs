@@ -55,8 +55,8 @@ fn run_multi(patterns: &[String], params: &Params) -> io::Result<()> {
 
 /// Expand path patterns and collect display data for all matching entries.
 ///
-/// Missing patterns are reported to stderr and skipped, matching the existing
-/// command-line behavior rather than failing the whole run.
+/// `collect_matches` reports missing patterns to stderr, skips them, and
+/// continues with other patterns.
 pub(crate) fn collect_matches(
     patterns: &[String],
     params: &Params,
