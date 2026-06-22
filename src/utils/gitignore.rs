@@ -1,3 +1,9 @@
+//! Gitignore matcher discovery and caching.
+//!
+//! Matchers are built from the worktree root to the listed directory so nested
+//! `.gitignore` files, `.git/info/exclude`, and global gitignore rules can be
+//! applied in the same order as Git-style ignore matching.
+
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -5,12 +11,14 @@ use std::path::{Path, PathBuf};
 use ignore::Match;
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
 
+/// Cache of gitignore matchers keyed by listed directory.
 #[derive(Default)]
 pub struct GitignoreCache {
     matchers: HashMap<PathBuf, Option<GitignoreMatcher>>,
 }
 
 impl GitignoreCache {
+    /// Return whether a path is ignored, caching matchers by containing dir.
     pub fn is_ignored(&mut self, path: &Path, is_dir: bool) -> bool {
         let key = matcher_directory(path, is_dir).to_path_buf();
         let matcher = self
@@ -91,6 +99,10 @@ fn matcher_directory(path: &Path, is_dir: bool) -> &Path {
     }
 }
 
+/// Find the worktree root and common git directory for a path.
+///
+/// Linked worktrees store `.git` as a file, so this handles both directory and
+/// `gitdir:` file forms.
 fn find_git_paths(start: &Path) -> Option<GitPaths> {
     let mut current = Some(start);
 
@@ -122,6 +134,7 @@ fn find_git_paths(start: &Path) -> Option<GitPaths> {
 }
 
 #[cfg(test)]
+/// Return git root and common-dir paths for tests.
 pub(crate) fn find_git_paths_parts(
     start: &Path,
 ) -> Option<(PathBuf, PathBuf)> {
@@ -129,6 +142,7 @@ pub(crate) fn find_git_paths_parts(
     Some((git_paths.root, git_paths.common_dir))
 }
 
+/// Collect `.gitignore` files from the worktree root to a directory.
 pub(crate) fn collect_gitignore_files(
     root: &Path,
     directory: &Path,
@@ -179,6 +193,7 @@ fn build_matcher_or_empty(builder: &GitignoreBuilder) -> Gitignore {
     builder.build().unwrap_or_else(|_| Gitignore::empty())
 }
 
+/// Parse a linked worktree `.git` file into its git directory path.
 pub(crate) fn parse_gitdir_file(dot_git: &Path) -> Option<PathBuf> {
     let contents = fs::read_to_string(dot_git).ok()?;
     let value = contents.strip_prefix("gitdir:")?.trim();
@@ -193,6 +208,7 @@ pub(crate) fn parse_gitdir_file(dot_git: &Path) -> Option<PathBuf> {
     }
 }
 
+/// Parse a linked worktree `commondir` file into an absolute-ish path.
 pub(crate) fn parse_commondir(git_dir: &Path) -> Option<PathBuf> {
     let contents = fs::read_to_string(git_dir.join("commondir")).ok()?;
     let common_dir = PathBuf::from(contents.trim());
@@ -209,6 +225,7 @@ fn normalize_path(path: PathBuf) -> PathBuf {
 }
 
 #[cfg(test)]
+/// Return whether a matcher built for a directory ignores a path.
 pub(crate) fn matcher_ignores_path(
     directory: &Path,
     path: &Path,

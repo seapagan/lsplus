@@ -1,3 +1,8 @@
+//! Config-file and startup-mode loading.
+//!
+//! Runtime display options come from `~/.config/lsplus/config.toml`, while
+//! compatibility mode can be forced with [`COMPAT_MODE_ENV_VAR`].
+
 use std::path::PathBuf;
 
 use config::{Config, File, FileFormat};
@@ -14,6 +19,7 @@ use crate::structs::RawParams;
 /// file.
 pub const COMPAT_MODE_ENV_VAR: &str = "LSP_COMPAT_MODE";
 
+/// Startup-time settings needed before parsing the main CLI.
 #[derive(Debug, PartialEq)]
 pub struct StartupConfig {
     /// Runtime parameters loaded from the config file.
@@ -33,6 +39,7 @@ fn config_path() -> Option<PathBuf> {
     config_path_from_home(home_dir())
 }
 
+/// Return the default config path for a home directory, when one is known.
 pub(crate) fn config_path_from_home(home: Option<PathBuf>) -> Option<PathBuf> {
     let mut path = home?;
     path.push(".config/lsplus/config.toml");
@@ -46,6 +53,7 @@ pub fn load_config() -> Params {
     load_config_from_path(config_path())
 }
 
+/// Load runtime parameters from an explicit config path.
 pub(crate) fn load_config_from_path(config_path: Option<PathBuf>) -> Params {
     load_parsed_config_from_path(config_path)
         .map(|config| config.params.into())
@@ -64,6 +72,7 @@ pub fn load_startup_config() -> Result<StartupConfig, String> {
     )
 }
 
+/// Load startup configuration from explicit config and environment sources.
 pub(crate) fn load_startup_config_from(
     config_path: Option<PathBuf>,
     env_mode: Option<String>,

@@ -1,3 +1,8 @@
+//! Human-readable relative timestamp formatting.
+//!
+//! Past timestamps are rendered as phrases such as `2 hours ago`, `yesterday`,
+//! or `last month`; future timestamps are rendered as `in ...` phrases.
+
 use std::fmt;
 use std::time::{Duration, SystemTime};
 
@@ -18,6 +23,7 @@ enum FuzzyTime {
     Yesterday,
 }
 
+/// Format one relative-time unit with simple pluralization.
 fn format_unit(unit: &str, n: u64) -> String {
     format!("{} {}{}", n, unit, if n == 1 { "" } else { "s" })
 }
@@ -54,6 +60,7 @@ impl fmt::Display for FuzzyTime {
     }
 }
 
+/// Format a future timestamp offset.
 fn format_future_time(duration: Duration) -> String {
     let seconds = duration.as_secs();
     let minutes = seconds / 60;
@@ -76,6 +83,7 @@ fn format_future_time(duration: Duration) -> String {
     format!("in {}", format_unit(unit, n))
 }
 
+/// Bucket a past timestamp offset into the phrase used for display.
 fn get_fuzzy_time(duration: Duration) -> FuzzyTime {
     let seconds = duration.as_secs();
     let minutes = seconds / 60;
@@ -100,6 +108,7 @@ fn get_fuzzy_time(duration: Duration) -> FuzzyTime {
     }
 }
 
+/// Return a human-readable relative time string for a system timestamp.
 pub fn fuzzy_time(time: SystemTime) -> String {
     let now = SystemTime::now();
     match now.duration_since(time) {

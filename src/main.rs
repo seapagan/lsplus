@@ -1,3 +1,5 @@
+//! Binary entry point for the `lsp` executable.
+
 use std::process::exit;
 
 use lsplus::cli;

@@ -7,16 +7,25 @@ use std::time::SystemTime;
 
 use crate::cli;
 
+/// Entry-name indicator styles supported by `lsplus`.
+///
+/// These map to GNU-style indicator modes and the native `--slash-dirs`,
+/// `--file-type`, `--classify`, and `--no-indicators` options.
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum IndicatorStyle {
+    /// Do not append an indicator suffix.
     #[default]
     None,
+    /// Append `/` to directories.
     Slash,
+    /// Append file-type indicators, excluding executable `*` suffixes.
     FileType,
+    /// Append file-type indicators, including executable `*` suffixes.
     Classify,
 }
 
+/// Runtime options after CLI flags and config defaults have been merged.
 #[derive(Debug, PartialEq)]
 pub struct Params {
     /// Show entries whose names start with `.`.
@@ -69,6 +78,7 @@ impl Default for Params {
 
 #[derive(Debug, Deserialize, PartialEq, Default)]
 #[serde(default)]
+/// Raw config-file parameters before compatibility aliases are normalized.
 pub(crate) struct RawParams {
     show_all: bool,
     dirs_first: bool,
@@ -86,12 +96,17 @@ pub(crate) struct RawParams {
     append_slash: Option<bool>,
 }
 
+/// Visual category used to style names in short-format output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum NameStyle {
+    /// A regular entry with no special name styling.
     #[default]
     Plain,
+    /// A directory entry.
     Directory,
+    /// A symbolic link entry.
     Symlink,
+    /// A regular executable file.
     Executable,
 }
 
@@ -160,19 +175,33 @@ impl Params {
     }
 }
 
+/// Metadata and pre-rendered name data for one listed filesystem entry.
 #[derive(Debug)]
 pub struct FileInfo {
+    /// Long-format file-type character such as `d`, `-`, `l`, or `?`.
     pub file_type: String,
+    /// Unix-style `rwxrwxrwx` permission string.
     pub mode: String,
+    /// Link count from filesystem metadata.
     pub nlink: u64,
+    /// Owner name, or numeric user ID when lookup fails.
     pub user: String,
+    /// Group name, or numeric group ID when lookup fails.
     pub group: String,
+    /// Size in bytes.
     pub size: u64,
+    /// Last modification time.
     pub mtime: SystemTime,
+    /// Optional icon selected from the entry type or name.
     pub item_icon: Option<Icon>,
+    /// Sanitized entry name used by short-format rendering.
     pub short_name: String,
+    /// Styled entry name used by long-format rendering.
     pub display_name: String,
+    /// Styling category for short-format rendering.
     pub name_style: NameStyle,
+    /// Whether the entry should be dimmed as gitignored.
     pub dimmed: bool,
+    /// Full path used for metadata lookups and special display cases.
     pub full_path: PathBuf,
 }
