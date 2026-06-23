@@ -98,16 +98,18 @@ fn append_pattern_matches(
                 }
             }
 
-            if paths.is_empty() && !had_entry_error {
-                eprintln!(
-                    "lsplus: {}: No such file or directory",
-                    sanitize_for_terminal(pattern)
-                );
+            if paths.is_empty() {
+                if !had_entry_error {
+                    eprintln!(
+                        "lsplus: {}: No such file or directory",
+                        sanitize_for_terminal(pattern)
+                    );
+                }
             } else {
                 append_paths(all_file_info, &paths, params)?;
             }
         }
-        Err(e) => eprintln!("Failed to read glob pattern: {}", e),
+        Err(e) => eprintln!("lsplus: failed to read glob pattern: {}", e),
     }
 
     Ok(())

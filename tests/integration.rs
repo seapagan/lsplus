@@ -82,6 +82,14 @@ fn test_invalid_path() {
         .stderr(predicates::str::contains("No such file or directory"));
 }
 
+#[test]
+fn test_invalid_glob_pattern_reports_lsplus_prefix() {
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("[invalid-glob-pattern").assert().success().stderr(
+        predicates::str::contains("lsplus: failed to read glob pattern"),
+    );
+}
+
 #[cfg(unix)]
 #[test]
 fn test_glob_entry_error_reports_stderr_and_lists_matches() {
