@@ -7,6 +7,8 @@ use strip_ansi_escapes::strip_str;
 use tempfile::tempdir;
 
 #[cfg(unix)]
+use nix::unistd::Uid;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
 fn run_and_capture(cmd: &mut Command) -> (String, String) {
@@ -83,6 +85,10 @@ fn test_invalid_path() {
 #[cfg(unix)]
 #[test]
 fn test_glob_entry_error_reports_stderr_and_lists_matches() {
+    if Uid::effective().is_root() {
+        return;
+    }
+
     let temp_dir = tempdir().unwrap();
     let readable_file = temp_dir.path().join("visible.txt");
     let unreadable_dir = temp_dir.path().join("private");
@@ -100,7 +106,8 @@ fn test_glob_entry_error_reports_stderr_and_lists_matches() {
         .unwrap();
 
     assert!(stdout.contains("visible.txt"));
-    assert!(stderr.contains("attempting to read"));
+    assert!(stderr.contains("lsplus:"));
+    assert!(stderr.contains(temp_dir.path().to_string_lossy().as_ref()));
     assert!(stderr.contains("private"));
 }
 
