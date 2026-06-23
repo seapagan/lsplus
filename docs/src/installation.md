@@ -1,13 +1,10 @@
 # Installation
 
-To install the latest release of this package, you can use the following command:
-
 ## Download a Binary
 
-For Linux and Mac you can download the latest binary files from the [release
-page](https://github.com/seapagan/lsplus/releases/latest). Unpack the archive
-and move the single file `lsp` to somewhere in your path so it can be located.
-Ensure it is set as executable (though it already should be).
+Download the latest Linux or macOS archive from the [release
+page](https://github.com/seapagan/lsplus/releases/latest). Unpack it, move
+`lsp` into a directory on your `PATH`, and make it executable if needed.
 
 These binaries are auto-generated for each release.
 
@@ -26,12 +23,10 @@ can run the `lsp` command from anywhere.
 
 ## From Source
 
-You can also install the package from the GitHub repository by running the
-following command:
+Install the package from the GitHub repository with:
 
 ```bash
 cargo install --git https://github.com/seapagan/lsplus.git
 ```
 
-This may allow you to access the latest features and bug fixes that have not
-yet been released.
+This uses unreleased commits from the default branch.

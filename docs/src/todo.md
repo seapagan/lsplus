@@ -1,9 +1,7 @@
 # Future Plans
 
-Below is the content of the project's TODO.md file.
+This page includes the project TODO list.
 
-If you have any suggestions for features or improvements, please open an issue
-on the project's GitHub page.
+Open a GitHub issue to suggest another feature or improvement.
 
 {{#include ../../TODO.md}}
-

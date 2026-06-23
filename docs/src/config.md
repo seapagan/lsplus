@@ -1,22 +1,19 @@
 # Configuration File
 
-It is possible to configure `lsplus` using a configuration file. The
-configuration file is a simple **`TOML`** file that is placed in the following
-location:
+Configure `lsplus` with a **`TOML`** file at:
 
 - Linux: `~/.config/lsplus/config.toml`
 - MacOS: `~/.config/lsplus/config.toml`
 
-The configuration file is optional and if it is not found, `lsplus` will use the
-default settings.
+The configuration file is optional. `lsplus` uses default settings when the file
+does not exist.
 
 `lsplus` also supports an `LSP_COMPAT_MODE` environment variable. When set, it
 overrides the `compat_mode` value from the config file.
 
 ## Available Options
 
-The following options are available in the configuration file and correspond to
-the relevant command line options:
+The configuration file supports these command-line options:
 
 ### compat_mode
 
@@ -36,17 +33,16 @@ mode and will error until their GNU behavior is implemented.
 - Permitted values: `true` or `false`
 - Default value: `false`
 
-This option corresponds to the `-a` or `--all` command line option and will
-display all files and directories if set to `true`, including hidden files.
+This option corresponds to `-a` or `--all` and displays hidden files when set to
+`true`.
 
 ### almost_all
 
 - Permitted values: `true` or `false`
 - Default value: `false`
 
-This option corresponds to the `-A` or `--almost-all` command line option and
-will display all files and directories if set to `true`, except for `.` and
-`..`.
+This option corresponds to `-A` or `--almost-all` and displays hidden files
+except `.` and `..` when set to `true`.
 
 ### indicator_style
 
@@ -78,8 +74,8 @@ config file and maps to `indicator_style = "slash"`. If both are present,
 - Permitted values: `true` or `false`
 - Default value: `false`
 
-This option corresponds to the `--sort-dirs` command line option and will sort
-directories before files when set to `true`. In `gnu` compatibility mode, the
+This option corresponds to `--sort-dirs` and sorts directories before files when
+set to `true`. In `gnu` compatibility mode, the
 equivalent long option is `--group-directories-first` (replacing the original
 `--sort-dirs`).
 
@@ -88,32 +84,31 @@ equivalent long option is `--group-directories-first` (replacing the original
 - Permitted values: `true` or `false`
 - Default value: `false`
 
-This option corresponds to the `--long` command line option and will display the
-output in long format if set to `true`.
+This option corresponds to `--long` and displays output in long format when set
+to `true`.
 
 ### human_readable
 
 - Permitted values: `true` or `false`
 - Default value: `false`
 
-This option corresponds to the `-h` or `--human-readable` command line option
-and will display file sizes in human readable format if set to `true`.
+This option corresponds to `-h` or `--human-readable` and displays
+human-readable file sizes when set to `true`.
 
 ### no_icons
 
 - Permitted values: `true` or `false`
 - Default value: `false`
 
-This option corresponds to the `--no-icons` command line option and will not
-display icons if set to `true`.
+This option corresponds to `--no-icons` and hides icons when set to `true`.
 
 ### no_color
 
 - Permitted values: `true` or `false`
 - Default value: `false`
 
-This option corresponds to the `-N` or `--no-color` command line option and
-will disable colored and styled output if set to `true`.
+This option corresponds to `-N` or `--no-color` and disables colored and styled
+output when set to `true`.
 
 ### permission_colors
 
@@ -152,23 +147,21 @@ This option controls long-format large-size colors. Set it to `false`, or pass
 - Permitted values: `true` or `false`
 - Default value: `false`
 
-This option corresponds to the `-I` or `--gitignore` command line option and
-will dim entries that are matched by the active Git ignore rules, including
-merged `.gitignore` files, `.git/info/exclude`, and the configured global Git
-excludes file.
+This option corresponds to `-I` or `--gitignore` and dims entries matched by the
+active Git ignore rules, including merged `.gitignore` files,
+`.git/info/exclude`, and the configured global Git excludes file.
 
 ### fuzzy_time
 
 - Permitted values: `true` or `false`
 - Default value: `false`
 
-This option corresponds to the `-Z` or `--fuzzy-time` command line option and
-will display the time in a 'fuzzy' format if set to `true`.
+This option corresponds to `-Z` or `--fuzzy-time` and displays timestamps in a
+fuzzy format when set to `true`.
 
 ## Example Configuration File
 
-The following is an example configuration file that sets several options. Any
-options that are not set will use the default values:
+This example sets several options. Omitted options use default values:
 
 ```toml
 # compat_mode = "native"  # or "gnu" for GNU ls compatibility
