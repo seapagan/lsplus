@@ -11,7 +11,7 @@ use crate::Params;
 use crate::cli;
 use crate::settings;
 use crate::utils;
-use crate::utils::file::collect_file_info;
+use crate::utils::file::{collect_file_info, sanitize_for_terminal};
 
 /// Run `lsplus` using parsed CLI flags and config loaded from disk.
 pub fn run_with_flags(args: cli::Flags) -> io::Result<()> {
@@ -89,7 +89,11 @@ fn append_pattern_matches(
                     Ok(path) => paths.push(path),
                     Err(err) => {
                         had_entry_error = true;
-                        eprintln!("lsplus: {}: {}", pattern, err);
+                        eprintln!(
+                            "lsplus: {}: {}",
+                            sanitize_for_terminal(pattern),
+                            err
+                        );
                     }
                 }
             }
