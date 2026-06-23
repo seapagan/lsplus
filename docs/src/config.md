@@ -3,7 +3,7 @@
 Configure `lsplus` with a **`TOML`** file at:
 
 - Linux: `~/.config/lsplus/config.toml`
-- MacOS: `~/.config/lsplus/config.toml`
+- macOS: `~/.config/lsplus/config.toml`
 
 The configuration file is optional. `lsplus` uses default settings when the file
 does not exist.
