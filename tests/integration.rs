@@ -80,6 +80,30 @@ fn test_invalid_path() {
         .stderr(predicates::str::contains("No such file or directory"));
 }
 
+#[cfg(unix)]
+#[test]
+fn test_glob_entry_error_reports_stderr_and_lists_matches() {
+    let temp_dir = tempdir().unwrap();
+    let readable_file = temp_dir.path().join("visible.txt");
+    let unreadable_dir = temp_dir.path().join("private");
+    fs::write(&readable_file, "visible").unwrap();
+    fs::create_dir(&unreadable_dir).unwrap();
+    fs::set_permissions(&unreadable_dir, fs::Permissions::from_mode(0o000))
+        .unwrap();
+
+    let pattern = format!("{}/**/*.txt", temp_dir.path().display());
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg(pattern);
+    let (stdout, stderr) = run_and_capture(&mut cmd);
+
+    fs::set_permissions(&unreadable_dir, fs::Permissions::from_mode(0o700))
+        .unwrap();
+
+    assert!(stdout.contains("visible.txt"));
+    assert!(stderr.contains("attempting to read"));
+    assert!(stderr.contains("private"));
+}
+
 #[test]
 fn test_list_current_directory() {
     let temp_dir = tempdir().unwrap();

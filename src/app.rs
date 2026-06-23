@@ -81,8 +81,20 @@ fn append_pattern_matches(
 ) -> io::Result<()> {
     match glob(pattern) {
         Ok(entries) => {
-            let paths: Vec<PathBuf> = entries.filter_map(Result::ok).collect();
-            if paths.is_empty() {
+            let mut paths: Vec<PathBuf> = Vec::new();
+            let mut had_entry_error = false;
+
+            for entry in entries {
+                match entry {
+                    Ok(path) => paths.push(path),
+                    Err(err) => {
+                        had_entry_error = true;
+                        eprintln!("lsplus: {}: {}", pattern, err);
+                    }
+                }
+            }
+
+            if paths.is_empty() && !had_entry_error {
                 eprintln!("lsplus: {}: No such file or directory", pattern);
             } else {
                 append_paths(all_file_info, &paths, params)?;
