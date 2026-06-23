@@ -1,9 +1,15 @@
+//! Nerd Font icon selection for files and directories.
+//!
+//! Directory names, exact file names, and file extensions map entries to Nerd
+//! Font glyphs. Unknown entries use generic file or folder icons.
+
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::Path;
 use std::sync::OnceLock;
 use std::{fmt, fs};
 
+/// Icon glyphs used for known file and directory categories.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Icon {
     // we define all the possible icons we can use. This will be a growing
@@ -226,7 +232,10 @@ fn get_folder_icon(folder_name: &str) -> Icon {
     *folder_icons().get(folder_name).unwrap_or(&Icon::Folder)
 }
 
-// Helper function to check if a file name ends with an extension
+/// Return whether a file name has a real dotted extension.
+///
+/// Dot-only names and hidden files without a basename are not treated as
+/// extension matches.
 pub(crate) fn has_extension(file_name: &str, ext: &str) -> bool {
     // Guard against empty extension
     if ext.is_empty() {
@@ -264,6 +273,7 @@ fn get_filename_icon(file_name: &str) -> Option<Icon> {
     file_name_icons().get(file_name).cloned()
 }
 
+/// Select an icon for a filesystem entry from metadata and path name.
 pub fn get_item_icon(metadata: &fs::Metadata, file_path: &Path) -> Icon {
     // Work from the final path segment and tolerate non-UTF-8 names.
     let file_name = file_path

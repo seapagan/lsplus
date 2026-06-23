@@ -1,3 +1,9 @@
+//! Output rendering for long and short listing formats.
+//!
+//! Long format uses `prettytable` rows with optional accent colors. Short
+//! format computes terminal-width-aware columns using visible Unicode width so
+//! ANSI styling and wide glyphs do not distort layout.
+
 use chrono::{DateTime, Local};
 use colored_text::{Colorize, StyledText};
 use prettytable::{Cell, Row, Table};
@@ -20,6 +26,7 @@ const SHORT_CELL_PADDING: usize = 2;
 const LARGE_SIZE_BYTES: u64 = 1024 * 1024;
 const HUGE_SIZE_BYTES: u64 = 1024 * 1024 * 1024;
 
+/// Render long-format rows to stdout.
 pub fn display_long_format(
     file_info: &[FileInfo],
     params: &Params,
@@ -27,6 +34,7 @@ pub fn display_long_format(
     print_table(&build_long_format_table(file_info, params))
 }
 
+/// Build the long-format table without printing it.
 pub(crate) fn build_long_format_table(
     file_info: &[FileInfo],
     params: &Params,
@@ -143,6 +151,7 @@ fn size_cell(
     ))
 }
 
+/// Return the prettytable style spec for a size cell.
 pub(crate) fn size_style_spec_for_color_level(
     size: u64,
     params: &Params,
@@ -159,6 +168,7 @@ pub(crate) fn size_style_spec_for_color_level(
     }
 }
 
+/// Apply timestamp coloring according to age and terminal capability.
 fn long_time_text(
     text: &str,
     mtime: SystemTime,
@@ -275,11 +285,13 @@ fn interpolate(start: u8, end: u8, ratio: f32) -> u8 {
         as u8
 }
 
+/// Render short-format columns to stdout.
 pub fn display_short_format(file_info: &[FileInfo]) -> io::Result<()> {
     let terminal_width = terminal_width_or_default(terminal_size());
     print_short_lines(&render_short_format_lines(file_info, terminal_width))
 }
 
+/// Render short-format rows for a fixed terminal width.
 pub(crate) fn render_short_format_lines(
     file_info: &[FileInfo],
     terminal_width: usize,
@@ -293,6 +305,7 @@ pub(crate) fn render_short_format_lines(
         .collect()
 }
 
+/// Return the detected terminal width, or the standard 80-column fallback.
 pub(crate) fn terminal_width_or_default(
     size: Option<(Width, Height)>,
 ) -> usize {

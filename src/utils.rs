@@ -1,3 +1,8 @@
+//! Utility modules used by the `lsplus` runtime.
+//!
+//! These modules handle filesystem inspection, terminal rendering, color
+//! selection, icon lookup, and small formatting helpers shared by the CLI app.
+
 pub mod color;
 pub mod file;
 pub mod format;

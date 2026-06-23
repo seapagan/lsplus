@@ -1,3 +1,6 @@
+//! Formatting helpers for permissions and file sizes.
+
+/// Convert Unix permission bits into an `rwxrwxrwx` string.
 pub fn mode_to_rwx(mode: u32) -> String {
     let mut rwx = String::new();
     let perms = [
@@ -23,6 +26,7 @@ pub fn mode_to_rwx(mode: u32) -> String {
     rwx
 }
 
+/// Scale a byte count into the largest binary unit below 1024.
 pub fn human_readable_format(size: u64) -> (f64, &'static str) {
     const UNITS: [&str; 6] = ["B", "KB", "MB", "GB", "TB", "PB"];
     let mut size = size as f64;
@@ -36,6 +40,7 @@ pub fn human_readable_format(size: u64) -> (f64, &'static str) {
     (size, UNITS[unit_index])
 }
 
+/// Format a size for display and return the optional unit label.
 pub fn show_size(size: u64, human_readable: bool) -> (String, &'static str) {
     if human_readable {
         let (size, unit) = human_readable_format(size);

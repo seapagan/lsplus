@@ -1,3 +1,10 @@
+//! Filesystem inspection and entry-name formatting.
+//!
+//! This module collects the metadata needed by renderers, applies visibility
+//! and directory-ordering rules, sanitizes terminal output, and prepares
+//! styled names for regular files, directories, symlinks, and gitignored
+//! entries.
+
 use colored_text::{Colorize, StyledText};
 use nix::unistd::{Group, User};
 use std::ffi::{OsStr, OsString};
@@ -28,9 +35,13 @@ struct FileDetails {
     group: String,
 }
 
+/// Directory entry data captured before visibility filtering and sorting.
 pub(crate) struct DirectoryEntryData {
+    /// Raw entry name from `read_dir`.
     pub file_name: OsString,
+    /// Full entry path.
     pub path: PathBuf,
+    /// Directory classification captured while reading the entry.
     pub is_dir: Result<bool, io::Error>,
 }
 
@@ -69,6 +80,7 @@ fn get_file_details(metadata: &fs::Metadata) -> FileDetails {
     }
 }
 
+/// Return displayable names for a file path or visible entries in a directory.
 pub fn collect_file_names(
     path: &Path,
     params: &Params,
@@ -111,6 +123,10 @@ pub fn collect_file_names(
     Ok(file_names)
 }
 
+/// Return visible entry names for a directory after sorting and filtering.
+///
+/// Hidden-file handling follows the parsed params, and `dirs_first` preserves
+/// the sorted order within the directory and non-directory groups.
 pub(crate) fn collect_visible_file_names(
     path: &Path,
     entries: Vec<Result<DirectoryEntryData, io::Error>>,
@@ -165,6 +181,7 @@ pub(crate) fn collect_visible_file_names(
     file_names
 }
 
+/// Look up a username, falling back to the numeric UID.
 pub fn get_username(uid: u32) -> String {
     match User::from_uid(uid.into()) {
         Ok(Some(user)) => user.name,
@@ -172,6 +189,7 @@ pub fn get_username(uid: u32) -> String {
     }
 }
 
+/// Look up a group name, falling back to the numeric GID.
 pub fn get_groupname(gid: u32) -> String {
     match Group::from_gid(gid.into()) {
         Ok(Some(group)) => group.name,
@@ -179,6 +197,10 @@ pub fn get_groupname(gid: u32) -> String {
     }
 }
 
+/// Collect display metadata for a file or every visible entry in a directory.
+///
+/// Directory symlinks are followed for directory traversal decisions, while
+/// broken symlinks remain listable as their own entries.
 pub fn collect_file_info(
     path: &Path,
     params: &Params,
@@ -218,6 +240,7 @@ pub fn collect_file_info(
     Ok(file_info)
 }
 
+/// Append display metadata for a list of names under one directory.
 pub(crate) fn append_file_info_for_names(
     file_info: &mut Vec<FileInfo>,
     path: &Path,
@@ -242,6 +265,7 @@ pub(crate) fn append_file_info_for_names(
     }
 }
 
+/// Build display metadata for a single filesystem path.
 pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
     let mut gitignore_cache = GitignoreCache::default();
     create_file_info_with_gitignore(path, params, &mut gitignore_cache)
@@ -327,6 +351,7 @@ fn create_file_info_from_metadata_with_gitignore(
     }
 }
 
+/// Return the displayed name, preserving special styling for `.` and `..`.
 pub fn check_display_name(info: &FileInfo) -> String {
     match &info.full_path.to_string_lossy() {
         p if p.ends_with("/.") => ".".blue().to_string(),
@@ -371,6 +396,7 @@ fn sort_key(name: &OsStr) -> Vec<u8> {
     }
 }
 
+/// Escape control characters so paths cannot inject terminal control output.
 pub(crate) fn sanitize_for_terminal(text: &str) -> String {
     if text.is_empty() {
         return String::new();
@@ -396,6 +422,7 @@ fn sanitize_path_for_terminal(path: &Path) -> String {
     sanitize_for_terminal(&path.to_string_lossy())
 }
 
+/// Append the configured file-type indicator to a sanitized entry name.
 fn format_name_with_indicator(
     safe_name: &str,
     metadata: &fs::Metadata,
@@ -404,6 +431,10 @@ fn format_name_with_indicator(
     format!("{safe_name}{}", indicator_suffix(metadata, params))
 }
 
+/// Return the suffix for the configured indicator style.
+///
+/// Long-format symlink rows display targets with `->`, so the short-format
+/// `@` symlink marker is suppressed there.
 fn indicator_suffix(metadata: &fs::Metadata, params: &Params) -> &'static str {
     if metadata.is_symlink() && params.long_format {
         return "";
@@ -425,6 +456,7 @@ fn indicator_suffix(metadata: &fs::Metadata, params: &Params) -> &'static str {
     }
 }
 
+/// Return the GNU-style indicator suffix for the entry metadata.
 fn file_type_indicator_suffix(
     metadata: &fs::Metadata,
     classify_executables: bool,
@@ -493,6 +525,7 @@ fn is_executable(metadata: &fs::Metadata) -> bool {
     }
 }
 
+/// Format a symlink name, optionally including and styling its target.
 pub(crate) fn format_symlink_display_name_with_dim(
     source_name: &str,
     path: &Path,
@@ -554,6 +587,7 @@ pub(crate) fn format_symlink_display_name_with_dim(
     }
 }
 
+/// Format a path-related IO error for terminal output.
 pub(crate) fn format_path_error(path: &Path, err: &io::Error) -> String {
     format!("lsplus: {}: {}", sanitize_path_for_terminal(path), err)
 }

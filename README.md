@@ -7,10 +7,8 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/73f67c2ab44548298e0660ca73308729)](https://app.codacy.com/gh/seapagan/lsplus/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Build Docs](https://github.com/seapagan/lsplus/actions/workflows/gh-pages.yml/badge.svg)](https://github.com/seapagan/lsplus/actions/workflows/gh-pages.yml)
 
-This is currently a very simple (though functional) clone of the Unix 'ls'
-command written in Rust. It is a learning project for me to learn Rust so
-probably contains many inefficiencies and bad practices. I'll get better
-with time! 😁
+LSPlus is a functional Unix `ls` clone written in Rust. I built it as a Rust
+learning project, so some code may still show beginner decisions.
 
 ![lsp output](./docs/src/images/screenshot.png)
 
@@ -35,8 +33,8 @@ with time! 😁
 
 ## Compatibility
 
-This project is currently only compatible with Unix-like systems (Linux,
-MacOs, etc.). Windows support is planned to be added very soon.
+LSPlus supports Unix-like systems: Linux, macOS, and similar platforms. Windows
+support is on the roadmap.
 
 ## Nerd Fonts
 
@@ -54,10 +52,9 @@ the program (or `no_icons=true` in the config file).
 
 ### Download a Binary
 
-For Linux and Mac you can download the latest binary files from the [release
-page](https://github.com/seapagan/lsplus/releases/latest). Unpack the archive
-and move the single file `lsp` to somewhere in your path so it can be located.
-Ensure it is set as executable (though it already should be).
+Download the latest Linux or macOS archive from the [release
+page](https://github.com/seapagan/lsplus/releases/latest). Unpack it, move
+`lsp` into a directory on your `PATH`, and make it executable if needed.
 
 These binaries are auto-generated for each release.
 
@@ -91,11 +88,10 @@ Run this command in your terminal to list files in the current directory:
 lsp <options> <path | file>
 ```
 
-Both the options and the path are optional. If no path is provided, the current
-directory will be listed. If no options are provided, the default options will
-be used which are similar to the `ls` command.
+Options and paths are optional. With no path, `lsp` lists the current
+directory. With no options, it uses defaults similar to `ls`.
 
-Curently, only a sub-set of the standard `ls` options are supported. These are:
+Currently, only a sub-set of the standard `ls` options are supported. These are:
 
 - `-a` / `--all` - Show hidden files
 - `-A` / `--almost-all` - Show hidden files, but don't show `.` and `..`
@@ -165,10 +161,8 @@ show the time in a human-readable format, e.g. '2 hours ago', 'yesterday', etc.
 
 ### Icons
 
-Icons are added to folders, files, and links. There is only a limited set of
-mappings implemented at the moment, but more will be added in the future. Add
-an issue if you have a specific icon you would like to see - even better, add
-a Pull Request implementing it! 😁
+`lsp` shows icons for folders, files, and links. The current mappings cover
+common names and extensions. Open an issue or PR if you want another icon.
 
 You can disable the icons by using the `--no-icons` option.
 
@@ -216,9 +210,9 @@ GNU indicator options are also available in `gnu` mode:
 
 ### Configuration File
 
-You can set options using the configuration file so they will apply to every run
-and not need to be specified on the command line. See the relevant section on
-the [website](https://seapagan.github.io/lsplus/config.html) for full details.
+Put options in the config file to apply them to each run instead of passing them
+on the command line. See the relevant section on the
+[website](https://seapagan.github.io/lsplus/config.html) for full details.
 
 ### Aliases
 
@@ -274,5 +268,4 @@ cargo install cargo-deny
 
 ## Future Plans
 
-I am planning to add many more features to this project in the future. Check out
-the [TODO](./TODO.md) file for a list of planned features and improvements.
+See [TODO](./TODO.md) for planned work.

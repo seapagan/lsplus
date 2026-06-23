@@ -1,3 +1,8 @@
+//! Runtime orchestration for listing paths and rendering output.
+//!
+//! This module bridges parsed CLI flags, config parameters, glob expansion,
+//! filesystem metadata collection, and the selected output renderer.
+
 use glob::glob;
 use std::io;
 use std::path::PathBuf;
@@ -29,6 +34,7 @@ pub fn run_with_flags_and_config(
     run_multi(&patterns, &params)
 }
 
+/// Return explicit CLI paths or the default current-directory pattern.
 pub(crate) fn patterns_from_args(paths: Vec<String>) -> Vec<String> {
     if paths.is_empty() {
         vec![String::from(".")]
@@ -47,6 +53,10 @@ fn run_multi(patterns: &[String], params: &Params) -> io::Result<()> {
     }
 }
 
+/// Expand path patterns and collect display data for all matching entries.
+///
+/// `collect_matches` reports missing patterns to stderr, skips them, and
+/// continues with other patterns.
 pub(crate) fn collect_matches(
     patterns: &[String],
     params: &Params,

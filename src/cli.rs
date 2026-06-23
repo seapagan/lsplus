@@ -33,6 +33,7 @@ const ARG_FUZZY_TIME: &str = "fuzzy_time";
 const ARG_HELP: &str = "help";
 const ARG_INDICATOR_GROUP: &str = "indicator_style_group";
 
+/// CLI compatibility mode used when building the clap command.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CompatMode {
     /// Parse arguments using the native `lsplus` option set.
@@ -43,6 +44,7 @@ pub enum CompatMode {
 }
 
 impl CompatMode {
+    /// Parse a config or environment value into a compatibility mode.
     pub(crate) fn parse_value(value: &str) -> Result<Self, String> {
         match value.trim().to_ascii_lowercase().as_str() {
             "native" => Ok(Self::Native),
@@ -56,6 +58,7 @@ impl CompatMode {
     }
 }
 
+/// Parsed command-line flags before they are merged with config defaults.
 #[derive(Debug)]
 pub struct Flags {
     /// Show entries whose names start with `.`.
@@ -100,6 +103,7 @@ impl Flags {
         Self::try_parse_from(args).unwrap_or_else(|err| err.exit())
     }
 
+    /// Parse native-mode CLI arguments without exiting on parse failure.
     pub fn try_parse_from<I, T>(args: I) -> Result<Self, clap::Error>
     where
         I: IntoIterator<Item = T>,
