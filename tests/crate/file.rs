@@ -2,10 +2,11 @@ use crate::common_tests::{
     ColorModeGuard, has_ansi, with_color_output_enabled,
 };
 use crate::utils::file::{
-    DirectoryEntryData, append_file_info_for_names, check_display_name,
-    collect_file_info, collect_file_names, collect_visible_file_names,
-    create_file_info, format_path_error, format_symlink_display_name_with_dim,
-    get_groupname, get_username, sanitize_for_terminal,
+    DirectoryEntryData, LongFormatFileType, append_file_info_for_names,
+    check_display_name, collect_file_info, collect_file_names,
+    collect_visible_file_names, create_file_info, format_path_error,
+    format_symlink_display_name_with_dim, get_groupname, get_username,
+    sanitize_for_terminal,
 };
 use crate::{FileInfo, IndicatorStyle, NameStyle, Params};
 use colored_text::ColorMode;
@@ -367,7 +368,7 @@ fn test_create_file_info_returns_plain_names_when_color_is_disabled() {
 
 #[cfg(unix)]
 #[test]
-fn test_create_file_info_marks_fifo_as_unknown_type() {
+fn test_create_file_info_marks_fifo_as_pipe_type() {
     let temp_dir = tempdir().unwrap();
     let fifo_path = temp_dir.path().join("pipe");
     let status = Command::new("mkfifo").arg(&fifo_path).status().unwrap();
@@ -375,7 +376,7 @@ fn test_create_file_info_marks_fifo_as_unknown_type() {
 
     let info = create_file_info(&fifo_path, &Params::default()).unwrap();
 
-    assert_eq!(info.file_type, "?");
+    assert_eq!(info.file_type, "p");
 }
 
 #[cfg(unix)]
@@ -406,11 +407,28 @@ fn test_create_file_info_classify_prefers_fifo_and_socket_indicators() {
     let fifo_info = create_file_info(&fifo_path, &params).unwrap();
     let socket_info = create_file_info(&socket_path, &params).unwrap();
 
+    assert_eq!(fifo_info.file_type, "p");
     assert_eq!(socket_info.file_type, "s");
     assert!(strip_str(&fifo_info.display_name).ends_with('|'));
     assert!(!strip_str(&fifo_info.display_name).ends_with('*'));
     assert!(strip_str(&socket_info.display_name).ends_with('='));
     assert!(!strip_str(&socket_info.display_name).ends_with('*'));
+}
+
+#[cfg(unix)]
+#[test]
+fn test_long_format_file_type_chars_for_unix_special_types() {
+    let cases = [
+        (LongFormatFileType::Fifo, 'p'),
+        (LongFormatFileType::Socket, 's'),
+        (LongFormatFileType::CharDevice, 'c'),
+        (LongFormatFileType::BlockDevice, 'b'),
+        (LongFormatFileType::Unknown, '?'),
+    ];
+
+    for (file_type, expected) in cases {
+        assert_eq!(file_type.as_char(), expected);
+    }
 }
 
 #[cfg(unix)]

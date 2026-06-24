@@ -122,6 +122,8 @@ fn write_file_type_char(output: &mut String, value: char) {
         'd' => write!(output, "{}", value.blue()).unwrap(),
         'l' => write!(output, "{}", value.cyan()).unwrap(),
         's' => write!(output, "{}", value.magenta().bold()).unwrap(),
+        'p' => write!(output, "{}", value.yellow()).unwrap(),
+        'c' | 'b' => write!(output, "{}", value.yellow().bold()).unwrap(),
         '-' | '?' => write!(output, "{}", value.dim()).unwrap(),
         _ => output.push(value),
     }

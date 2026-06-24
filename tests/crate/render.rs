@@ -143,18 +143,29 @@ fn test_build_long_format_table_colors_permissions_by_default() {
 #[test]
 fn test_build_long_format_table_colors_special_file_types() {
     with_color_output_enabled(|| {
-        let mut info = test_file_info("socket", None, 0, SystemTime::now());
-        info.file_type = String::from("s");
+        let mut pipe = test_file_info("pipe", None, 0, SystemTime::now());
+        pipe.file_type = String::from("p");
+        let mut socket = test_file_info("socket", None, 0, SystemTime::now());
+        socket.file_type = String::from("s");
+        let mut char_device =
+            test_file_info("char", None, 0, SystemTime::now());
+        char_device.file_type = String::from("c");
+        let mut block_device =
+            test_file_info("block", None, 0, SystemTime::now());
+        block_device.file_type = String::from("b");
         let mut unknown =
             test_file_info("unknown", None, 0, SystemTime::now());
         unknown.file_type = String::from("?");
 
         let rendered = normalized_table(build_long_format_table(
-            &[info, unknown],
+            &[pipe, socket, char_device, block_device, unknown],
             &fixed_time_params(),
         ));
 
+        assert!(rendered.contains("\u{1b}[33mp\u{1b}[0m"));
         assert!(rendered.contains("\u{1b}[1;35ms\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[1;33mc\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[1;33mb\u{1b}[0m"));
         assert!(rendered.contains("\u{1b}[2m?\u{1b}[0m"));
     });
 }

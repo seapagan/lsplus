@@ -35,6 +35,55 @@ struct FileDetails {
     group: String,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum LongFormatFileType {
+    Directory,
+    Regular,
+    Symlink,
+    Socket,
+    Fifo,
+    CharDevice,
+    BlockDevice,
+    Unknown,
+}
+
+impl LongFormatFileType {
+    pub(crate) fn as_char(self) -> char {
+        match self {
+            Self::Directory => 'd',
+            Self::Regular => '-',
+            Self::Symlink => 'l',
+            Self::Socket => 's',
+            Self::Fifo => 'p',
+            Self::CharDevice => 'c',
+            Self::BlockDevice => 'b',
+            Self::Unknown => '?',
+        }
+    }
+}
+
+pub(crate) fn long_format_file_type(
+    metadata: &fs::Metadata,
+) -> LongFormatFileType {
+    if metadata.is_dir() {
+        LongFormatFileType::Directory
+    } else if metadata.is_file() {
+        LongFormatFileType::Regular
+    } else if metadata.is_symlink() {
+        LongFormatFileType::Symlink
+    } else if metadata.file_type().is_socket() {
+        LongFormatFileType::Socket
+    } else if metadata.file_type().is_fifo() {
+        LongFormatFileType::Fifo
+    } else if metadata.file_type().is_char_device() {
+        LongFormatFileType::CharDevice
+    } else if metadata.file_type().is_block_device() {
+        LongFormatFileType::BlockDevice
+    } else {
+        LongFormatFileType::Unknown
+    }
+}
+
 /// Directory entry data captured before visibility filtering and sorting.
 pub(crate) struct DirectoryEntryData {
     /// Raw entry name from `read_dir`.
@@ -46,18 +95,7 @@ pub(crate) struct DirectoryEntryData {
 }
 
 fn get_file_details(metadata: &fs::Metadata) -> FileDetails {
-    let file_type = if metadata.is_dir() {
-        "d"
-    } else if metadata.is_file() {
-        "-"
-    } else if metadata.is_symlink() {
-        "l"
-    } else if metadata.file_type().is_socket() {
-        "s"
-    } else {
-        "?"
-    }
-    .to_string();
+    let file_type = long_format_file_type(metadata).as_char().to_string();
 
     let permissions = metadata.permissions();
     let mode = permissions.mode();
