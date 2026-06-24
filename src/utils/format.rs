@@ -23,7 +23,27 @@ pub fn mode_to_rwx(mode: u32) -> String {
         }
     }
 
-    rwx
+    let mut chars: Vec<char> = rwx.chars().collect();
+    chars[2] = special_execute_char(mode, 0o4000, 0o100, 's', 'S');
+    chars[5] = special_execute_char(mode, 0o2000, 0o010, 's', 'S');
+    chars[8] = special_execute_char(mode, 0o1000, 0o001, 't', 'T');
+
+    chars.into_iter().collect()
+}
+
+fn special_execute_char(
+    mode: u32,
+    special_bit: u32,
+    execute_bit: u32,
+    execute_char: char,
+    no_execute_char: char,
+) -> char {
+    match (mode & special_bit != 0, mode & execute_bit != 0) {
+        (true, true) => execute_char,
+        (true, false) => no_execute_char,
+        (false, true) => 'x',
+        (false, false) => '-',
+    }
 }
 
 /// Scale a byte count into the largest binary unit below 1024.

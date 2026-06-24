@@ -87,3 +87,14 @@ fn test_mode_to_rwx_edge_cases() {
     assert_eq!(mode_to_rwx(0o0222), "-w--w--w-");
     assert_eq!(mode_to_rwx(0o0111), "--x--x--x");
 }
+
+#[test]
+fn test_mode_to_rwx_special_bits() {
+    assert_eq!(mode_to_rwx(0o4755), "rwsr-xr-x");
+    assert_eq!(mode_to_rwx(0o4644), "rwSr--r--");
+    assert_eq!(mode_to_rwx(0o2755), "rwxr-sr-x");
+    assert_eq!(mode_to_rwx(0o2644), "rw-r-Sr--");
+    assert_eq!(mode_to_rwx(0o1755), "rwxr-xr-t");
+    assert_eq!(mode_to_rwx(0o1644), "rw-r--r-T");
+    assert_eq!(mode_to_rwx(0o7777), "rwsrwsrwt");
+}
