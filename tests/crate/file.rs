@@ -406,6 +406,7 @@ fn test_create_file_info_classify_prefers_fifo_and_socket_indicators() {
     let fifo_info = create_file_info(&fifo_path, &params).unwrap();
     let socket_info = create_file_info(&socket_path, &params).unwrap();
 
+    assert_eq!(socket_info.file_type, "s");
     assert!(strip_str(&fifo_info.display_name).ends_with('|'));
     assert!(!strip_str(&fifo_info.display_name).ends_with('*'));
     assert!(strip_str(&socket_info.display_name).ends_with('='));

@@ -139,6 +139,21 @@ fn test_build_long_format_table_colors_permissions_by_default() {
 }
 
 #[test]
+fn test_build_long_format_table_colors_socket_type() {
+    with_color_output_enabled(|| {
+        let mut info = test_file_info("socket", None, 0, SystemTime::now());
+        info.file_type = String::from("s");
+
+        let rendered = normalized_table(build_long_format_table(
+            &[info],
+            &fixed_time_params(),
+        ));
+
+        assert!(rendered.contains("\u{1b}[1;35ms\u{1b}[0m"));
+    });
+}
+
+#[test]
 fn test_build_long_format_table_omits_permission_colors_when_disabled() {
     with_color_output_enabled(|| {
         let mut info =

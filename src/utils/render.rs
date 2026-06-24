@@ -121,6 +121,7 @@ fn write_file_type_char(output: &mut String, value: char) {
     match value {
         'd' => write!(output, "{}", value.blue()).unwrap(),
         'l' => write!(output, "{}", value.cyan()).unwrap(),
+        's' => write!(output, "{}", value.magenta().bold()).unwrap(),
         '-' => write!(output, "{}", value.dim()).unwrap(),
         _ => output.push(value),
     }

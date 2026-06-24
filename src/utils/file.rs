@@ -52,6 +52,8 @@ fn get_file_details(metadata: &fs::Metadata) -> FileDetails {
         "-"
     } else if metadata.is_symlink() {
         "l"
+    } else if metadata.file_type().is_socket() {
+        "s"
     } else {
         "?"
     }
