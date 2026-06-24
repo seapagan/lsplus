@@ -7,6 +7,8 @@ use strip_ansi_escapes::strip_str;
 use tempfile::tempdir;
 
 #[cfg(unix)]
+use nix::unistd::Uid;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
 fn run_and_capture(cmd: &mut Command) -> (String, String) {
@@ -78,6 +80,56 @@ fn test_invalid_path() {
         .assert()
         .success() // The program handles errors internally
         .stderr(predicates::str::contains("No such file or directory"));
+}
+
+#[test]
+fn test_invalid_glob_pattern_reports_lsplus_prefix() {
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("[invalid-glob-pattern").assert().success().stderr(
+        predicates::str::contains("lsplus: failed to read glob pattern"),
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn test_glob_entry_error_reports_stderr_and_lists_matches() {
+    struct PermissionGuard {
+        path: std::path::PathBuf,
+    }
+
+    impl Drop for PermissionGuard {
+        fn drop(&mut self) {
+            let _ = fs::set_permissions(
+                &self.path,
+                fs::Permissions::from_mode(0o700),
+            );
+        }
+    }
+
+    if Uid::effective().is_root() {
+        return;
+    }
+
+    let temp_dir = tempdir().unwrap();
+    let readable_file = temp_dir.path().join("visible.txt");
+    let unreadable_dir = temp_dir.path().join("private");
+    fs::write(&readable_file, "visible").unwrap();
+    fs::create_dir(&unreadable_dir).unwrap();
+    fs::set_permissions(&unreadable_dir, fs::Permissions::from_mode(0o000))
+        .unwrap();
+    let _guard = PermissionGuard {
+        path: unreadable_dir.clone(),
+    };
+
+    let pattern = format!("{}/**/*.txt", temp_dir.path().display());
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg(pattern);
+    let (stdout, stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains("visible.txt"));
+    assert!(stderr.contains("lsplus:"));
+    assert!(stderr.contains(temp_dir.path().to_string_lossy().as_ref()));
+    assert!(stderr.contains("private"));
 }
 
 #[test]

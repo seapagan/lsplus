@@ -11,7 +11,7 @@ use crate::Params;
 use crate::cli;
 use crate::settings;
 use crate::utils;
-use crate::utils::file::collect_file_info;
+use crate::utils::file::{collect_file_info, sanitize_for_terminal};
 
 /// Run `lsplus` using parsed CLI flags and config loaded from disk.
 pub fn run_with_flags(args: cli::Flags) -> io::Result<()> {
@@ -81,14 +81,37 @@ fn append_pattern_matches(
 ) -> io::Result<()> {
     match glob(pattern) {
         Ok(entries) => {
-            let paths: Vec<PathBuf> = entries.filter_map(Result::ok).collect();
+            let mut paths: Vec<PathBuf> = Vec::new();
+            let mut had_entry_error = false;
+
+            for entry in entries {
+                match entry {
+                    Ok(path) => paths.push(path),
+                    Err(err) => {
+                        had_entry_error = true;
+                        eprintln!(
+                            "lsplus: {}: {}",
+                            sanitize_for_terminal(
+                                &err.path().to_string_lossy()
+                            ),
+                            err.error()
+                        );
+                    }
+                }
+            }
+
             if paths.is_empty() {
-                eprintln!("lsplus: {}: No such file or directory", pattern);
+                if !had_entry_error {
+                    eprintln!(
+                        "lsplus: {}: No such file or directory",
+                        sanitize_for_terminal(pattern)
+                    );
+                }
             } else {
                 append_paths(all_file_info, &paths, params)?;
             }
         }
-        Err(e) => eprintln!("Failed to read glob pattern: {}", e),
+        Err(e) => eprintln!("lsplus: failed to read glob pattern: {}", e),
     }
 
     Ok(())
