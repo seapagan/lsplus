@@ -93,6 +93,19 @@ fn test_invalid_glob_pattern_reports_lsplus_prefix() {
 #[cfg(unix)]
 #[test]
 fn test_glob_entry_error_reports_stderr_and_lists_matches() {
+    struct PermissionGuard {
+        path: std::path::PathBuf,
+    }
+
+    impl Drop for PermissionGuard {
+        fn drop(&mut self) {
+            let _ = fs::set_permissions(
+                &self.path,
+                fs::Permissions::from_mode(0o700),
+            );
+        }
+    }
+
     if Uid::effective().is_root() {
         return;
     }
@@ -104,14 +117,14 @@ fn test_glob_entry_error_reports_stderr_and_lists_matches() {
     fs::create_dir(&unreadable_dir).unwrap();
     fs::set_permissions(&unreadable_dir, fs::Permissions::from_mode(0o000))
         .unwrap();
+    let _guard = PermissionGuard {
+        path: unreadable_dir.clone(),
+    };
 
     let pattern = format!("{}/**/*.txt", temp_dir.path().display());
     let mut cmd = Command::cargo_bin("lsp").unwrap();
     cmd.arg(pattern);
     let (stdout, stderr) = run_and_capture(&mut cmd);
-
-    fs::set_permissions(&unreadable_dir, fs::Permissions::from_mode(0o700))
-        .unwrap();
 
     assert!(stdout.contains("visible.txt"));
     assert!(stderr.contains("lsplus:"));
