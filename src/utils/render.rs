@@ -122,7 +122,7 @@ fn write_file_type_char(output: &mut String, value: char) {
         'd' => write!(output, "{}", value.blue()).unwrap(),
         'l' => write!(output, "{}", value.cyan()).unwrap(),
         's' => write!(output, "{}", value.magenta().bold()).unwrap(),
-        '-' => write!(output, "{}", value.dim()).unwrap(),
+        '-' | '?' => write!(output, "{}", value.dim()).unwrap(),
         _ => output.push(value),
     }
 }
@@ -131,8 +131,8 @@ fn write_permission_char(output: &mut String, value: char) {
     match value {
         'r' => write!(output, "{}", value.green()).unwrap(),
         'w' => write!(output, "{}", value.yellow()).unwrap(),
-        'x' => write!(output, "{}", value.red().bold()).unwrap(),
-        '-' => write!(output, "{}", value.dim()).unwrap(),
+        'x' | 's' | 't' => write!(output, "{}", value.red().bold()).unwrap(),
+        '-' | 'S' | 'T' => write!(output, "{}", value.dim()).unwrap(),
         _ => output.push(value),
     }
 }

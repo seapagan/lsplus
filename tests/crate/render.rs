@@ -123,7 +123,7 @@ fn test_build_long_format_table_colors_permissions_by_default() {
         let mut info =
             test_file_info("script.sh", None, 12, SystemTime::now());
         info.file_type = String::from("d");
-        info.mode = String::from("rwxr-x---");
+        info.mode = String::from("rwsr-tS-T");
 
         let rendered = normalized_table(build_long_format_table(
             &[info],
@@ -133,23 +133,29 @@ fn test_build_long_format_table_colors_permissions_by_default() {
         assert!(rendered.contains("\u{1b}[34md\u{1b}[0m"));
         assert!(rendered.contains("\u{1b}[32mr\u{1b}[0m"));
         assert!(rendered.contains("\u{1b}[33mw\u{1b}[0m"));
-        assert!(rendered.contains("\u{1b}[1;31mx\u{1b}[0m"));
-        assert!(rendered.contains("\u{1b}[2m-\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[1;31ms\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[1;31mt\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[2mS\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[2mT\u{1b}[0m"));
     });
 }
 
 #[test]
-fn test_build_long_format_table_colors_socket_type() {
+fn test_build_long_format_table_colors_special_file_types() {
     with_color_output_enabled(|| {
         let mut info = test_file_info("socket", None, 0, SystemTime::now());
         info.file_type = String::from("s");
+        let mut unknown =
+            test_file_info("unknown", None, 0, SystemTime::now());
+        unknown.file_type = String::from("?");
 
         let rendered = normalized_table(build_long_format_table(
-            &[info],
+            &[info, unknown],
             &fixed_time_params(),
         ));
 
         assert!(rendered.contains("\u{1b}[1;35ms\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[2m?\u{1b}[0m"));
     });
 }
 
