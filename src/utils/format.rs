@@ -2,33 +2,25 @@
 
 /// Convert Unix permission bits into an `rwxrwxrwx` string.
 pub fn mode_to_rwx(mode: u32) -> String {
-    let mut rwx = String::new();
-    let perms = [
-        (mode & 0o400, 'r'),
-        (mode & 0o200, 'w'),
-        (mode & 0o100, 'x'), // Owner
-        (mode & 0o040, 'r'),
-        (mode & 0o020, 'w'),
-        (mode & 0o010, 'x'), // Group
-        (mode & 0o004, 'r'),
-        (mode & 0o002, 'w'),
-        (mode & 0o001, 'x'), // Others
-    ];
+    let mut rwx = String::with_capacity(9);
 
-    for (bit, chr) in perms.iter() {
-        if *bit != 0 {
-            rwx.push(*chr);
-        } else {
-            rwx.push('-');
-        }
-    }
+    rwx.push(permission_char(mode, 0o400, 'r'));
+    rwx.push(permission_char(mode, 0o200, 'w'));
+    rwx.push(special_execute_char(mode, 0o4000, 0o100, 's', 'S'));
 
-    let mut chars: Vec<char> = rwx.chars().collect();
-    chars[2] = special_execute_char(mode, 0o4000, 0o100, 's', 'S');
-    chars[5] = special_execute_char(mode, 0o2000, 0o010, 's', 'S');
-    chars[8] = special_execute_char(mode, 0o1000, 0o001, 't', 'T');
+    rwx.push(permission_char(mode, 0o040, 'r'));
+    rwx.push(permission_char(mode, 0o020, 'w'));
+    rwx.push(special_execute_char(mode, 0o2000, 0o010, 's', 'S'));
 
-    chars.into_iter().collect()
+    rwx.push(permission_char(mode, 0o004, 'r'));
+    rwx.push(permission_char(mode, 0o002, 'w'));
+    rwx.push(special_execute_char(mode, 0o1000, 0o001, 't', 'T'));
+
+    rwx
+}
+
+fn permission_char(mode: u32, bit: u32, value: char) -> char {
+    if mode & bit != 0 { value } else { '-' }
 }
 
 fn special_execute_char(
