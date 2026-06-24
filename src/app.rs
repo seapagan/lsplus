@@ -91,8 +91,10 @@ fn append_pattern_matches(
                         had_entry_error = true;
                         eprintln!(
                             "lsplus: {}: {}",
-                            sanitize_for_terminal(pattern),
-                            err
+                            sanitize_for_terminal(
+                                &err.path().to_string_lossy()
+                            ),
+                            err.error()
                         );
                     }
                 }
