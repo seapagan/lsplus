@@ -177,9 +177,11 @@ impl Params {
 /// Metadata and pre-rendered name data for one listed filesystem entry.
 #[derive(Debug)]
 pub struct FileInfo {
-    /// Long-format file-type character such as `d`, `-`, `l`, or `?`.
+    /// Long-format file-type character: `d`, `-`, `l`, `s`, `p`, `c`, `b`,
+    /// or `?`.
     pub file_type: String,
-    /// Unix-style `rwxrwxrwx` permission string.
+    /// Unix-style permission string, possibly including `s`, `S`, `t`, or
+    /// `T` special-bit overlays.
     pub mode: String,
     /// Link count from filesystem metadata.
     pub nlink: u64,
