@@ -524,16 +524,29 @@ fn plain_text(text: impl Into<String>, dimmed: bool) -> String {
     apply_dim(StyledText::plain(text), dimmed).to_string()
 }
 
-fn name_style_by_metadata(metadata: &fs::Metadata) -> NameStyle {
-    if metadata.is_symlink() {
-        NameStyle::Symlink
-    } else if metadata.is_dir() {
-        NameStyle::Directory
-    } else if is_executable(metadata) {
-        NameStyle::Executable
-    } else {
-        NameStyle::Plain
+pub(crate) fn name_style_for_file_type(
+    file_type: LongFormatFileType,
+    executable: bool,
+) -> NameStyle {
+    match file_type {
+        LongFormatFileType::Symlink => NameStyle::Symlink,
+        LongFormatFileType::Directory => NameStyle::Directory,
+        LongFormatFileType::Socket => NameStyle::Socket,
+        LongFormatFileType::Fifo => NameStyle::Fifo,
+        LongFormatFileType::CharDevice => NameStyle::CharDevice,
+        LongFormatFileType::BlockDevice => NameStyle::BlockDevice,
+        LongFormatFileType::Regular if executable => NameStyle::Executable,
+        LongFormatFileType::Regular | LongFormatFileType::Unknown => {
+            NameStyle::Plain
+        }
     }
+}
+
+fn name_style_by_metadata(metadata: &fs::Metadata) -> NameStyle {
+    name_style_for_file_type(
+        long_format_file_type(metadata),
+        is_executable(metadata),
+    )
 }
 
 fn colorize_name_by_metadata(
@@ -548,6 +561,13 @@ fn colorize_name_by_metadata(
         }
         NameStyle::Executable => {
             apply_dim(safe_name.green().bold(), dimmed).to_string()
+        }
+        NameStyle::Socket => {
+            apply_dim(safe_name.magenta().bold(), dimmed).to_string()
+        }
+        NameStyle::Fifo => apply_dim(safe_name.yellow(), dimmed).to_string(),
+        NameStyle::CharDevice | NameStyle::BlockDevice => {
+            apply_dim(safe_name.yellow().bold(), dimmed).to_string()
         }
         NameStyle::Plain => plain_text(safe_name, dimmed),
     }

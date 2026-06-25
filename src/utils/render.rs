@@ -441,6 +441,9 @@ fn style_short_segment(info: &FileInfo, text: String) -> String {
         NameStyle::Directory => text.blue(),
         NameStyle::Symlink => text.cyan(),
         NameStyle::Executable => text.green().bold(),
+        NameStyle::Socket => text.magenta().bold(),
+        NameStyle::Fifo => text.yellow(),
+        NameStyle::CharDevice | NameStyle::BlockDevice => text.yellow().bold(),
     };
 
     if info.dimmed {

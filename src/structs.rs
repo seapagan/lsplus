@@ -108,6 +108,14 @@ pub enum NameStyle {
     Symlink,
     /// A regular executable file.
     Executable,
+    /// A Unix socket.
+    Socket,
+    /// A Unix FIFO/pipe.
+    Fifo,
+    /// A Unix character device.
+    CharDevice,
+    /// A Unix block device.
+    BlockDevice,
 }
 
 impl From<Config> for Params {
