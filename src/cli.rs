@@ -15,6 +15,7 @@ const ARG_SHOW_ALL: &str = "show_all";
 const ARG_ALMOST_ALL: &str = "almost_all";
 const ARG_LONG: &str = "long";
 const ARG_HUMAN_READABLE: &str = "human_readable";
+const ARG_SI: &str = "si";
 const ARG_PATHS: &str = "paths";
 const ARG_SLASH: &str = "slash";
 const ARG_INDICATOR_STYLE: &str = "indicator_style";
@@ -69,6 +70,8 @@ pub struct Flags {
     pub long: bool,
     /// Render human-readable file sizes in long format.
     pub human_readable: bool,
+    /// Render human-readable file sizes using powers of 1000.
+    pub si: bool,
     /// Raw path arguments collected from the CLI.
     pub paths: Vec<String>,
     /// Override the configured indicator style for this invocation.
@@ -153,6 +156,7 @@ fn build_command(mode: CompatMode) -> Command {
         .arg(almost_all_arg())
         .arg(long_arg())
         .arg(human_readable_arg())
+        .arg(si_arg())
         .arg(paths_arg())
         .arg(slash_arg(mode))
         .arg(file_type_arg(mode))
@@ -226,7 +230,14 @@ fn human_readable_arg() -> Arg {
         .short('h')
         .long("human-readable")
         .action(ArgAction::SetTrue)
-        .help("with -l, print sizes like 1K 234M 2G etc.")
+        .help("with -l, print sizes using 1024-byte units, like 1K 234M 2G")
+}
+
+fn si_arg() -> Arg {
+    Arg::new(ARG_SI)
+        .long("si")
+        .action(ArgAction::SetTrue)
+        .help("with -l, print sizes using 1000-byte units, like 1k 234M 2G")
 }
 
 fn paths_arg() -> Arg {
@@ -389,6 +400,7 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
         almost_all: matches.get_flag(ARG_ALMOST_ALL),
         long: matches.get_flag(ARG_LONG),
         human_readable: matches.get_flag(ARG_HUMAN_READABLE),
+        si: matches.get_flag(ARG_SI),
         paths: matches
             .get_many::<String>(ARG_PATHS)
             .map(|values| values.cloned().collect())

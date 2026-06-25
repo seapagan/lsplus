@@ -50,8 +50,9 @@ pub(crate) fn build_long_format_table(
             datetime.format("%c").to_string()
         };
 
+        let size_scale = params.size_scale();
         let (display_size, units) =
-            utils::format::show_size(info.size, params.human_readable);
+            utils::format::show_size(info.size, size_scale);
 
         let mut row_cells = Vec::with_capacity(9);
 
@@ -70,7 +71,7 @@ pub(crate) fn build_long_format_table(
             "r",
         ));
 
-        if !units.is_empty() {
+        if size_scale.is_some() {
             row_cells.push(size_cell(
                 units,
                 info.size,
