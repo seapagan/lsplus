@@ -4,7 +4,8 @@ use crate::common_tests::{
 use crate::utils::file::{
     DirectoryEntryData, LongFormatFileType, append_file_info_for_names,
     check_display_name, collect_file_info, collect_file_names,
-    collect_visible_file_names, create_file_info, format_path_error,
+    collect_visible_file_names, create_file_info,
+    file_type_indicator_suffix_for_type, format_path_error,
     format_symlink_display_name_with_dim, get_groupname, get_username,
     name_style_for_file_type, sanitize_for_terminal,
 };
@@ -418,6 +419,33 @@ fn test_create_file_info_classify_prefers_fifo_and_socket_indicators() {
     assert!(!strip_str(&fifo_info.display_name).ends_with('*'));
     assert!(strip_str(&socket_info.display_name).ends_with('='));
     assert!(!strip_str(&socket_info.display_name).ends_with('*'));
+}
+
+#[cfg(unix)]
+#[test]
+fn test_file_type_indicator_suffix_for_unix_special_types() {
+    let cases = [
+        (LongFormatFileType::Directory, false, true, "/"),
+        (LongFormatFileType::Symlink, false, true, "@"),
+        (LongFormatFileType::Fifo, true, true, "|"),
+        (LongFormatFileType::Socket, true, true, "="),
+        (LongFormatFileType::Regular, true, true, "*"),
+        (LongFormatFileType::Regular, false, true, ""),
+        (LongFormatFileType::CharDevice, true, true, ""),
+        (LongFormatFileType::BlockDevice, true, true, ""),
+        (LongFormatFileType::Unknown, true, true, ""),
+    ];
+
+    for (file_type, classify_executables, executable, expected) in cases {
+        assert_eq!(
+            file_type_indicator_suffix_for_type(
+                file_type,
+                classify_executables,
+                executable
+            ),
+            expected
+        );
+    }
 }
 
 #[cfg(unix)]

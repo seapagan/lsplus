@@ -501,18 +501,30 @@ fn file_type_indicator_suffix(
     metadata: &fs::Metadata,
     classify_executables: bool,
 ) -> &'static str {
-    if metadata.is_dir() {
-        "/"
-    } else if metadata.is_symlink() {
-        "@"
-    } else if metadata.file_type().is_fifo() {
-        "|"
-    } else if metadata.file_type().is_socket() {
-        "="
-    } else if classify_executables && is_executable(metadata) {
-        "*"
-    } else {
-        ""
+    file_type_indicator_suffix_for_type(
+        long_format_file_type(metadata),
+        classify_executables,
+        is_executable(metadata),
+    )
+}
+
+pub(crate) fn file_type_indicator_suffix_for_type(
+    file_type: LongFormatFileType,
+    classify_executables: bool,
+    executable: bool,
+) -> &'static str {
+    match file_type {
+        LongFormatFileType::Directory => "/",
+        LongFormatFileType::Symlink => "@",
+        LongFormatFileType::Fifo => "|",
+        LongFormatFileType::Socket => "=",
+        LongFormatFileType::Regular if classify_executables && executable => {
+            "*"
+        }
+        LongFormatFileType::Regular
+        | LongFormatFileType::CharDevice
+        | LongFormatFileType::BlockDevice
+        | LongFormatFileType::Unknown => "",
     }
 }
 
