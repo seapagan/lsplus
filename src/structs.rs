@@ -108,6 +108,14 @@ pub enum NameStyle {
     Symlink,
     /// A regular executable file.
     Executable,
+    /// A Unix socket.
+    Socket,
+    /// A Unix FIFO/pipe.
+    Fifo,
+    /// A Unix character device.
+    CharDevice,
+    /// A Unix block device.
+    BlockDevice,
 }
 
 impl From<Config> for Params {
@@ -177,9 +185,11 @@ impl Params {
 /// Metadata and pre-rendered name data for one listed filesystem entry.
 #[derive(Debug)]
 pub struct FileInfo {
-    /// Long-format file-type character such as `d`, `-`, `l`, or `?`.
+    /// Long-format file-type character: `d`, `-`, `l`, `s`, `p`, `c`, `b`,
+    /// or `?`.
     pub file_type: String,
-    /// Unix-style `rwxrwxrwx` permission string.
+    /// Unix-style permission string, possibly including `s`, `S`, `t`, or
+    /// `T` special-bit overlays.
     pub mode: String,
     /// Link count from filesystem metadata.
     pub nlink: u64,

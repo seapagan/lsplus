@@ -9,6 +9,8 @@ use std::path::Path;
 use std::sync::OnceLock;
 use std::{fmt, fs};
 
+use crate::utils::file::{LongFormatFileType, long_format_file_type};
+
 /// Icon glyphs used for known file and directory categories.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Icon {
@@ -17,6 +19,10 @@ pub enum Icon {
     Folder = '\u{f07c}' as isize,
     Symlink = '\u{f1177}' as isize,
     GenericFile = '\u{f15b}' as isize,
+    SocketFile = '\u{f0318}' as isize,
+    PipeFile = '\u{f07e5}' as isize,
+    CharDeviceFile = '\u{f0fb0}' as isize,
+    BlockDeviceFile = '\u{f02ca}' as isize,
 
     // specific folder types
     CacheFolder = '\u{f163f}' as isize,
@@ -281,14 +287,33 @@ pub fn get_item_icon(metadata: &fs::Metadata, file_path: &Path) -> Icon {
         .map(|name| name.to_string_lossy())
         .unwrap_or_default();
 
-    // Return the icon for the item based on its metadata and name
-    if metadata.is_dir() {
-        // Icon::Folder
-        get_folder_icon(file_name.as_ref())
-    } else if metadata.is_symlink() {
-        Icon::Symlink
-    } else {
-        get_filename_icon(file_name.as_ref())
-            .unwrap_or_else(|| get_file_icon(file_name.as_ref()))
+    let file_type = long_format_file_type(metadata);
+    if let Some(icon) = special_file_type_icon(file_type) {
+        return icon;
+    }
+
+    match file_type {
+        LongFormatFileType::Directory => get_folder_icon(file_name.as_ref()),
+        LongFormatFileType::Symlink => Icon::Symlink,
+        LongFormatFileType::Regular | LongFormatFileType::Unknown => {
+            get_filename_icon(file_name.as_ref())
+                .unwrap_or_else(|| get_file_icon(file_name.as_ref()))
+        }
+        LongFormatFileType::Socket
+        | LongFormatFileType::Fifo
+        | LongFormatFileType::CharDevice
+        | LongFormatFileType::BlockDevice => unreachable!(),
+    }
+}
+
+pub(crate) fn special_file_type_icon(
+    file_type: LongFormatFileType,
+) -> Option<Icon> {
+    match file_type {
+        LongFormatFileType::Socket => Some(Icon::SocketFile),
+        LongFormatFileType::Fifo => Some(Icon::PipeFile),
+        LongFormatFileType::CharDevice => Some(Icon::CharDeviceFile),
+        LongFormatFileType::BlockDevice => Some(Icon::BlockDeviceFile),
+        _ => None,
     }
 }

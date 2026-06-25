@@ -2,11 +2,14 @@ use crate::common_tests::{
     ColorModeGuard, has_ansi, with_color_output_enabled,
 };
 use crate::utils::file::{
-    DirectoryEntryData, append_file_info_for_names, check_display_name,
-    collect_file_info, collect_file_names, collect_visible_file_names,
-    create_file_info, format_path_error, format_symlink_display_name_with_dim,
-    get_groupname, get_username, sanitize_for_terminal,
+    DirectoryEntryData, LongFormatFileType, append_file_info_for_names,
+    check_display_name, collect_file_info, collect_file_names,
+    collect_visible_file_names, create_file_info,
+    file_type_indicator_suffix_for_type, format_path_error,
+    format_symlink_display_name_with_dim, get_groupname, get_username,
+    name_style_for_file_type, sanitize_for_terminal,
 };
+use crate::utils::icons::Icon;
 use crate::{FileInfo, IndicatorStyle, NameStyle, Params};
 use colored_text::ColorMode;
 use std::ffi::OsString;
@@ -367,7 +370,7 @@ fn test_create_file_info_returns_plain_names_when_color_is_disabled() {
 
 #[cfg(unix)]
 #[test]
-fn test_create_file_info_marks_fifo_as_unknown_type() {
+fn test_create_file_info_marks_fifo_as_pipe_type() {
     let temp_dir = tempdir().unwrap();
     let fifo_path = temp_dir.path().join("pipe");
     let status = Command::new("mkfifo").arg(&fifo_path).status().unwrap();
@@ -375,7 +378,7 @@ fn test_create_file_info_marks_fifo_as_unknown_type() {
 
     let info = create_file_info(&fifo_path, &Params::default()).unwrap();
 
-    assert_eq!(info.file_type, "?");
+    assert_eq!(info.file_type, "p");
 }
 
 #[cfg(unix)]
@@ -406,10 +409,105 @@ fn test_create_file_info_classify_prefers_fifo_and_socket_indicators() {
     let fifo_info = create_file_info(&fifo_path, &params).unwrap();
     let socket_info = create_file_info(&socket_path, &params).unwrap();
 
+    assert_eq!(fifo_info.file_type, "p");
+    assert_eq!(socket_info.file_type, "s");
+    assert_eq!(fifo_info.name_style, NameStyle::Fifo);
+    assert_eq!(socket_info.name_style, NameStyle::Socket);
+    assert_eq!(fifo_info.item_icon, Some(Icon::PipeFile));
+    assert_eq!(socket_info.item_icon, Some(Icon::SocketFile));
     assert!(strip_str(&fifo_info.display_name).ends_with('|'));
     assert!(!strip_str(&fifo_info.display_name).ends_with('*'));
     assert!(strip_str(&socket_info.display_name).ends_with('='));
     assert!(!strip_str(&socket_info.display_name).ends_with('*'));
+}
+
+#[cfg(unix)]
+#[test]
+fn test_file_type_indicator_suffix_for_unix_special_types() {
+    let cases = [
+        (LongFormatFileType::Directory, false, true, "/"),
+        (LongFormatFileType::Symlink, false, true, "@"),
+        (LongFormatFileType::Fifo, true, true, "|"),
+        (LongFormatFileType::Socket, true, true, "="),
+        (LongFormatFileType::Regular, true, true, "*"),
+        (LongFormatFileType::Regular, false, true, ""),
+        (LongFormatFileType::CharDevice, true, true, ""),
+        (LongFormatFileType::BlockDevice, true, true, ""),
+        (LongFormatFileType::Unknown, true, true, ""),
+    ];
+
+    for (file_type, classify_executables, executable, expected) in cases {
+        assert_eq!(
+            file_type_indicator_suffix_for_type(
+                file_type,
+                classify_executables,
+                executable
+            ),
+            expected
+        );
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn test_create_file_info_colors_special_file_names() {
+    with_color_output_enabled(|| {
+        let temp_dir = tempdir().unwrap();
+        let fifo_path = temp_dir.path().join("pipe");
+        let socket_path = temp_dir.path().join("socket");
+        let status = Command::new("mkfifo").arg(&fifo_path).status().unwrap();
+        assert!(status.success());
+
+        let _listener = UnixListener::bind(&socket_path).unwrap();
+
+        fs::set_permissions(&fifo_path, fs::Permissions::from_mode(0o755))
+            .unwrap();
+        fs::set_permissions(&socket_path, fs::Permissions::from_mode(0o755))
+            .unwrap();
+
+        let fifo_info =
+            create_file_info(&fifo_path, &Params::default()).unwrap();
+        let socket_info =
+            create_file_info(&socket_path, &Params::default()).unwrap();
+
+        assert!(fifo_info.display_name.contains("\u{1b}[33m"));
+        assert!(!fifo_info.display_name.contains("\u{1b}[1;32m"));
+        assert!(socket_info.display_name.contains("\u{1b}[1;35m"));
+        assert!(!socket_info.display_name.contains("\u{1b}[1;32m"));
+    });
+}
+
+#[cfg(unix)]
+#[test]
+fn test_long_format_file_type_chars_for_unix_special_types() {
+    let cases = [
+        (LongFormatFileType::Fifo, 'p'),
+        (LongFormatFileType::Socket, 's'),
+        (LongFormatFileType::CharDevice, 'c'),
+        (LongFormatFileType::BlockDevice, 'b'),
+        (LongFormatFileType::Unknown, '?'),
+    ];
+
+    for (file_type, expected) in cases {
+        assert_eq!(file_type.as_char(), expected);
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn test_name_style_for_unix_special_file_types() {
+    let cases = [
+        (LongFormatFileType::Socket, NameStyle::Socket),
+        (LongFormatFileType::Fifo, NameStyle::Fifo),
+        (LongFormatFileType::CharDevice, NameStyle::CharDevice),
+        (LongFormatFileType::BlockDevice, NameStyle::BlockDevice),
+        (LongFormatFileType::Regular, NameStyle::Executable),
+        (LongFormatFileType::Unknown, NameStyle::Plain),
+    ];
+
+    for (file_type, expected) in cases {
+        assert_eq!(name_style_for_file_type(file_type, true), expected);
+    }
 }
 
 #[cfg(unix)]

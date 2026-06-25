@@ -121,7 +121,10 @@ fn write_file_type_char(output: &mut String, value: char) {
     match value {
         'd' => write!(output, "{}", value.blue()).unwrap(),
         'l' => write!(output, "{}", value.cyan()).unwrap(),
-        '-' => write!(output, "{}", value.dim()).unwrap(),
+        's' => write!(output, "{}", value.magenta().bold()).unwrap(),
+        'p' => write!(output, "{}", value.yellow()).unwrap(),
+        'c' | 'b' => write!(output, "{}", value.yellow().bold()).unwrap(),
+        '-' | '?' => write!(output, "{}", value.dim()).unwrap(),
         _ => output.push(value),
     }
 }
@@ -130,8 +133,8 @@ fn write_permission_char(output: &mut String, value: char) {
     match value {
         'r' => write!(output, "{}", value.green()).unwrap(),
         'w' => write!(output, "{}", value.yellow()).unwrap(),
-        'x' => write!(output, "{}", value.red().bold()).unwrap(),
-        '-' => write!(output, "{}", value.dim()).unwrap(),
+        'x' | 's' | 't' => write!(output, "{}", value.red().bold()).unwrap(),
+        '-' | 'S' | 'T' => write!(output, "{}", value.dim()).unwrap(),
         _ => output.push(value),
     }
 }
@@ -438,6 +441,9 @@ fn style_short_segment(info: &FileInfo, text: String) -> String {
         NameStyle::Directory => text.blue(),
         NameStyle::Symlink => text.cyan(),
         NameStyle::Executable => text.green().bold(),
+        NameStyle::Socket => text.magenta().bold(),
+        NameStyle::Fifo => text.yellow(),
+        NameStyle::CharDevice | NameStyle::BlockDevice => text.yellow().bold(),
     };
 
     if info.dimmed {

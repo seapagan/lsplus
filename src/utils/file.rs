@@ -35,6 +35,55 @@ struct FileDetails {
     group: String,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum LongFormatFileType {
+    Directory,
+    Regular,
+    Symlink,
+    Socket,
+    Fifo,
+    CharDevice,
+    BlockDevice,
+    Unknown,
+}
+
+impl LongFormatFileType {
+    pub(crate) fn as_char(self) -> char {
+        match self {
+            Self::Directory => 'd',
+            Self::Regular => '-',
+            Self::Symlink => 'l',
+            Self::Socket => 's',
+            Self::Fifo => 'p',
+            Self::CharDevice => 'c',
+            Self::BlockDevice => 'b',
+            Self::Unknown => '?',
+        }
+    }
+}
+
+pub(crate) fn long_format_file_type(
+    metadata: &fs::Metadata,
+) -> LongFormatFileType {
+    if metadata.is_dir() {
+        LongFormatFileType::Directory
+    } else if metadata.is_file() {
+        LongFormatFileType::Regular
+    } else if metadata.is_symlink() {
+        LongFormatFileType::Symlink
+    } else if metadata.file_type().is_socket() {
+        LongFormatFileType::Socket
+    } else if metadata.file_type().is_fifo() {
+        LongFormatFileType::Fifo
+    } else if metadata.file_type().is_char_device() {
+        LongFormatFileType::CharDevice
+    } else if metadata.file_type().is_block_device() {
+        LongFormatFileType::BlockDevice
+    } else {
+        LongFormatFileType::Unknown
+    }
+}
+
 /// Directory entry data captured before visibility filtering and sorting.
 pub(crate) struct DirectoryEntryData {
     /// Raw entry name from `read_dir`.
@@ -46,16 +95,7 @@ pub(crate) struct DirectoryEntryData {
 }
 
 fn get_file_details(metadata: &fs::Metadata) -> FileDetails {
-    let file_type = if metadata.is_dir() {
-        "d"
-    } else if metadata.is_file() {
-        "-"
-    } else if metadata.is_symlink() {
-        "l"
-    } else {
-        "?"
-    }
-    .to_string();
+    let file_type = long_format_file_type(metadata).as_char().to_string();
 
     let permissions = metadata.permissions();
     let mode = permissions.mode();
@@ -461,18 +501,30 @@ fn file_type_indicator_suffix(
     metadata: &fs::Metadata,
     classify_executables: bool,
 ) -> &'static str {
-    if metadata.is_dir() {
-        "/"
-    } else if metadata.is_symlink() {
-        "@"
-    } else if metadata.file_type().is_fifo() {
-        "|"
-    } else if metadata.file_type().is_socket() {
-        "="
-    } else if classify_executables && is_executable(metadata) {
-        "*"
-    } else {
-        ""
+    file_type_indicator_suffix_for_type(
+        long_format_file_type(metadata),
+        classify_executables,
+        is_executable(metadata),
+    )
+}
+
+pub(crate) fn file_type_indicator_suffix_for_type(
+    file_type: LongFormatFileType,
+    classify_executables: bool,
+    executable: bool,
+) -> &'static str {
+    match file_type {
+        LongFormatFileType::Directory => "/",
+        LongFormatFileType::Symlink => "@",
+        LongFormatFileType::Fifo => "|",
+        LongFormatFileType::Socket => "=",
+        LongFormatFileType::Regular if classify_executables && executable => {
+            "*"
+        }
+        LongFormatFileType::Regular
+        | LongFormatFileType::CharDevice
+        | LongFormatFileType::BlockDevice
+        | LongFormatFileType::Unknown => "",
     }
 }
 
@@ -484,16 +536,29 @@ fn plain_text(text: impl Into<String>, dimmed: bool) -> String {
     apply_dim(StyledText::plain(text), dimmed).to_string()
 }
 
-fn name_style_by_metadata(metadata: &fs::Metadata) -> NameStyle {
-    if metadata.is_symlink() {
-        NameStyle::Symlink
-    } else if metadata.is_dir() {
-        NameStyle::Directory
-    } else if is_executable(metadata) {
-        NameStyle::Executable
-    } else {
-        NameStyle::Plain
+pub(crate) fn name_style_for_file_type(
+    file_type: LongFormatFileType,
+    executable: bool,
+) -> NameStyle {
+    match file_type {
+        LongFormatFileType::Symlink => NameStyle::Symlink,
+        LongFormatFileType::Directory => NameStyle::Directory,
+        LongFormatFileType::Socket => NameStyle::Socket,
+        LongFormatFileType::Fifo => NameStyle::Fifo,
+        LongFormatFileType::CharDevice => NameStyle::CharDevice,
+        LongFormatFileType::BlockDevice => NameStyle::BlockDevice,
+        LongFormatFileType::Regular if executable => NameStyle::Executable,
+        LongFormatFileType::Regular | LongFormatFileType::Unknown => {
+            NameStyle::Plain
+        }
     }
+}
+
+fn name_style_by_metadata(metadata: &fs::Metadata) -> NameStyle {
+    name_style_for_file_type(
+        long_format_file_type(metadata),
+        is_executable(metadata),
+    )
 }
 
 fn colorize_name_by_metadata(
@@ -508,6 +573,13 @@ fn colorize_name_by_metadata(
         }
         NameStyle::Executable => {
             apply_dim(safe_name.green().bold(), dimmed).to_string()
+        }
+        NameStyle::Socket => {
+            apply_dim(safe_name.magenta().bold(), dimmed).to_string()
+        }
+        NameStyle::Fifo => apply_dim(safe_name.yellow(), dimmed).to_string(),
+        NameStyle::CharDevice | NameStyle::BlockDevice => {
+            apply_dim(safe_name.yellow().bold(), dimmed).to_string()
         }
         NameStyle::Plain => plain_text(safe_name, dimmed),
     }

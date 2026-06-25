@@ -3,6 +3,7 @@ use crate::common_tests::{
     plain_permission_params, time_only_params, with_color_output_enabled,
 };
 use crate::utils::color::LongFormatColorLevel;
+use crate::utils::format::mode_to_rwx;
 use crate::utils::icons::Icon;
 use crate::utils::render::{
     build_long_format_table, render_short_format_lines,
@@ -123,7 +124,7 @@ fn test_build_long_format_table_colors_permissions_by_default() {
         let mut info =
             test_file_info("script.sh", None, 12, SystemTime::now());
         info.file_type = String::from("d");
-        info.mode = String::from("rwxr-x---");
+        info.mode = String::from("rwsr-tS-T");
 
         let rendered = normalized_table(build_long_format_table(
             &[info],
@@ -133,8 +134,75 @@ fn test_build_long_format_table_colors_permissions_by_default() {
         assert!(rendered.contains("\u{1b}[34md\u{1b}[0m"));
         assert!(rendered.contains("\u{1b}[32mr\u{1b}[0m"));
         assert!(rendered.contains("\u{1b}[33mw\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[1;31ms\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[1;31mt\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[2mS\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[2mT\u{1b}[0m"));
+    });
+}
+
+#[test]
+fn test_build_long_format_table_styles_every_mode_to_rwx_char() {
+    with_color_output_enabled(|| {
+        let emitted = [
+            mode_to_rwx(0o7777),
+            mode_to_rwx(0o4644),
+            mode_to_rwx(0o1644),
+            mode_to_rwx(0o0111),
+            mode_to_rwx(0o0000),
+        ]
+        .join("");
+        for value in ['r', 'w', 'x', '-', 's', 'S', 't', 'T'] {
+            assert!(emitted.contains(value));
+        }
+
+        let mut info =
+            test_file_info("script.sh", None, 12, SystemTime::now());
+        info.mode = emitted;
+
+        let rendered = normalized_table(build_long_format_table(
+            &[info],
+            &fixed_time_params(),
+        ));
+
+        assert!(rendered.contains("\u{1b}[32mr\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[33mw\u{1b}[0m"));
         assert!(rendered.contains("\u{1b}[1;31mx\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[1;31ms\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[1;31mt\u{1b}[0m"));
         assert!(rendered.contains("\u{1b}[2m-\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[2mS\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[2mT\u{1b}[0m"));
+    });
+}
+
+#[test]
+fn test_build_long_format_table_colors_special_file_types() {
+    with_color_output_enabled(|| {
+        let mut pipe = test_file_info("pipe", None, 0, SystemTime::now());
+        pipe.file_type = String::from("p");
+        let mut socket = test_file_info("socket", None, 0, SystemTime::now());
+        socket.file_type = String::from("s");
+        let mut char_device =
+            test_file_info("char", None, 0, SystemTime::now());
+        char_device.file_type = String::from("c");
+        let mut block_device =
+            test_file_info("block", None, 0, SystemTime::now());
+        block_device.file_type = String::from("b");
+        let mut unknown =
+            test_file_info("unknown", None, 0, SystemTime::now());
+        unknown.file_type = String::from("?");
+
+        let rendered = normalized_table(build_long_format_table(
+            &[pipe, socket, char_device, block_device, unknown],
+            &fixed_time_params(),
+        ));
+
+        assert!(rendered.contains("\u{1b}[33mp\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[1;35ms\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[1;33mc\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[1;33mb\u{1b}[0m"));
+        assert!(rendered.contains("\u{1b}[2m?\u{1b}[0m"));
     });
 }
 
