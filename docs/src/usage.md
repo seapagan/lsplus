@@ -18,7 +18,8 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `-F` / `--classify` - Append type indicators, including `*` for executables
 - `--no-indicators` - Disable file type indicators
 - `-l` / `--long` - Show long format listing
-- `-h` / `--human-readable` - Human readable file sizes
+- `-h` / `--human-readable` - Human readable file sizes using powers of 1024
+- `--si` - Human readable file sizes using powers of 1000
 - `-D` / `--sort-dirs` - Sort directories first
 - `-I` / `--gitignore` - Dim entries matched by Git ignore rules
 - `-N` / `--no-color` - Disable colored and styled output

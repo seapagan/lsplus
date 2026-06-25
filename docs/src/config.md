@@ -93,7 +93,15 @@ to `true`.
 - Default value: `false`
 
 This option corresponds to `-h` or `--human-readable` and displays
-human-readable file sizes when set to `true`.
+human-readable file sizes using powers of 1024 when set to `true`.
+
+### si
+
+- Permitted values: `true` or `false`
+- Default value: `false`
+
+This option corresponds to `--si` and displays human-readable file sizes using
+powers of 1000 when set to `true`. It also enables human-readable size output.
 
 ### no_icons
 
@@ -169,6 +177,7 @@ show_all = true
 indicator_style = "classify"
 dirs_first = true
 human_readable = true
+# si = true
 no_color = true
 permission_colors = false
 time_gradient = false
