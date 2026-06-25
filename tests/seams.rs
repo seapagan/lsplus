@@ -38,6 +38,7 @@ fn test_public_run_with_flags_accepts_missing_patterns() {
         almost_all: false,
         long: false,
         human_readable: false,
+        si: false,
         paths: vec![String::from("**/definitely_missing_coverage_pattern")],
         indicator_style: None,
         dirs_first: false,
