@@ -63,7 +63,7 @@ impl SizeScale {
     }
 }
 
-/// Scale a byte count into the largest selected unit below the scale base.
+/// Scale a byte count into a human-readable value and unit.
 pub fn human_readable_format(
     size: u64,
     scale: SizeScale,
@@ -77,7 +77,17 @@ pub fn human_readable_format(
         unit_index += 1;
     }
 
+    let rounded_size = round_to_display_precision(size);
+    if rounded_size >= scale.base() && unit_index < units.len() - 1 {
+        size = rounded_size / scale.base();
+        unit_index += 1;
+    }
+
     (size, units[unit_index])
+}
+
+fn round_to_display_precision(size: f64) -> f64 {
+    (size * 10.0).round() / 10.0
 }
 
 /// Format a size for display and return the optional unit label.

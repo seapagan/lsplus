@@ -93,7 +93,37 @@ fn test_format_size_extreme() {
 
     let (size, unit) =
         human_readable_format(1024 * 1024 - 1, SizeScale::Binary);
-    assert_eq!(format!("{size:.1} {unit}"), "1024.0 K");
+    assert_eq!(format!("{size:.1} {unit}"), "1.0 M");
+}
+
+#[test]
+fn test_format_size_promotes_rounded_binary_boundaries() {
+    let (size, unit) = show_size(1_048_524, Some(SizeScale::Binary));
+    assert_eq!(size, "1023.9");
+    assert_eq!(unit, "K");
+
+    let (size, unit) = show_size(1_048_525, Some(SizeScale::Binary));
+    assert_eq!(size, "1");
+    assert_eq!(unit, "M");
+
+    let (size, unit) = show_size(1_073_690_624, Some(SizeScale::Binary));
+    assert_eq!(size, "1");
+    assert_eq!(unit, "G");
+}
+
+#[test]
+fn test_format_size_promotes_rounded_decimal_boundaries() {
+    let (size, unit) = show_size(999_949, Some(SizeScale::Decimal));
+    assert_eq!(size, "999.9");
+    assert_eq!(unit, "k");
+
+    let (size, unit) = show_size(999_950, Some(SizeScale::Decimal));
+    assert_eq!(size, "1");
+    assert_eq!(unit, "M");
+
+    let (size, unit) = show_size(999_950_000, Some(SizeScale::Decimal));
+    assert_eq!(size, "1");
+    assert_eq!(unit, "G");
 }
 
 #[test]

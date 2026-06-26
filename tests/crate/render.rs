@@ -255,11 +255,16 @@ fn test_build_long_format_table_colors_size_boundaries() {
         let rendered =
             normalized_table(build_long_format_table(&files, &params));
         let stripped = strip_str(&rendered);
+        let rows: Vec<_> = stripped
+            .lines()
+            .filter(|line| line.contains(".bin"))
+            .collect();
 
-        assert!(stripped.contains("1024"));
-        assert!(stripped.contains("K"));
-        assert!(stripped.contains("1 M"));
-        assert!(stripped.contains("1 G"));
+        assert_eq!(rows.len(), 3);
+        assert!(rows[0].contains("1 M"));
+        assert!(rows[1].contains("1 M"));
+        assert!(rows[2].contains("1 G"));
+        assert!(!stripped.contains("1024 K"));
     });
 }
 
