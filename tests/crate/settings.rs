@@ -86,7 +86,6 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
                 tree: false,
                 tree_level: 2,
                 recursive_level: None,
-                prune_noisy_dirs: true,
                 prune_dirs: vec![
                     String::from("target"),
                     String::from("dist"),

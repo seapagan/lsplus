@@ -367,7 +367,6 @@ fn test_collect_listing_sections_recursive_prunes_noisy_directories() {
     let params = Params {
         recursive: true,
         show_all: true,
-        prune_noisy_dirs: true,
         prune_dirs: vec![String::from(".git")],
         ..Params::default()
     };
@@ -540,7 +539,6 @@ fn test_collect_tree_sections_prunes_noisy_directory_descendants() {
         long_format: true,
         show_all: true,
         no_icons: true,
-        prune_noisy_dirs: true,
         prune_dirs: vec![String::from(".git")],
         ..Params::default()
     };

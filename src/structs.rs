@@ -54,8 +54,6 @@ pub struct Params {
     pub tree_level: usize,
     /// Optional maximum depth for recursive output.
     pub recursive_level: Option<usize>,
-    /// Enable the built-in noisy-directory traversal prune preset.
-    pub prune_noisy_dirs: bool,
     /// Directory basenames to skip while traversing recursive/tree output.
     pub prune_dirs: Vec<String>,
     /// Disable file and directory icons.
@@ -88,7 +86,6 @@ impl Default for Params {
             tree: false,
             tree_level: 2,
             recursive_level: None,
-            prune_noisy_dirs: false,
             prune_dirs: Vec::new(),
             no_icons: false,
             no_color: false,
@@ -178,7 +175,6 @@ impl From<RawParams> for Params {
             tree: raw.tree,
             tree_level: normalized_tree_level(raw.tree_level),
             recursive_level: raw.tree_level.filter(|level| *level > 0),
-            prune_noisy_dirs: raw.prune_noisy_dirs,
             prune_dirs: configured_prune_dirs(
                 raw.prune_noisy_dirs,
                 raw.prune_dirs,
@@ -222,8 +218,6 @@ impl Params {
             tree: flags.tree || config.tree,
             tree_level: flags.tree_level.unwrap_or(config.tree_level),
             recursive_level: flags.tree_level.or(config.recursive_level),
-            prune_noisy_dirs: flags.prune_noisy_dirs
-                || config.prune_noisy_dirs,
             prune_dirs: merged_prune_dirs(flags, config),
             no_icons: flags.no_icons || config.no_icons,
             no_color: flags.no_color || config.no_color,
@@ -253,8 +247,7 @@ fn configured_prune_dirs(
     mut prune_dirs: Vec<String>,
 ) -> Vec<String> {
     if prune_noisy_dirs {
-        prune_dirs
-            .extend(NOISY_DIR_PRESET.iter().map(|name| name.to_string()));
+        append_prune_names(&mut prune_dirs, NOISY_DIR_PRESET);
     }
     prune_dirs
 }
@@ -266,14 +259,30 @@ fn normalized_tree_level(tree_level: Option<usize>) -> usize {
 fn merged_prune_dirs(flags: &cli::Flags, config: &Params) -> Vec<String> {
     let mut prune_dirs = Vec::new();
 
-    if flags.prune_noisy_dirs && !config.prune_noisy_dirs {
-        prune_dirs
-            .extend(NOISY_DIR_PRESET.iter().map(|name| name.to_string()));
+    if flags.prune_noisy_dirs {
+        append_prune_names(&mut prune_dirs, NOISY_DIR_PRESET);
     }
 
-    prune_dirs.extend(config.prune_dirs.iter().cloned());
-    prune_dirs.extend(flags.prune_dirs.iter().cloned());
+    append_prune_names(
+        &mut prune_dirs,
+        config.prune_dirs.iter().map(String::as_str),
+    );
+    append_prune_names(
+        &mut prune_dirs,
+        flags.prune_dirs.iter().map(String::as_str),
+    );
     prune_dirs
+}
+
+fn append_prune_names<'a>(
+    prune_dirs: &mut Vec<String>,
+    names: impl IntoIterator<Item = &'a str>,
+) {
+    for name in names {
+        if !prune_dirs.iter().any(|existing| existing == name) {
+            prune_dirs.push(name.to_string());
+        }
+    }
 }
 
 /// Metadata and pre-rendered name data for one listed filesystem entry.
