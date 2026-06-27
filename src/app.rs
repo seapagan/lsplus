@@ -207,7 +207,11 @@ fn walk_recursive_directory(
     visible_entry_depth: usize,
     sink: &mut impl FnMut(ListingSection) -> io::Result<()>,
 ) -> io::Result<()> {
-    let mut directory = match collect_recursive_directory(path, params) {
+    let mut directory = match collect_recursive_directory(
+        path,
+        params,
+        visible_entry_depth > 1,
+    ) {
         Ok(directory) => directory,
         Err(err) if fail_on_error => return Err(err),
         Err(err) => {
@@ -397,6 +401,7 @@ fn split_file_and_directory_operands<'a>(
 fn collect_recursive_directory(
     path: &Path,
     params: &Params,
+    hide_dot_entries: bool,
 ) -> io::Result<RecursiveDirectory> {
     let child_names = utils::file::collect_file_names(path, params)?;
     let mut entries = Vec::new();
@@ -404,6 +409,12 @@ fn collect_recursive_directory(
     let mut gitignore_cache = GitignoreCache::default();
 
     for child_name in child_names {
+        if hide_dot_entries
+            && (child_name.as_str() == "." || child_name.as_str() == "..")
+        {
+            continue;
+        }
+
         let child_path = path.join(&child_name);
         let metadata = match fs::symlink_metadata(&child_path) {
             Ok(metadata) => metadata,

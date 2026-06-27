@@ -306,6 +306,7 @@ fn test_collect_listing_sections_recursive_ignores_dot_entries() {
     let temp_dir = tempdir().unwrap();
     let nested = temp_dir.path().join("nested");
     fs::create_dir(&nested).unwrap();
+    fs::write(nested.join(".hidden"), "hidden").unwrap();
     fs::write(nested.join("deep.txt"), "deep").unwrap();
     let params = Params {
         recursive: true,
@@ -324,6 +325,41 @@ fn test_collect_listing_sections_recursive_ignores_dot_entries() {
         section.header
             == Some(temp_dir.path().join("..").display().to_string())
     }));
+    assert!(
+        sections[0]
+            .entries
+            .iter()
+            .any(|info| info.full_path == temp_dir.path().join("."))
+    );
+    assert!(
+        sections[0]
+            .entries
+            .iter()
+            .any(|info| info.full_path == temp_dir.path().join(".."))
+    );
+
+    let nested_section = sections
+        .iter()
+        .find(|section| section.header == Some(nested.display().to_string()))
+        .unwrap();
+    assert!(
+        !nested_section
+            .entries
+            .iter()
+            .any(|info| info.full_path == nested.join("."))
+    );
+    assert!(
+        !nested_section
+            .entries
+            .iter()
+            .any(|info| info.full_path == nested.join(".."))
+    );
+    assert!(
+        nested_section
+            .entries
+            .iter()
+            .any(|info| info.short_name == ".hidden")
+    );
 }
 
 #[cfg(unix)]
