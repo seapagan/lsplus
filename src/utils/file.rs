@@ -325,7 +325,7 @@ pub(crate) fn create_file_info_with_gitignore(
     ))
 }
 
-fn create_file_info_from_metadata_with_gitignore(
+pub(crate) fn create_file_info_from_metadata_with_gitignore(
     path: &Path,
     metadata: &fs::Metadata,
     params: &Params,

@@ -14,8 +14,9 @@ use crate::settings;
 use crate::structs::FileInfo;
 use crate::utils;
 use crate::utils::file::{
-    collect_file_info, create_file_info, create_file_info_with_gitignore,
-    sanitize_for_terminal,
+    collect_file_info, create_file_info,
+    create_file_info_from_metadata_with_gitignore,
+    create_file_info_with_gitignore, sanitize_for_terminal,
 };
 use crate::utils::gitignore::GitignoreCache;
 
@@ -35,6 +36,11 @@ pub(crate) struct TreeSection {
 pub(crate) struct TreeEntry {
     pub(crate) info: FileInfo,
     pub(crate) name_prefix: String,
+}
+
+struct RecursiveDirectory {
+    section: ListingSection,
+    children: Vec<PathBuf>,
 }
 
 /// Run `lsplus` using parsed CLI flags and config loaded from disk.
@@ -156,42 +162,31 @@ fn render_recursive_listing(
     }
 
     for path in directory_operands {
-        render_recursive_directory(
-            &mut rendered_section,
-            path,
-            params,
-            true,
-            1,
-        )?;
+        walk_recursive_directory(path, params, true, 1, &mut |section| {
+            render_listing_section(&mut rendered_section, &section, params)
+        })?;
     }
 
     Ok(())
 }
 
-fn render_recursive_directory(
-    rendered_section: &mut bool,
+fn walk_recursive_directory(
     path: &Path,
     params: &Params,
     fail_on_error: bool,
     visible_entry_depth: usize,
+    sink: &mut impl FnMut(ListingSection) -> io::Result<()>,
 ) -> io::Result<()> {
-    match collect_file_info(path, params) {
-        Ok(entries) => {
-            render_listing_section(
-                rendered_section,
-                &ListingSection {
-                    header: Some(display_path(path)),
-                    entries,
-                },
-                params,
-            )?;
-        }
+    let directory = match collect_recursive_directory(path, params) {
+        Ok(directory) => directory,
         Err(err) if fail_on_error => return Err(err),
         Err(err) => {
             report_path_error(path, &err);
             return Ok(());
         }
-    }
+    };
+
+    sink(directory.section)?;
 
     if params
         .recursive_level
@@ -200,13 +195,13 @@ fn render_recursive_directory(
         return Ok(());
     }
 
-    for child in child_directories(path, params) {
-        render_recursive_directory(
-            rendered_section,
+    for child in directory.children {
+        walk_recursive_directory(
             &child,
             params,
             false,
             visible_entry_depth + 1,
+            sink,
         )?;
     }
 
@@ -330,13 +325,10 @@ fn build_listing_sections(
 
     for path in directory_operands {
         if params.recursive {
-            append_recursive_listing_sections(
-                &mut sections,
-                path,
-                params,
-                true,
-                1,
-            )?;
+            walk_recursive_directory(path, params, true, 1, &mut |section| {
+                sections.push(section);
+                Ok(())
+            })?;
         } else {
             sections.push(ListingSection {
                 header: show_directory_headers.then(|| display_path(path)),
@@ -366,54 +358,48 @@ fn split_file_and_directory_operands<'a>(
     Ok((file_entries, directory_operands))
 }
 
-fn append_recursive_listing_sections(
-    sections: &mut Vec<ListingSection>,
-    root: &Path,
-    params: &Params,
-    fail_on_error: bool,
-    visible_entry_depth: usize,
-) -> io::Result<()> {
-    if fail_on_error {
-        sections.push(ListingSection {
-            header: Some(display_path(root)),
-            entries: collect_file_info(root, params)?,
-        });
-    } else {
-        append_recursive_listing_section(sections, root, params);
-    }
-
-    if params
-        .recursive_level
-        .is_some_and(|limit| visible_entry_depth >= limit)
-    {
-        return Ok(());
-    }
-
-    for child in child_directories(root, params) {
-        append_recursive_listing_sections(
-            sections,
-            &child,
-            params,
-            false,
-            visible_entry_depth + 1,
-        )?;
-    }
-
-    Ok(())
-}
-
-fn append_recursive_listing_section(
-    sections: &mut Vec<ListingSection>,
+fn collect_recursive_directory(
     path: &Path,
     params: &Params,
-) {
-    match collect_file_info(path, params) {
-        Ok(entries) => sections.push(ListingSection {
+) -> io::Result<RecursiveDirectory> {
+    let child_names = utils::file::collect_file_names(path, params)?;
+    let mut entries = Vec::new();
+    let mut children = Vec::new();
+    let mut gitignore_cache = GitignoreCache::default();
+
+    for child_name in child_names {
+        let child_path = path.join(&child_name);
+        let metadata = match fs::symlink_metadata(&child_path) {
+            Ok(metadata) => metadata,
+            Err(err) => {
+                report_path_error(&child_path, &err);
+                continue;
+            }
+        };
+
+        entries.push(create_file_info_from_metadata_with_gitignore(
+            &child_path,
+            &metadata,
+            params,
+            &mut gitignore_cache,
+        ));
+
+        if is_traversable_child_name(&child_name)
+            && metadata.is_dir()
+            && !metadata.is_symlink()
+            && !should_prune_directory(&child_path, params)
+        {
+            children.push(child_path);
+        }
+    }
+
+    Ok(RecursiveDirectory {
+        section: ListingSection {
             header: Some(display_path(path)),
             entries,
-        }),
-        Err(err) => report_path_error(path, &err),
-    }
+        },
+        children,
+    })
 }
 
 fn build_tree_sections(
@@ -515,24 +501,6 @@ fn append_tree_entries(
             );
         }
     }
-}
-
-fn child_directories(path: &Path, params: &Params) -> Vec<PathBuf> {
-    let child_names = match utils::file::collect_file_names(path, params) {
-        Ok(names) => names,
-        Err(err) => {
-            report_path_error(path, &err);
-            return Vec::new();
-        }
-    };
-
-    child_names
-        .into_iter()
-        .filter(|name| is_traversable_child_name(name))
-        .map(|name| path.join(name))
-        .filter(|path| is_recursable_directory(path))
-        .filter(|path| !should_prune_directory(path, params))
-        .collect()
 }
 
 fn traversal_child_names(child_names: Vec<String>) -> Vec<String> {
