@@ -6,7 +6,7 @@ use crate::utils::color::LongFormatColorLevel;
 use crate::utils::format::mode_to_rwx;
 use crate::utils::icons::Icon;
 use crate::utils::render::{
-    build_long_format_table, render_short_format_lines,
+    build_long_format_table, directory_header_text, render_short_format_lines,
     size_style_spec_for_color_level, terminal_width_or_default,
 };
 use crate::{FileInfo, NameStyle, Params};
@@ -861,6 +861,20 @@ fn test_render_short_format_lines_keep_plain_output_when_color_disabled() {
     let lines = render_short_format_lines(&[dir], 80);
 
     assert_eq!(lines, vec![format!(" {} alpha/  ", Icon::Folder)]);
+}
+
+#[test]
+fn test_directory_header_text_uses_bold_directory_color_when_enabled() {
+    with_color_output_enabled(|| {
+        assert_eq!(directory_header_text("src"), "\u{1b}[1;34msrc\u{1b}[0m");
+    });
+}
+
+#[test]
+fn test_directory_header_text_keeps_plain_output_when_color_disabled() {
+    let _guard = ColorModeGuard::set(ColorMode::Never);
+
+    assert_eq!(directory_header_text("src"), "src");
 }
 
 #[test]

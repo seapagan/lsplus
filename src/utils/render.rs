@@ -34,6 +34,11 @@ pub fn display_long_format(
     print_table(&build_long_format_table(file_info, params))
 }
 
+/// Style a directory section header.
+pub(crate) fn directory_header_text(header: &str) -> String {
+    header.blue().bold().to_string()
+}
+
 /// Render long-format rows with prefixes prepended to the name column.
 pub(crate) fn display_long_format_with_name_prefixes<'a>(
     file_info: impl IntoIterator<Item = (&'a FileInfo, &'a str)>,

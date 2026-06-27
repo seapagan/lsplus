@@ -128,7 +128,11 @@ fn render_tree_sections(
             writeln!(io::stdout())?;
         }
 
-        writeln!(io::stdout(), "{}:", section.header)?;
+        writeln!(
+            io::stdout(),
+            "{}:",
+            utils::render::directory_header_text(&section.header)
+        )?;
         utils::render::display_long_format_with_name_prefixes(
             section
                 .entries
@@ -242,7 +246,11 @@ fn render_listing_section(
     }
 
     if let Some(header) = &section.header {
-        writeln!(io::stdout(), "{header}:")?;
+        writeln!(
+            io::stdout(),
+            "{}:",
+            utils::render::directory_header_text(header)
+        )?;
     }
 
     if params.long_format {
