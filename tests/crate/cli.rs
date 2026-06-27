@@ -10,6 +10,7 @@ fn test_default_flags() {
     assert!(!args.almost_all);
     assert!(!args.long);
     assert!(!args.human_readable);
+    assert!(!args.si);
     assert_eq!(args.indicator_style, None);
     assert!(!args.dirs_first);
     assert!(!args.no_icons);
@@ -40,6 +41,7 @@ fn test_all_flags() {
         "-A",
         "-l",
         "-h",
+        "--si",
         "-p",
         "--sort-dirs",
         "--no-icons",
@@ -54,6 +56,7 @@ fn test_all_flags() {
     assert!(args.almost_all);
     assert!(args.long);
     assert!(args.human_readable);
+    assert!(args.si);
     assert_eq!(args.indicator_style, Some(IndicatorStyle::Slash));
     assert!(args.dirs_first);
     assert!(args.no_icons);
@@ -63,6 +66,14 @@ fn test_all_flags() {
     assert!(args.no_size_colors);
     assert!(args.gitignore);
     assert!(args.fuzzy_time);
+}
+
+#[test]
+fn test_si_flag_enables_decimal_size_flag() {
+    let args = Flags::parse_from(["lsplus", "--si"]);
+
+    assert!(args.si);
+    assert!(!args.human_readable);
 }
 
 #[test]

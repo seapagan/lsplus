@@ -1,5 +1,6 @@
 use config::Config;
 use lsplus::cli::Flags;
+use lsplus::utils::format::SizeScale;
 use lsplus::{IndicatorStyle, Params};
 use std::fs;
 use tempfile::tempdir;
@@ -13,6 +14,8 @@ fn test_default_params() {
     assert!(!params.almost_all);
     assert!(!params.long_format);
     assert!(!params.human_readable);
+    assert!(!params.si);
+    assert_eq!(params.size_scale(), None);
     assert!(!params.no_icons);
     assert!(!params.no_color);
     assert!(params.permission_colors);
@@ -36,6 +39,7 @@ fn test_config_conversion() {
             almost_all = true
             long_format = true
             human_readable = true
+            si = true
             no_icons = true
             no_color = true
             permission_colors = false
@@ -63,6 +67,7 @@ fn test_config_conversion() {
             almost_all: true,
             long_format: true,
             human_readable: true,
+            si: true,
             no_icons: true,
             no_color: true,
             permission_colors: false,
@@ -121,6 +126,7 @@ fn test_params_merge_prefers_true_from_either_source() {
         almost_all: false,
         long_format: true,
         human_readable: true,
+        si: false,
         no_icons: false,
         no_color: true,
         permission_colors: true,
@@ -139,6 +145,7 @@ fn test_params_merge_prefers_true_from_either_source() {
         dirs_first: true,
         long: false,
         human_readable: false,
+        si: false,
         no_icons: true,
         no_color: false,
         no_permission_colors: true,
@@ -156,6 +163,8 @@ fn test_params_merge_prefers_true_from_either_source() {
     assert!(params.almost_all);
     assert!(params.long_format);
     assert!(params.human_readable);
+    assert!(!params.si);
+    assert_eq!(params.size_scale(), Some(SizeScale::Binary));
     assert!(params.no_icons);
     assert!(params.no_color);
     assert!(!params.permission_colors);
@@ -176,6 +185,7 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
         dirs_first: false,
         long: false,
         human_readable: false,
+        si: false,
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
@@ -188,4 +198,65 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
     let params = Params::merge(&flags, &Params::default());
 
     assert_eq!(params, Params::default());
+}
+
+#[test]
+fn test_params_merge_si_enables_decimal_human_readable_output() {
+    let flags = Flags {
+        version: false,
+        paths: vec![],
+        show_all: false,
+        almost_all: false,
+        indicator_style: None,
+        dirs_first: false,
+        long: false,
+        human_readable: false,
+        si: true,
+        no_icons: false,
+        no_color: false,
+        no_permission_colors: false,
+        no_time_gradient: false,
+        no_size_colors: false,
+        gitignore: false,
+        fuzzy_time: false,
+    };
+
+    let params = Params::merge(&flags, &Params::default());
+
+    assert!(params.human_readable);
+    assert!(params.si);
+    assert_eq!(params.size_scale(), Some(SizeScale::Decimal));
+}
+
+#[test]
+fn test_params_merge_config_si_overrides_config_human_readable() {
+    let config = Params {
+        human_readable: true,
+        si: true,
+        ..Params::default()
+    };
+    let flags = Flags {
+        version: false,
+        paths: vec![],
+        show_all: false,
+        almost_all: false,
+        indicator_style: None,
+        dirs_first: false,
+        long: false,
+        human_readable: false,
+        si: false,
+        no_icons: false,
+        no_color: false,
+        no_permission_colors: false,
+        no_time_gradient: false,
+        no_size_colors: false,
+        gitignore: false,
+        fuzzy_time: false,
+    };
+
+    let params = Params::merge(&flags, &config);
+
+    assert!(params.human_readable);
+    assert!(params.si);
+    assert_eq!(params.size_scale(), Some(SizeScale::Decimal));
 }

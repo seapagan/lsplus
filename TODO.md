@@ -16,11 +16,10 @@
 - [ ] option to list dotfiles (and folders) before non-dotfiles
 - [ ] Investigate an optional name-shortening mode for very long filenames
       that preserves extensions without changing the default wrap behavior.
-- [ ] Consider colouring special permission bits (`s`, `S`, `t`, `T`) in
-      long-format permission output, with tests for setuid, setgid, and sticky
-      modes.
 - [ ] Consider separating config-loaded values from effective runtime params so
       merge behavior is more explicit than the current shared `Params` type.
+- [ ] Extend human-readable size units beyond petabytes so exabyte-scale values
+      render as `E` instead of large `P` multiples.
 - [ ] Review `src/lib.rs` and crate/module visibility. Keep the current
       out-of-source unit test layout, but reduce the accidental public library
       API for this app crate where modules/items do not need to be exported.

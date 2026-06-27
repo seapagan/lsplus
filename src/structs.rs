@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::time::SystemTime;
 
 use crate::cli;
+use crate::utils::format::SizeScale;
 
 /// Entry-name indicator styles supported by `lsplus`.
 ///
@@ -40,6 +41,8 @@ pub struct Params {
     pub long_format: bool,
     /// Render human-readable file sizes in long format.
     pub human_readable: bool,
+    /// Use decimal powers for human-readable file sizes.
+    pub si: bool,
     /// Disable file and directory icons.
     pub no_icons: bool,
     /// Disable colored or styled output.
@@ -65,6 +68,7 @@ impl Default for Params {
             almost_all: false,
             long_format: false,
             human_readable: false,
+            si: false,
             no_icons: false,
             no_color: false,
             permission_colors: true,
@@ -85,6 +89,7 @@ pub(crate) struct RawParams {
     almost_all: bool,
     long_format: bool,
     human_readable: bool,
+    si: bool,
     no_icons: bool,
     no_color: bool,
     permission_colors: Option<bool>,
@@ -142,6 +147,7 @@ impl From<RawParams> for Params {
             almost_all: raw.almost_all,
             long_format: raw.long_format,
             human_readable: raw.human_readable,
+            si: raw.si,
             no_icons: raw.no_icons,
             no_color: raw.no_color,
             permission_colors: raw.permission_colors.unwrap_or(true),
@@ -169,7 +175,11 @@ impl Params {
             dirs_first: flags.dirs_first || config.dirs_first,
             almost_all: flags.almost_all || config.almost_all,
             long_format: flags.long || config.long_format,
-            human_readable: flags.human_readable || config.human_readable,
+            human_readable: flags.si
+                || flags.human_readable
+                || config.si
+                || config.human_readable,
+            si: flags.si || config.si,
             no_icons: flags.no_icons || config.no_icons,
             no_color: flags.no_color || config.no_color,
             permission_colors: config.permission_colors
@@ -178,6 +188,17 @@ impl Params {
             size_colors: config.size_colors && !flags.no_size_colors,
             gitignore: flags.gitignore || config.gitignore,
             fuzzy_time: flags.fuzzy_time || config.fuzzy_time,
+        }
+    }
+
+    /// Return the size scaling mode for long-format output.
+    pub fn size_scale(&self) -> Option<SizeScale> {
+        if self.si {
+            Some(SizeScale::Decimal)
+        } else if self.human_readable {
+            Some(SizeScale::Binary)
+        } else {
+            None
         }
     }
 }

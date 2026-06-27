@@ -64,7 +64,7 @@ fn test_build_long_format_table_includes_units_and_icons() {
 
     assert!(rendered.contains("example.rs"));
     assert!(rendered.contains("2"));
-    assert!(rendered.contains("KB"));
+    assert!(rendered.contains("K"));
     assert!(rendered.contains(&Icon::RustFile.to_string()));
 }
 
@@ -98,7 +98,7 @@ fn test_build_long_format_table_omits_optional_units_and_icons() {
 
     assert!(rendered.contains("plain.txt"));
     assert!(rendered.contains("12"));
-    assert!(!rendered.contains("KB"));
+    assert!(!rendered.contains("K"));
     assert!(!rendered.contains(&Icon::RustFile.to_string()));
 }
 
@@ -255,11 +255,16 @@ fn test_build_long_format_table_colors_size_boundaries() {
         let rendered =
             normalized_table(build_long_format_table(&files, &params));
         let stripped = strip_str(&rendered);
+        let rows: Vec<_> = stripped
+            .lines()
+            .filter(|line| line.contains(".bin"))
+            .collect();
 
-        assert!(stripped.contains("1024"));
-        assert!(stripped.contains("KB"));
-        assert!(stripped.contains("1 MB"));
-        assert!(stripped.contains("1 GB"));
+        assert_eq!(rows.len(), 3);
+        assert!(rows[0].contains("1 M"));
+        assert!(rows[1].contains("1 M"));
+        assert!(rows[2].contains("1 G"));
+        assert!(!stripped.contains("1024 K"));
     });
 }
 
@@ -298,14 +303,15 @@ fn test_build_long_format_table_aligns_colored_size_cells() {
         let plain_size_end = rows[0].find("808").unwrap() + "808".len();
         let large_size_end = rows[1].find('8').unwrap() + "8".len();
         let huge_size_end = rows[2].find("57").unwrap() + "57".len();
-        let plain_unit_start = rows[0].find("B   ").unwrap();
-        let large_unit_start = rows[1].find("MB ").unwrap();
-        let huge_unit_start = rows[2].find("GB ").unwrap();
+        let plain_unit_start = rows[0].find("B  ").unwrap();
+        let large_unit_start = rows[1].find("M ").unwrap();
+        let huge_unit_start = rows[2].find("G ").unwrap();
 
         assert_eq!(plain_size_end, large_size_end);
         assert_eq!(large_size_end, huge_size_end);
         assert_eq!(plain_unit_start, large_unit_start);
         assert_eq!(large_unit_start, huge_unit_start);
+        assert!(rows[0].contains("808 B"));
     });
 }
 
@@ -322,9 +328,9 @@ fn test_build_long_format_table_omits_size_colors_when_disabled() {
         let rendered =
             normalized_table(build_long_format_table(&[info], &params));
 
-        assert!(rendered.contains("1 MB"));
+        assert!(rendered.contains("1 M"));
         assert!(!rendered.contains("\u{1b}[33m1\u{1b}[0m"));
-        assert!(!rendered.contains("\u{1b}[33mMB\u{1b}[0m"));
+        assert!(!rendered.contains("\u{1b}[33mM\u{1b}[0m"));
     });
 }
 
