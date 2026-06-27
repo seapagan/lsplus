@@ -170,9 +170,12 @@ fn test_long_format() {
     let file_path = temp_dir.path().join("size.txt");
     fs::write(&file_path, vec![b'x'; 2048]).unwrap();
 
-    let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.arg("-l").arg("-h").arg(&file_path);
-    let (stdout, _stderr) = run_and_capture(&mut cmd);
+    let (stdout, _stderr) =
+        temp_env::with_var("HOME", Some(temp_dir.path()), || {
+            let mut cmd = Command::cargo_bin("lsp").unwrap();
+            cmd.arg("-l").arg("-h").arg(&file_path);
+            run_and_capture(&mut cmd)
+        });
 
     assert!(stdout.contains("size.txt"));
     assert!(stdout.contains("2 K"));
@@ -184,9 +187,12 @@ fn test_long_format_si_sizes() {
     let file_path = temp_dir.path().join("size.txt");
     fs::write(&file_path, vec![b'x'; 1500]).unwrap();
 
-    let mut cmd = Command::cargo_bin("lsp").unwrap();
-    cmd.arg("-l").arg("--si").arg(&file_path);
-    let (stdout, _stderr) = run_and_capture(&mut cmd);
+    let (stdout, _stderr) =
+        temp_env::with_var("HOME", Some(temp_dir.path()), || {
+            let mut cmd = Command::cargo_bin("lsp").unwrap();
+            cmd.arg("-l").arg("--si").arg(&file_path);
+            run_and_capture(&mut cmd)
+        });
 
     assert!(stdout.contains("size.txt"));
     assert!(stdout.contains("1.5 k"));
