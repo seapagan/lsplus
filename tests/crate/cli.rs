@@ -11,6 +11,9 @@ fn test_default_flags() {
     assert!(!args.long);
     assert!(!args.human_readable);
     assert!(!args.si);
+    assert!(!args.recursive);
+    assert!(!args.tree);
+    assert_eq!(args.tree_level, None);
     assert_eq!(args.indicator_style, None);
     assert!(!args.dirs_first);
     assert!(!args.no_icons);
@@ -42,6 +45,7 @@ fn test_all_flags() {
         "-l",
         "-h",
         "--si",
+        "-R",
         "-p",
         "--sort-dirs",
         "--no-icons",
@@ -57,6 +61,9 @@ fn test_all_flags() {
     assert!(args.long);
     assert!(args.human_readable);
     assert!(args.si);
+    assert!(args.recursive);
+    assert!(!args.tree);
+    assert_eq!(args.tree_level, None);
     assert_eq!(args.indicator_style, Some(IndicatorStyle::Slash));
     assert!(args.dirs_first);
     assert!(args.no_icons);
@@ -66,6 +73,30 @@ fn test_all_flags() {
     assert!(args.no_size_colors);
     assert!(args.gitignore);
     assert!(args.fuzzy_time);
+}
+
+#[test]
+fn test_tree_flags() {
+    let args = Flags::parse_from(["lsplus", "--tree", "--level", "3"]);
+
+    assert!(args.tree);
+    assert_eq!(args.tree_level, Some(3));
+}
+
+#[test]
+fn test_level_zero_is_rejected() {
+    let err = Flags::try_parse_from(["lsplus", "--tree", "--level", "0"])
+        .unwrap_err();
+
+    assert!(err.to_string().contains("invalid value"));
+}
+
+#[test]
+fn test_tree_and_recursive_are_conflicting() {
+    let err = Flags::try_parse_from(["lsplus", "--tree", "--recursive"])
+        .unwrap_err();
+
+    assert!(err.to_string().contains("cannot be used"));
 }
 
 #[test]
@@ -135,6 +166,20 @@ fn test_parse_from_mode_native_keeps_conflicting_short_flags() {
     assert!(args.gitignore);
     assert!(args.no_color);
     assert!(args.fuzzy_time);
+}
+
+#[test]
+fn test_parse_from_mode_accepts_recursive_and_tree_options() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let recursive = try_parse_from_mode(mode, ["lsplus", "-R"]).unwrap();
+        assert!(recursive.recursive);
+
+        let tree =
+            try_parse_from_mode(mode, ["lsplus", "--tree", "--level", "3"])
+                .unwrap();
+        assert!(tree.tree);
+        assert_eq!(tree.tree_level, Some(3));
+    }
 }
 
 #[test]

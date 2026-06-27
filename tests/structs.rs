@@ -15,6 +15,9 @@ fn test_default_params() {
     assert!(!params.long_format);
     assert!(!params.human_readable);
     assert!(!params.si);
+    assert!(!params.recursive);
+    assert!(!params.tree);
+    assert_eq!(params.tree_level, 2);
     assert_eq!(params.size_scale(), None);
     assert!(!params.no_icons);
     assert!(!params.no_color);
@@ -40,6 +43,9 @@ fn test_config_conversion() {
             long_format = true
             human_readable = true
             si = true
+            recursive = true
+            tree = true
+            tree_level = 4
             no_icons = true
             no_color = true
             permission_colors = false
@@ -68,6 +74,9 @@ fn test_config_conversion() {
             long_format: true,
             human_readable: true,
             si: true,
+            recursive: true,
+            tree: true,
+            tree_level: 4,
             no_icons: true,
             no_color: true,
             permission_colors: false,
@@ -127,6 +136,9 @@ fn test_params_merge_prefers_true_from_either_source() {
         long_format: true,
         human_readable: true,
         si: false,
+        recursive: true,
+        tree: false,
+        tree_level: 5,
         no_icons: false,
         no_color: true,
         permission_colors: true,
@@ -146,6 +158,9 @@ fn test_params_merge_prefers_true_from_either_source() {
         long: false,
         human_readable: false,
         si: false,
+        recursive: false,
+        tree: true,
+        tree_level: Some(3),
         no_icons: true,
         no_color: false,
         no_permission_colors: true,
@@ -164,6 +179,9 @@ fn test_params_merge_prefers_true_from_either_source() {
     assert!(params.long_format);
     assert!(params.human_readable);
     assert!(!params.si);
+    assert!(params.recursive);
+    assert!(params.tree);
+    assert_eq!(params.tree_level, 3);
     assert_eq!(params.size_scale(), Some(SizeScale::Binary));
     assert!(params.no_icons);
     assert!(params.no_color);
@@ -186,6 +204,9 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
         long: false,
         human_readable: false,
         si: false,
+        recursive: false,
+        tree: false,
+        tree_level: None,
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
@@ -212,6 +233,9 @@ fn test_params_merge_si_enables_decimal_human_readable_output() {
         long: false,
         human_readable: false,
         si: true,
+        recursive: false,
+        tree: false,
+        tree_level: None,
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
@@ -245,6 +269,9 @@ fn test_params_merge_config_si_overrides_config_human_readable() {
         long: false,
         human_readable: false,
         si: false,
+        recursive: false,
+        tree: false,
+        tree_level: None,
         no_icons: false,
         no_color: false,
         no_permission_colors: false,

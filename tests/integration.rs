@@ -215,6 +215,92 @@ fn test_multiple_paths() {
 }
 
 #[test]
+fn test_multiple_directory_paths_show_headers() {
+    let temp_dir = tempdir().unwrap();
+    let left = temp_dir.path().join("left");
+    let right = temp_dir.path().join("right");
+    fs::create_dir(&left).unwrap();
+    fs::create_dir(&right).unwrap();
+    fs::write(left.join("alpha.txt"), "alpha").unwrap();
+    fs::write(right.join("beta.txt"), "beta").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("--no-icons").arg(&left).arg(&right);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(&format!("{}:", left.display())));
+    assert!(stdout.contains(&format!("{}:", right.display())));
+    assert!(stdout.contains("alpha.txt"));
+    assert!(stdout.contains("beta.txt"));
+}
+
+#[test]
+fn test_mixed_file_and_directory_paths_show_file_first() {
+    let temp_dir = tempdir().unwrap();
+    let file = temp_dir.path().join("top.txt");
+    let dir = temp_dir.path().join("dir");
+    fs::write(&file, "top").unwrap();
+    fs::create_dir(&dir).unwrap();
+    fs::write(dir.join("child.txt"), "child").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("--no-icons").arg(&file).arg(&dir);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    let file_position = stdout.find("top.txt").unwrap();
+    let header_position = stdout.find(&format!("{}:", dir.display())).unwrap();
+    let child_position = stdout.find("child.txt").unwrap();
+
+    assert!(file_position < header_position);
+    assert!(header_position < child_position);
+}
+
+#[test]
+fn test_recursive_lists_nested_directory_headers() {
+    let temp_dir = tempdir().unwrap();
+    let nested = temp_dir.path().join("nested");
+    fs::create_dir(&nested).unwrap();
+    fs::write(temp_dir.path().join("root.txt"), "root").unwrap();
+    fs::write(nested.join("deep.txt"), "deep").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-R").arg("--no-icons").arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(&format!("{}:", temp_dir.path().display())));
+    assert!(stdout.contains(&format!("{}:", nested.display())));
+    assert!(stdout.contains("root.txt"));
+    assert!(stdout.contains("deep.txt"));
+}
+
+#[test]
+fn test_tree_level_limits_nested_descendants() {
+    let temp_dir = tempdir().unwrap();
+    let child = temp_dir.path().join("child");
+    let grandchild = child.join("grandchild");
+    let depth_three = grandchild.join("depth_three");
+    fs::create_dir(&child).unwrap();
+    fs::create_dir(&grandchild).unwrap();
+    fs::create_dir(&depth_three).unwrap();
+    fs::write(depth_three.join("too-deep.txt"), "deep").unwrap();
+    fs::write(child.join("shown.txt"), "shown").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("--tree")
+        .arg("--level")
+        .arg("2")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains("├──") || stdout.contains("└──"));
+    assert!(stdout.contains("child"));
+    assert!(stdout.contains("grandchild"));
+    assert!(stdout.contains("shown.txt"));
+    assert!(!stdout.contains("too-deep.txt"));
+}
+
+#[test]
 fn test_no_icons_omits_file_icons() {
     let temp_dir = tempdir().unwrap();
     let rust_file = temp_dir.path().join("example.rs");
