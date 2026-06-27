@@ -16,6 +16,19 @@
       long-format output.
 - [ ] Evaluate the Rust crate `uutils-term-grid` as a short-format layout
       alternative before expanding the current custom grid code.
+- [ ] Improve listing performance with focused architecture changes, in this
+      order:
+      1. Add a short-format entry model so short output does not build full
+         long-format `FileInfo` data such as owner/group names, permissions,
+         size, mtime, and long symlink target text.
+      2. Pass a shared buffered stdout writer through render paths so recursive
+         streaming does not pay for many small stdout writes.
+      3. Cache UID-to-user and GID-to-group lookups during long-format runs.
+      4. Carry cheap `DirEntry::file_type()` data through directory filtering
+         and sorting so short mode can avoid extra metadata calls where
+         possible.
+      5. Revisit `prettytable` for long recursive output; a custom row
+         formatter may be leaner for hot paths.
 - [ ] better handle dotfiles?
 - [ ] option to list dotfiles (and folders) before non-dotfiles
 - [ ] Investigate an optional name-shortening mode for very long filenames
