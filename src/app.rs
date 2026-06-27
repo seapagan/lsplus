@@ -538,6 +538,10 @@ fn is_traversable_child_name(name: &str) -> bool {
     name != "." && name != ".."
 }
 
+/// Return whether an explicit operand should be listed as a directory.
+///
+/// This follows symlinks so a direct symlink-to-directory operand behaves like
+/// `ls`: it gets its own directory listing.
 fn is_display_directory(path: &Path) -> bool {
     match fs::symlink_metadata(path) {
         Ok(metadata) if metadata.is_symlink() => fs::metadata(path)
@@ -548,6 +552,11 @@ fn is_display_directory(path: &Path) -> bool {
     }
 }
 
+/// Return whether traversal may descend into a discovered child directory.
+///
+/// Unlike [`is_display_directory`], this intentionally does not follow
+/// symlinks. Recursive and tree traversal must not chase symlinked directories
+/// because that can loop back into an ancestor.
 fn is_recursable_directory(path: &Path) -> bool {
     fs::symlink_metadata(path)
         .map(|metadata| metadata.is_dir() && !metadata.is_symlink())

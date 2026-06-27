@@ -358,6 +358,34 @@ fn test_collect_listing_sections_recursive_skips_symlinked_directories() {
     );
 }
 
+#[cfg(unix)]
+#[test]
+fn test_collect_listing_sections_lists_symlinked_directory_operand() {
+    let temp_dir = tempdir().unwrap();
+    let real = temp_dir.path().join("real");
+    let link = temp_dir.path().join("link");
+    fs::create_dir(&real).unwrap();
+    fs::write(real.join("shown.txt"), "shown").unwrap();
+    std::os::unix::fs::symlink(&real, &link).unwrap();
+    let params = Params {
+        recursive: true,
+        ..Params::default()
+    };
+
+    let sections =
+        collect_listing_sections(&[link.display().to_string()], &params)
+            .unwrap();
+
+    assert_eq!(sections.len(), 1);
+    assert_eq!(sections[0].header, Some(link.display().to_string()));
+    assert!(
+        sections[0]
+            .entries
+            .iter()
+            .any(|info| info.display_name.contains("shown.txt"))
+    );
+}
+
 #[test]
 fn test_collect_listing_sections_recursive_prunes_noisy_directories() {
     let temp_dir = tempdir().unwrap();
