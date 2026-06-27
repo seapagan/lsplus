@@ -518,10 +518,7 @@ fn is_display_directory(path: &Path) -> bool {
             .map(|metadata| metadata.is_dir())
             .unwrap_or(false),
         Ok(metadata) => metadata.is_dir(),
-        Err(err) => {
-            report_path_error(path, &err);
-            false
-        }
+        Err(_) => false,
     }
 }
 
