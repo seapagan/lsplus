@@ -28,8 +28,13 @@ pub(crate) struct ListingSection {
 #[derive(Debug)]
 pub(crate) struct TreeSection {
     pub(crate) header: String,
-    pub(crate) entries: Vec<FileInfo>,
-    pub(crate) name_prefixes: Vec<String>,
+    pub(crate) entries: Vec<TreeEntry>,
+}
+
+#[derive(Debug)]
+pub(crate) struct TreeEntry {
+    pub(crate) info: FileInfo,
+    pub(crate) name_prefix: String,
 }
 
 /// Run `lsplus` using parsed CLI flags and config loaded from disk.
@@ -119,9 +124,11 @@ fn render_tree_sections(
 
         writeln!(io::stdout(), "{}:", section.header)?;
         utils::render::display_long_format_with_name_prefixes(
-            &section.entries,
+            section
+                .entries
+                .iter()
+                .map(|entry| (&entry.info, entry.name_prefix.as_str())),
             params,
-            &section.name_prefixes,
         )?;
     }
 
@@ -421,7 +428,6 @@ fn build_tree_sections(
             let mut section = TreeSection {
                 header: display_path(path),
                 entries: Vec::new(),
-                name_prefixes: Vec::new(),
             };
             append_tree_entries(
                 &mut section,
@@ -440,8 +446,10 @@ fn build_tree_sections(
             ) {
                 Ok(info) => sections.push(TreeSection {
                     header: display_path(path),
-                    entries: vec![info],
-                    name_prefixes: vec![String::new()],
+                    entries: vec![TreeEntry {
+                        info,
+                        name_prefix: String::new(),
+                    }],
                 }),
                 Err(err) => report_path_error(path, &err),
             }
@@ -481,10 +489,10 @@ fn append_tree_entries(
             gitignore_cache,
         ) {
             Ok(info) => {
-                section.entries.push(info);
-                section
-                    .name_prefixes
-                    .push(format!("{ancestor_prefix}{branch}"));
+                section.entries.push(TreeEntry {
+                    info,
+                    name_prefix: format!("{ancestor_prefix}{branch}"),
+                });
             }
             Err(err) => {
                 report_path_error(&child_path, &err);

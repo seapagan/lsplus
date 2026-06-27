@@ -479,25 +479,25 @@ fn test_collect_tree_sections_uses_level_limit() {
         sections[0]
             .entries
             .iter()
-            .any(|info| info.display_name.contains("child"))
+            .any(|entry| entry.info.display_name.contains("child"))
     );
     assert!(
         !sections[0]
             .entries
             .iter()
-            .any(|info| info.display_name.contains("grandchild"))
+            .any(|entry| entry.info.display_name.contains("grandchild"))
     );
     assert!(
         !sections[0]
             .entries
             .iter()
-            .any(|info| info.display_name.contains("deep.txt"))
+            .any(|entry| entry.info.display_name.contains("deep.txt"))
     );
     assert!(
         sections[0]
-            .name_prefixes
+            .entries
             .iter()
-            .any(|prefix| prefix.contains("└──"))
+            .any(|entry| entry.name_prefix.contains("└──"))
     );
 }
 
@@ -520,7 +520,6 @@ fn test_collect_tree_sections_handles_empty_directory() {
     assert_eq!(sections.len(), 1);
     assert_eq!(sections[0].header, temp_dir.path().display().to_string());
     assert!(sections[0].entries.is_empty());
-    assert!(sections[0].name_prefixes.is_empty());
 }
 
 #[test]
@@ -546,13 +545,14 @@ fn test_collect_tree_sections_ignores_dot_entries() {
         sections[0]
             .entries
             .iter()
-            .any(|info| info.display_name.contains("shown.txt"))
+            .any(|entry| entry.info.display_name.contains("shown.txt"))
     );
     assert!(
         !sections[0]
             .entries
             .iter()
-            .any(|info| info.display_name == "." || info.display_name == "..")
+            .any(|entry| entry.info.display_name == "."
+                || entry.info.display_name == "..")
     );
 }
 
@@ -582,13 +582,13 @@ fn test_collect_tree_sections_prunes_noisy_directory_descendants() {
         sections[0]
             .entries
             .iter()
-            .any(|info| info.display_name.contains(".git"))
+            .any(|entry| entry.info.display_name.contains(".git"))
     );
     assert!(
         !sections[0]
             .entries
             .iter()
-            .any(|info| info.display_name.contains("config"))
+            .any(|entry| entry.info.display_name.contains("config"))
     );
 }
 
@@ -617,13 +617,13 @@ fn test_collect_tree_sections_prunes_custom_directory_descendants() {
         sections[0]
             .entries
             .iter()
-            .any(|info| info.display_name.contains("target"))
+            .any(|entry| entry.info.display_name.contains("target"))
     );
     assert!(
         !sections[0]
             .entries
             .iter()
-            .any(|info| info.display_name.contains("hidden.txt"))
+            .any(|entry| entry.info.display_name.contains("hidden.txt"))
     );
 }
 
