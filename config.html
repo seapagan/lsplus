@@ -15,8 +15,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-35c91a41.js";
+            window.path_to_searchindex_js = "searchindex-745e07e1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e3abe26b.js"></script>
+        <script src="toc-024fe58e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -175,98 +175,160 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="configuration-file"><a class="header" href="#configuration-file">Configuration File</a></h1>
-<p>It is possible to configure <code>lsplus</code> using a configuration file. The
-configuration file is a simple <strong><code>TOML</code></strong> file that is placed in the following
-location:</p>
+<p>Configure <code>lsplus</code> with a <strong><code>TOML</code></strong> file at:</p>
 <ul>
 <li>Linux: <code>~/.config/lsplus/config.toml</code></li>
-<li>MacOS: <code>~/.config/lsplus/config.toml</code></li>
+<li>macOS: <code>~/.config/lsplus/config.toml</code></li>
 </ul>
-<p>The configuration file is optional and if it is not found, <code>lsplus</code> will use the
-default settings.</p>
+<p>The configuration file is optional. <code>lsplus</code> uses default settings when the file
+does not exist.</p>
+<p><code>lsplus</code> also supports an <code>LSP_COMPAT_MODE</code> environment variable. When set, it
+overrides the <code>compat_mode</code> value from the config file.</p>
 <h2 id="available-options"><a class="header" href="#available-options">Available Options</a></h2>
-<p>The following options are available in the configuration file and correspond to
-the relevant command line options:</p>
+<p>The configuration file supports these command-line options:</p>
+<h3 id="compat_mode"><a class="header" href="#compat_mode">compat_mode</a></h3>
+<ul>
+<li>Permitted values: <code>"native"</code> or <code>"gnu"</code></li>
+<li>Default value: <code>"native"</code></li>
+</ul>
+<p>This option selects which command-line interface <code>lsp</code> uses at startup.
+<code>native</code> keeps the standard <code>lsplus</code> CLI, while <code>gnu</code> enables the GNU <code>ls</code>
+compatibility surface intended for aliases and scripts.</p>
+<p>At the moment, <code>gnu</code> mode changes the CLI surface and help output only. The
+conflicting GNU short flags <code>-D</code>, <code>-I</code>, <code>-N</code>, and <code>-Z</code> are reserved in that
+mode and will error until their GNU behavior is implemented.</p>
 <h3 id="show_all"><a class="header" href="#show_all">show_all</a></h3>
 <ul>
 <li>Permitted values: <code>true</code> or <code>false</code></li>
 <li>Default value: <code>false</code></li>
 </ul>
-<p>This option corresponds to the <code>-a</code> or <code>--all</code> command line option and will
-display all files and directories if set to <code>true</code>, including hidden files.</p>
+<p>This option corresponds to <code>-a</code> or <code>--all</code> and displays hidden files when set to
+<code>true</code>.</p>
 <h3 id="almost_all"><a class="header" href="#almost_all">almost_all</a></h3>
 <ul>
 <li>Permitted values: <code>true</code> or <code>false</code></li>
 <li>Default value: <code>false</code></li>
 </ul>
-<p>This option corresponds to the <code>-A</code> or <code>--almost-all</code> command line option and
-will display all files and directories if set to <code>true</code>, except for <code>.</code> and
-<code>..</code>.</p>
-<h3 id="append_slash"><a class="header" href="#append_slash">append_slash</a></h3>
+<p>This option corresponds to <code>-A</code> or <code>--almost-all</code> and displays hidden files
+except <code>.</code> and <code>..</code> when set to <code>true</code>.</p>
+<h3 id="indicator_style"><a class="header" href="#indicator_style">indicator_style</a></h3>
 <ul>
-<li>Permitted values: <code>true</code> or <code>false</code></li>
-<li>Default value: <code>false</code></li>
+<li>Permitted values: <code>"none"</code>, <code>"slash"</code>, <code>"file-type"</code>, or <code>"classify"</code></li>
+<li>Default value: <code>"none"</code></li>
 </ul>
-<p>This option corresponds to the <code>-p</code> or <code>--slash-dirs</code> command line option and
-will append a slash to directories if set to <code>true</code>.</p>
+<p>This option selects which file type indicators <code>lsp</code> appends to entry names.
+In native mode, the related CLI options are <code>-p</code> / <code>--slash-dirs</code>,
+<code>--file-type</code>, <code>-F</code> / <code>--classify</code>, and <code>--no-indicators</code>. In <code>gnu</code>
+compatibility mode, the equivalent GNU forms are <code>-p</code>,
+<code>--indicator-style=slash</code>, <code>--file-type</code>,
+<code>--indicator-style=file-type</code>, <code>-F</code>, <code>--indicator-style=classify</code>, and
+<code>--indicator-style=none</code>.</p>
+<p>The indicator characters are <code>/</code> for directories, <code>@</code> for symlinks, <code>|</code> for
+FIFOs, <code>=</code> for sockets, and <code>*</code> for executables. The <code>*</code> executable marker is
+only added by <code>"classify"</code>.</p>
+<p>In long format, native mode omits the symlink <code>@</code> marker because <code>name -&gt; target</code> and the symlink styling already make the type clear. This also matches
+GNU <code>ls</code>, which does not append <code>@</code> to symlink names in long format.</p>
+<p>For backward compatibility, <code>append_slash = true</code> is still accepted in the
+config file and maps to <code>indicator_style = "slash"</code>. If both are present,
+<code>indicator_style</code> takes precedence.</p>
 <h3 id="dirs_first"><a class="header" href="#dirs_first">dirs_first</a></h3>
 <ul>
 <li>Permitted values: <code>true</code> or <code>false</code></li>
 <li>Default value: <code>false</code></li>
 </ul>
-<p>This option corresponds to the <code>--sort-dirs</code> command line option and will</p>
+<p>This option corresponds to <code>--sort-dirs</code> and sorts directories before files when
+set to <code>true</code>. In <code>gnu</code> compatibility mode, the
+equivalent long option is <code>--group-directories-first</code> (replacing the original
+<code>--sort-dirs</code>).</p>
 <h3 id="long_format"><a class="header" href="#long_format">long_format</a></h3>
 <ul>
 <li>Permitted values: <code>true</code> or <code>false</code></li>
 <li>Default value: <code>false</code></li>
 </ul>
-<p>This option corresponds to the <code>--long</code> command line option and will display the
-output in long format if set to <code>true</code>.</p>
+<p>This option corresponds to <code>--long</code> and displays output in long format when set
+to <code>true</code>.</p>
 <h3 id="human_readable"><a class="header" href="#human_readable">human_readable</a></h3>
 <ul>
 <li>Permitted values: <code>true</code> or <code>false</code></li>
 <li>Default value: <code>false</code></li>
 </ul>
-<p>This option corresponds to the <code>-h</code> or <code>--human-readable</code> command line option
-and will display file sizes in human readable format if set to <code>true</code>.</p>
+<p>This option corresponds to <code>-h</code> or <code>--human-readable</code> and displays
+human-readable file sizes using powers of 1024 when set to <code>true</code>.</p>
+<h3 id="si"><a class="header" href="#si">si</a></h3>
+<ul>
+<li>Permitted values: <code>true</code> or <code>false</code></li>
+<li>Default value: <code>false</code></li>
+</ul>
+<p>This option corresponds to <code>--si</code> and displays human-readable file sizes using
+powers of 1000 when set to <code>true</code>. It also enables human-readable size output.</p>
 <h3 id="no_icons"><a class="header" href="#no_icons">no_icons</a></h3>
 <ul>
 <li>Permitted values: <code>true</code> or <code>false</code></li>
 <li>Default value: <code>false</code></li>
 </ul>
-<p>This option corresponds to the <code>--no-icons</code> command line option and will not
-display icons if set to <code>true</code>.</p>
+<p>This option corresponds to <code>--no-icons</code> and hides icons when set to <code>true</code>.</p>
 <h3 id="no_color"><a class="header" href="#no_color">no_color</a></h3>
 <ul>
 <li>Permitted values: <code>true</code> or <code>false</code></li>
 <li>Default value: <code>false</code></li>
 </ul>
-<p>This option corresponds to the <code>-N</code> or <code>--no-color</code> command line option and
-will disable colored and styled output if set to <code>true</code>.</p>
+<p>This option corresponds to <code>-N</code> or <code>--no-color</code> and disables colored and styled
+output when set to <code>true</code>.</p>
+<h3 id="permission_colors"><a class="header" href="#permission_colors">permission_colors</a></h3>
+<ul>
+<li>Permitted values: <code>true</code> or <code>false</code></li>
+<li>Default value: <code>true</code></li>
+</ul>
+<p>This option controls long-format colors for the file type character and
+permission bits. Set it to <code>false</code>, or pass <code>--no-permission-colors</code>, to render
+those fields without accent colors.</p>
+<h3 id="time_gradient"><a class="header" href="#time_gradient">time_gradient</a></h3>
+<ul>
+<li>Permitted values: <code>true</code> or <code>false</code></li>
+<li>Default value: <code>true</code></li>
+</ul>
+<p>This option controls long-format timestamp freshness colors. Set it to <code>false</code>,
+or pass <code>--no-time-gradient</code>, to use the fixed timestamp color instead of
+age-based timestamp colors.</p>
+<p>Timestamp colors adapt to terminal color capability: truecolor terminals use a
+smooth age gradient and 256-color terminals use a stepped fallback to
+distinguish day, week, month, and year bands. Basic ANSI terminals use named
+yellow styling. Future-dated timestamps stay red, even with <code>time_gradient</code>
+disabled, to make clock-skewed files stand out.</p>
+<h3 id="size_colors"><a class="header" href="#size_colors">size_colors</a></h3>
+<ul>
+<li>Permitted values: <code>true</code> or <code>false</code></li>
+<li>Default value: <code>true</code></li>
+</ul>
+<p>This option controls long-format large-size colors. Set it to <code>false</code>, or pass
+<code>--no-size-colors</code>, to render sizes without large-file accents.</p>
 <h3 id="gitignore"><a class="header" href="#gitignore">gitignore</a></h3>
 <ul>
 <li>Permitted values: <code>true</code> or <code>false</code></li>
 <li>Default value: <code>false</code></li>
 </ul>
-<p>This option corresponds to the <code>-I</code> or <code>--gitignore</code> command line option and
-will dim entries that are matched by the active Git ignore rules, including
-merged <code>.gitignore</code> files, <code>.git/info/exclude</code>, and the configured global Git
-excludes file.</p>
+<p>This option corresponds to <code>-I</code> or <code>--gitignore</code> and dims entries matched by the
+active Git ignore rules, including merged <code>.gitignore</code> files,
+<code>.git/info/exclude</code>, and the configured global Git excludes file.</p>
 <h3 id="fuzzy_time"><a class="header" href="#fuzzy_time">fuzzy_time</a></h3>
 <ul>
 <li>Permitted values: <code>true</code> or <code>false</code></li>
 <li>Default value: <code>false</code></li>
 </ul>
-<p>This option corresponds to the <code>-Z</code> or <code>--fuzzy-time</code> command line option and
-will display the time in a ‘fuzzy’ format if set to <code>true</code>.</p>
+<p>This option corresponds to <code>-Z</code> or <code>--fuzzy-time</code> and displays timestamps in a
+fuzzy format when set to <code>true</code>.</p>
 <h2 id="example-configuration-file"><a class="header" href="#example-configuration-file">Example Configuration File</a></h2>
-<p>The following is an example configuration file that sets several options. Any
-options that are not set will use the default values:</p>
-<pre><code class="language-toml">show_all = true
-append_slash = true
+<p>This example sets several options. Omitted options use default values:</p>
+<pre><code class="language-toml"># compat_mode = "native"  # or "gnu" for GNU ls compatibility
+show_all = true
+indicator_style = "classify"
 dirs_first = true
 human_readable = true
+# si = true
 no_color = true
+permission_colors = false
+time_gradient = false
+size_colors = false
 fuzzy_time = true
 gitignore = true
 </code></pre>
@@ -315,11 +377,11 @@ gitignore = true
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
 

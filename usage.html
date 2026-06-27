@@ -15,8 +15,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-35c91a41.js";
+            window.path_to_searchindex_js = "searchindex-745e07e1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e3abe26b.js"></script>
+        <script src="toc-024fe58e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -178,19 +178,26 @@
 <p>Run this command in your terminal to list files in the current directory:</p>
 <pre><code class="language-sh">lsp &lt;options&gt; &lt;path | file&gt;
 </code></pre>
-<p>Both the options and the path are optional. If no path is provided, the current
-directory will be listed. If no options are provided, the default options will
-be used which are similar to the <code>ls</code> command.</p>
-<p>Curently, only a sub-set of the standard <code>ls</code> options are supported. These are:</p>
+<p>Options and paths are optional. With no path, <code>lsp</code> lists the current
+directory. With no options, it uses defaults similar to <code>ls</code>.</p>
+<p>Currently, only a sub-set of the standard <code>ls</code> options are supported. These are:</p>
 <ul>
 <li><code>-a</code> / <code>--all</code> - Show hidden files</li>
-<li><code>-A</code> / <code>--almost-all</code> - Show hidden files, but don’t show <code>.</code> and `..</li>
+<li><code>-A</code> / <code>--almost-all</code> - Show hidden files, but don’t show <code>.</code> and <code>..</code></li>
 <li><code>-p</code> / <code>--slash-dirs</code> - Append a ‘/’ to directories</li>
+<li><code>--file-type</code> - Append type indicators except <code>*</code> for executables</li>
+<li><code>-F</code> / <code>--classify</code> - Append type indicators, including <code>*</code> for executables</li>
+<li><code>--no-indicators</code> - Disable file type indicators</li>
 <li><code>-l</code> / <code>--long</code> - Show long format listing</li>
-<li><code>-h</code> / <code>--human-readable</code> - Human readable file sizes</li>
+<li><code>-h</code> / <code>--human-readable</code> - Human readable file sizes using powers of 1024</li>
+<li><code>--si</code> - Human readable file sizes using powers of 1000</li>
 <li><code>-D</code> / <code>--sort-dirs</code> - Sort directories first</li>
 <li><code>-I</code> / <code>--gitignore</code> - Dim entries matched by Git ignore rules</li>
 <li><code>-N</code> / <code>--no-color</code> - Disable colored and styled output</li>
+<li><code>--no-permission-colors</code> - Disable long-format file type character and
+permission colors</li>
+<li><code>--no-time-gradient</code> - Use the fixed long-format timestamp color</li>
+<li><code>--no-size-colors</code> - Disable long-format large-size colors</li>
 <li><code>--no-icons</code> - don’t show file or folder icons</li>
 <li><code>-V</code> / <code>--version</code> - Print version information and exit</li>
 <li><code>-Z</code> / <code>--fuzzy-time</code> - Show fuzzy time for file modification times</li>
@@ -199,38 +206,87 @@ be used which are similar to the <code>ls</code> command.</p>
 listing with hidden files, append a ‘/’ to directories, and show human-readable
 file sizes.</p>
 <p>Use the <code>--help</code> option to see the full list of options.</p>
+<p>The indicator characters are:</p>
+<ul>
+<li><code>/</code> for directories</li>
+<li><code>@</code> for symlinks</li>
+<li><code>|</code> for FIFOs</li>
+<li><code>=</code> for sockets</li>
+<li><code>*</code> for executables, but only with <code>-F</code> / <code>--classify</code></li>
+</ul>
+<p>In long format, native mode omits the symlink <code>@</code> marker because <code>name -&gt; target</code> and the symlink styling already make the type clear. This also matches
+GNU <code>ls</code>, which does not append <code>@</code> to symlink names in long format.</p>
 <p>Styled output is enabled automatically when writing to a terminal. Captured,
 piped, and redirected output is plain by default. You can also disable styled
 output explicitly with <code>--no-color</code>, <code>no_color = true</code> in the config file, or
 the <code>NO_COLOR</code> environment variable.</p>
+<p>Long-format output colors permission bits, timestamp freshness, and large file
+sizes by default. You can adjust those accents independently with
+<code>--no-permission-colors</code>, <code>--no-time-gradient</code>, <code>--no-size-colors</code>, or the
+matching <code>permission_colors = false</code>, <code>time_gradient = false</code>, and
+<code>size_colors = false</code> config options.</p>
+<p>Timestamp colors adapt to terminal color capability. Truecolor terminals use a
+smooth age gradient and 256-color terminals use a stepped fallback to
+distinguish files newer than a day, week, month, and year. Basic ANSI terminals
+use named yellow styling. Disabling <code>time_gradient</code> keeps normal timestamps on
+the original fixed timestamp color. Future-dated timestamps stay red to make
+clock-skewed files stand out.</p>
 <p>When <code>-I</code> is enabled, <code>lsp</code> checks the same ignore sources Git normally uses:
 merged <code>.gitignore</code> files in the worktree, <code>.git/info/exclude</code>, and the
 configured global Git excludes file.</p>
+<h2 id="compatibility-mode"><a class="header" href="#compatibility-mode">Compatibility Mode</a></h2>
+<p><code>lsp</code> has two CLI modes:</p>
+<ul>
+<li><code>native</code> - the default <code>lsplus</code> command-line interface</li>
+<li><code>gnu</code> - a GNU <code>ls</code> compatibility mode intended for aliases and scripts</li>
+</ul>
+<p>You can enable GNU compatibility mode by setting <code>compat_mode = "gnu"</code> in the
+config file or by setting <code>LSP_COMPAT_MODE=gnu</code> in the environment. The
+environment variable takes precedence over the config file.</p>
+<p>At the moment, <code>gnu</code> mode changes the CLI surface and help output only. It does
+not yet implement the missing GNU meanings for the conflicting short flags
+<code>-D</code>, <code>-I</code>, <code>-N</code>, and <code>-Z</code>; those flags are reserved in <code>gnu</code> mode and will
+error until their GNU behavior is implemented.</p>
+<p>The current <code>lsplus</code> features behind those four native short flags are still
+available in <code>gnu</code> mode through their long forms only:</p>
+<ul>
+<li><code>--group-directories-first</code> (replaces the original <code>--sort-dirs</code>)</li>
+<li><code>--gitignore</code></li>
+<li><code>--no-color</code></li>
+<li><code>--fuzzy-time</code></li>
+</ul>
+<p>GNU indicator options are also available in <code>gnu</code> mode:</p>
+<ul>
+<li><code>-p</code> / <code>--indicator-style=slash</code></li>
+<li><code>--file-type</code> / <code>--indicator-style=file-type</code></li>
+<li><code>-F</code> / <code>--indicator-style=classify</code></li>
+<li><code>--indicator-style=none</code></li>
+</ul>
 <h2 id="fuzzy-time"><a class="header" href="#fuzzy-time">Fuzzy Time</a></h2>
-<p>The <code>-Z</code> option will show a fuzzy time for file modification times. This will
-show the time in a human-readable format, e.g. ‘2 hours ago’, ‘yesterday’, etc.</p>
+<p>The <code>-Z</code> option shows file modification times in a human-readable format, e.g.
+‘2 hours ago’, ‘yesterday’, etc.</p>
 <p><img src="./images/screenshot3.png" alt="fuzzy date output"></p>
 <h2 id="icons"><a class="header" href="#icons">Icons</a></h2>
-<p>Icons are added to folders, files, and links. There is only a limited set of
-mappings implemented at the moment, but more will be added in the future. Add
-an issue if you have a specific icon you would like to see - even better, add
-a Pull Request implementing it! :grin:</p>
-<p>You can disable the icons by using the <code>--no-icons</code> option.</p>
+<p><code>lsp</code> shows icons for folders, files, and links. The current mappings cover
+common names and extensions. Open an issue or PR if you want another icon.</p>
+<p>Disable icons with the <code>--no-icons</code> option.</p>
 <h2 id="aliases"><a class="header" href="#aliases">Aliases</a></h2>
-<p>The <code>lsp</code> command can be aliased to <code>ls</code> by adding the following line to your
-<code>.bashrc</code>, <code>.zshrc</code> or similar file:</p>
+<p>Add this line to <code>.bashrc</code>, <code>.zshrc</code>, or a similar file to alias <code>ls</code> to <code>lsp</code>:</p>
 <pre><code class="language-sh">alias ls='lsp'
 </code></pre>
-<p>You will need to restart your shell or source your configuration file for the
-alias to take effect.</p>
-<p>The example below shows an alias for ls that uses many of the current options:</p>
+<p>If you want that alias to behave more like GNU <code>ls</code>, enable <code>gnu</code>
+compatibility mode in your config file or set <code>LSP_COMPAT_MODE=gnu</code> in your
+shell environment.</p>
+<p>Restart your shell or source your configuration file to load the alias.</p>
+<p>This alias enables several common options:</p>
 <pre><code class="language-sh">alias ll='lsp -laph'
 </code></pre>
-<p>This will show a long format listing with hidden files, append a ‘/’ to
-directories, and show human readable file sizes.</p>
-<p>You can also use the configuration file to set the default options you want.</p>
+<p>This shows a long-format listing with hidden files, appends <code>/</code> to directories,
+and shows human-readable file sizes.</p>
+<p>Set default options in the configuration file.</p>
 <p><img src="./images/screenshot.png" alt="lsp output"></p>
-<p>If you add the ‘-D’ option to the command, directories will be sorted first:</p>
+<p>Add <code>-D</code> in native mode, or <code>--group-directories-first</code> in GNU mode, to sort
+directories first:</p>
 <p><img src="./images/screenshot2.png" alt="lsp output"></p>
 
                     </main>
@@ -277,11 +333,11 @@ directories, and show human readable file sizes.</p>
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
 
