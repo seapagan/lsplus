@@ -151,7 +151,7 @@ fn test_collect_listing_sections_puts_files_before_directories() {
     fs::write(dir.join("child.txt"), "child").unwrap();
 
     let sections = collect_listing_sections(
-        &[file.display().to_string(), dir.display().to_string()],
+        &[dir.display().to_string(), file.display().to_string()],
         &Params::default(),
     )
     .unwrap();
@@ -240,6 +240,12 @@ fn test_collect_listing_sections_recursive_respects_level_limit() {
             .entries
             .iter()
             .any(|info| info.display_name.contains("shown.txt"))
+    );
+    assert!(
+        sections[1]
+            .entries
+            .iter()
+            .any(|info| info.display_name.contains("grandchild"))
     );
     assert!(!sections.iter().any(
         |section| section.header == Some(grandchild.display().to_string())
@@ -403,6 +409,12 @@ fn test_collect_tree_sections_uses_level_limit() {
         !sections[0]
             .entries
             .iter()
+            .any(|info| info.display_name.contains("grandchild"))
+    );
+    assert!(
+        !sections[0]
+            .entries
+            .iter()
             .any(|info| info.display_name.contains("deep.txt"))
     );
     assert!(
@@ -411,6 +423,28 @@ fn test_collect_tree_sections_uses_level_limit() {
             .iter()
             .any(|prefix| prefix.contains("└──"))
     );
+}
+
+#[test]
+fn test_collect_tree_sections_handles_empty_directory() {
+    let temp_dir = tempdir().unwrap();
+    let params = Params {
+        tree: true,
+        long_format: true,
+        no_icons: true,
+        ..Params::default()
+    };
+
+    let sections = collect_tree_sections(
+        &[temp_dir.path().display().to_string()],
+        &params,
+    )
+    .unwrap();
+
+    assert_eq!(sections.len(), 1);
+    assert_eq!(sections[0].header, temp_dir.path().display().to_string());
+    assert!(sections[0].entries.is_empty());
+    assert!(sections[0].name_prefixes.is_empty());
 }
 
 #[test]

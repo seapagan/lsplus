@@ -294,6 +294,7 @@ fn test_recursive_level_limits_nested_directory_headers() {
     assert!(stdout.contains(&format!("{}:", temp_dir.path().display())));
     assert!(stdout.contains(&format!("{}:", child.display())));
     assert!(stdout.contains("shown.txt"));
+    assert!(stdout.contains("grandchild"));
     assert!(!stdout.contains(&format!("{}:", grandchild.display())));
     assert!(!stdout.contains("hidden.txt"));
 }
