@@ -74,6 +74,10 @@ fn run_multi(patterns: &[String], params: &Params) -> io::Result<()> {
         );
     }
 
+    if params.recursive {
+        return render_recursive_listing(patterns, params);
+    }
+
     let sections = collect_listing_sections(patterns, params)?;
 
     render_listing_sections(&sections, params)
@@ -118,6 +122,105 @@ fn render_tree_sections(
             &section.name_prefixes,
         )?;
     }
+
+    Ok(())
+}
+
+fn render_recursive_listing(
+    patterns: &[String],
+    params: &Params,
+) -> io::Result<()> {
+    let operands = collect_operands(patterns, params)?;
+    let (file_entries, directory_operands) =
+        split_file_and_directory_operands(&operands, params)?;
+    let mut rendered_section = false;
+
+    if !file_entries.is_empty() {
+        render_listing_section(
+            &mut rendered_section,
+            &ListingSection {
+                header: None,
+                entries: file_entries,
+            },
+            params,
+        )?;
+    }
+
+    for path in directory_operands {
+        render_recursive_directory(
+            &mut rendered_section,
+            path,
+            params,
+            true,
+            1,
+        )?;
+    }
+
+    Ok(())
+}
+
+fn render_recursive_directory(
+    rendered_section: &mut bool,
+    path: &Path,
+    params: &Params,
+    fail_on_error: bool,
+    depth: usize,
+) -> io::Result<()> {
+    match collect_file_info(path, params) {
+        Ok(entries) => {
+            render_listing_section(
+                rendered_section,
+                &ListingSection {
+                    header: Some(display_path(path)),
+                    entries,
+                },
+                params,
+            )?;
+        }
+        Err(err) if fail_on_error => return Err(err),
+        Err(err) => {
+            report_path_error(path, &err);
+            return Ok(());
+        }
+    }
+
+    if params.recursive_level.is_some_and(|limit| depth >= limit) {
+        return Ok(());
+    }
+
+    for child in child_directories(path, params) {
+        render_recursive_directory(
+            rendered_section,
+            &child,
+            params,
+            false,
+            depth + 1,
+        )?;
+    }
+
+    Ok(())
+}
+
+fn render_listing_section(
+    rendered_section: &mut bool,
+    section: &ListingSection,
+    params: &Params,
+) -> io::Result<()> {
+    if *rendered_section {
+        writeln!(io::stdout())?;
+    }
+
+    if let Some(header) = &section.header {
+        writeln!(io::stdout(), "{header}:")?;
+    }
+
+    if params.long_format {
+        utils::render::display_long_format(&section.entries, params)?;
+    } else {
+        utils::render::display_short_format(&section.entries)?;
+    }
+
+    *rendered_section = true;
 
     Ok(())
 }
@@ -198,16 +301,8 @@ fn build_listing_sections(
     operands: &[PathBuf],
     params: &Params,
 ) -> io::Result<Vec<ListingSection>> {
-    let mut file_entries = Vec::new();
-    let mut directory_operands = Vec::new();
-
-    for path in operands {
-        if is_display_directory(path) {
-            directory_operands.push(path);
-        } else {
-            file_entries.push(create_file_info(path, params)?);
-        }
-    }
+    let (file_entries, directory_operands) =
+        split_file_and_directory_operands(operands, params)?;
 
     let show_directory_headers = params.recursive
         || !file_entries.is_empty()
@@ -239,6 +334,24 @@ fn build_listing_sections(
     }
 
     Ok(sections)
+}
+
+fn split_file_and_directory_operands<'a>(
+    operands: &'a [PathBuf],
+    params: &Params,
+) -> io::Result<(Vec<FileInfo>, Vec<&'a PathBuf>)> {
+    let mut file_entries = Vec::new();
+    let mut directory_operands = Vec::new();
+
+    for path in operands {
+        if is_display_directory(path) {
+            directory_operands.push(path);
+        } else {
+            file_entries.push(create_file_info(path, params)?);
+        }
+    }
+
+    Ok((file_entries, directory_operands))
 }
 
 fn append_recursive_listing_sections(
