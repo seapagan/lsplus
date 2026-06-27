@@ -199,7 +199,7 @@ fn walk_recursive_directory(
     visible_entry_depth: usize,
     sink: &mut impl FnMut(ListingSection) -> io::Result<()>,
 ) -> io::Result<()> {
-    let directory = match collect_recursive_directory(path, params) {
+    let mut directory = match collect_recursive_directory(path, params) {
         Ok(directory) => directory,
         Err(err) if fail_on_error => return Err(err),
         Err(err) => {
@@ -208,6 +208,8 @@ fn walk_recursive_directory(
         }
     };
 
+    directory.section.header =
+        recursive_section_header(path, visible_entry_depth);
     sink(directory.section)?;
 
     if params
@@ -571,6 +573,18 @@ fn should_prune_directory(path: &Path, params: &Params) -> bool {
 
 fn display_path(path: &Path) -> String {
     sanitize_for_terminal(&path.to_string_lossy())
+}
+
+fn recursive_section_header(
+    path: &Path,
+    visible_entry_depth: usize,
+) -> Option<String> {
+    let header_path = path.strip_prefix(".").unwrap_or(path);
+    if visible_entry_depth == 1 && header_path.as_os_str().is_empty() {
+        None
+    } else {
+        Some(display_path(header_path))
+    }
 }
 
 fn report_path_error(path: &Path, err: &io::Error) {

@@ -274,6 +274,29 @@ fn test_recursive_lists_nested_directory_headers() {
 }
 
 #[test]
+fn test_recursive_current_directory_omits_root_header_and_cleans_child_headers()
+ {
+    let temp_dir = tempdir().unwrap();
+    let child = temp_dir.path().join("child");
+    fs::create_dir(&child).unwrap();
+    fs::write(temp_dir.path().join("root.txt"), "root").unwrap();
+    fs::write(child.join("deep.txt"), "deep").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg(".");
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(!stdout.lines().any(|line| line == ".:"));
+    assert!(stdout.lines().any(|line| line == "child:"));
+    assert!(!stdout.lines().any(|line| line == "./child:"));
+    assert!(stdout.contains("root.txt"));
+    assert!(stdout.contains("deep.txt"));
+}
+
+#[test]
 fn test_recursive_level_limits_nested_directory_headers() {
     let temp_dir = tempdir().unwrap();
     let child = temp_dir.path().join("child");
