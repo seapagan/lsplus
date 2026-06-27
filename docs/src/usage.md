@@ -46,9 +46,10 @@ When listing multiple directory operands, or a mix of files and directories,
 without a header.
 
 Use `-R` or `--recursive` to print GNU-style recursive directory sections.
-Use `--tree` for long-format tree output. Tree output implies `--long`, uses a
-default depth of `2`, and can be limited with `--level <N>`. `--tree` and
-`--recursive` are mutually exclusive.
+Recursive output is unlimited unless you pass `--level <N>`. Use `--tree` for
+long-format tree output. Tree output implies `--long`, uses a default depth of
+`2`, and can be limited with `--level <N>`. `--tree` and `--recursive` are
+mutually exclusive.
 
 The indicator characters are:
 

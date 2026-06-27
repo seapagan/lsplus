@@ -83,6 +83,7 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
                 recursive: false,
                 tree: false,
                 tree_level: 2,
+                recursive_level: None,
                 no_icons: true,
                 no_color: true,
                 permission_colors: false,

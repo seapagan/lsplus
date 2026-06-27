@@ -274,6 +274,31 @@ fn test_recursive_lists_nested_directory_headers() {
 }
 
 #[test]
+fn test_recursive_level_limits_nested_directory_headers() {
+    let temp_dir = tempdir().unwrap();
+    let child = temp_dir.path().join("child");
+    let grandchild = child.join("grandchild");
+    fs::create_dir(&child).unwrap();
+    fs::create_dir(&grandchild).unwrap();
+    fs::write(child.join("shown.txt"), "shown").unwrap();
+    fs::write(grandchild.join("hidden.txt"), "hidden").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-R")
+        .arg("--level")
+        .arg("2")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(&format!("{}:", temp_dir.path().display())));
+    assert!(stdout.contains(&format!("{}:", child.display())));
+    assert!(stdout.contains("shown.txt"));
+    assert!(!stdout.contains(&format!("{}:", grandchild.display())));
+    assert!(!stdout.contains("hidden.txt"));
+}
+
+#[test]
 fn test_tree_level_limits_nested_descendants() {
     let temp_dir = tempdir().unwrap();
     let child = temp_dir.path().join("child");

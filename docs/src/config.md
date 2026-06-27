@@ -124,7 +124,9 @@ output implies long format.
 - Permitted values: integers greater than or equal to `1`
 - Default value: `2`
 
-This option corresponds to `--level` and limits tree output depth.
+This option corresponds to `--level` and limits tree output depth. It also
+limits recursive output when `recursive = true`; without this option,
+recursive output is unlimited.
 
 ### no_icons
 

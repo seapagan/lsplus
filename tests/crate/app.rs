@@ -207,6 +207,44 @@ fn test_collect_listing_sections_recurses_with_headers() {
 }
 
 #[test]
+fn test_collect_listing_sections_recursive_respects_level_limit() {
+    let temp_dir = tempdir().unwrap();
+    let child = temp_dir.path().join("child");
+    let grandchild = child.join("grandchild");
+    fs::create_dir(&child).unwrap();
+    fs::create_dir(&grandchild).unwrap();
+    fs::write(child.join("shown.txt"), "shown").unwrap();
+    fs::write(grandchild.join("hidden.txt"), "hidden").unwrap();
+    let params = Params {
+        recursive: true,
+        recursive_level: Some(2),
+        ..Params::default()
+    };
+
+    let sections = collect_listing_sections(
+        &[temp_dir.path().display().to_string()],
+        &params,
+    )
+    .unwrap();
+
+    assert_eq!(sections.len(), 2);
+    assert_eq!(
+        sections[0].header,
+        Some(temp_dir.path().display().to_string())
+    );
+    assert_eq!(sections[1].header, Some(child.display().to_string()));
+    assert!(
+        sections[1]
+            .entries
+            .iter()
+            .any(|info| info.display_name.contains("shown.txt"))
+    );
+    assert!(!sections.iter().any(
+        |section| section.header == Some(grandchild.display().to_string())
+    ));
+}
+
+#[test]
 fn test_collect_listing_sections_recursive_ignores_dot_entries() {
     let temp_dir = tempdir().unwrap();
     let nested = temp_dir.path().join("nested");

@@ -49,6 +49,8 @@ pub struct Params {
     pub tree: bool,
     /// Maximum depth for tree output.
     pub tree_level: usize,
+    /// Optional maximum depth for recursive output.
+    pub recursive_level: Option<usize>,
     /// Disable file and directory icons.
     pub no_icons: bool,
     /// Disable colored or styled output.
@@ -78,6 +80,7 @@ impl Default for Params {
             recursive: false,
             tree: false,
             tree_level: 2,
+            recursive_level: None,
             no_icons: false,
             no_color: false,
             permission_colors: true,
@@ -163,6 +166,7 @@ impl From<RawParams> for Params {
             recursive: raw.recursive,
             tree: raw.tree,
             tree_level: raw.tree_level.unwrap_or(2),
+            recursive_level: raw.tree_level,
             no_icons: raw.no_icons,
             no_color: raw.no_color,
             permission_colors: raw.permission_colors.unwrap_or(true),
@@ -201,6 +205,7 @@ impl Params {
             recursive: flags.recursive || config.recursive,
             tree: flags.tree || config.tree,
             tree_level: flags.tree_level.unwrap_or(config.tree_level),
+            recursive_level: flags.tree_level.or(config.recursive_level),
             no_icons: flags.no_icons || config.no_icons,
             no_color: flags.no_color || config.no_color,
             permission_colors: config.permission_colors

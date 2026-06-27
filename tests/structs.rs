@@ -18,6 +18,7 @@ fn test_default_params() {
     assert!(!params.recursive);
     assert!(!params.tree);
     assert_eq!(params.tree_level, 2);
+    assert_eq!(params.recursive_level, None);
     assert_eq!(params.size_scale(), None);
     assert!(!params.no_icons);
     assert!(!params.no_color);
@@ -77,6 +78,7 @@ fn test_config_conversion() {
             recursive: true,
             tree: true,
             tree_level: 4,
+            recursive_level: Some(4),
             no_icons: true,
             no_color: true,
             permission_colors: false,
@@ -139,6 +141,7 @@ fn test_params_merge_prefers_true_from_either_source() {
         recursive: true,
         tree: false,
         tree_level: 5,
+        recursive_level: Some(5),
         no_icons: false,
         no_color: true,
         permission_colors: true,
@@ -182,6 +185,7 @@ fn test_params_merge_prefers_true_from_either_source() {
     assert!(params.recursive);
     assert!(params.tree);
     assert_eq!(params.tree_level, 3);
+    assert_eq!(params.recursive_level, Some(3));
     assert_eq!(params.size_scale(), Some(SizeScale::Binary));
     assert!(params.no_icons);
     assert!(params.no_color);

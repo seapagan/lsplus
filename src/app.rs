@@ -228,6 +228,7 @@ fn build_listing_sections(
                 path,
                 params,
                 true,
+                1,
             )?;
         } else {
             sections.push(ListingSection {
@@ -245,6 +246,7 @@ fn append_recursive_listing_sections(
     root: &Path,
     params: &Params,
     fail_on_error: bool,
+    depth: usize,
 ) -> io::Result<()> {
     if fail_on_error {
         sections.push(ListingSection {
@@ -255,8 +257,18 @@ fn append_recursive_listing_sections(
         append_recursive_listing_section(sections, root, params);
     }
 
+    if params.recursive_level.is_some_and(|limit| depth >= limit) {
+        return Ok(());
+    }
+
     for child in child_directories(root, params) {
-        append_recursive_listing_sections(sections, &child, params, false)?;
+        append_recursive_listing_sections(
+            sections,
+            &child,
+            params,
+            false,
+            depth + 1,
+        )?;
     }
 
     Ok(())
