@@ -357,6 +357,62 @@ fn test_recursive_prune_noisy_dirs_honors_explicit_operand() {
     assert!(stdout.contains("config"));
 }
 
+#[cfg(unix)]
+#[test]
+fn test_recursive_continues_after_unreadable_directory_operand() {
+    struct PermissionGuard {
+        path: std::path::PathBuf,
+    }
+
+    impl Drop for PermissionGuard {
+        fn drop(&mut self) {
+            let _ = fs::set_permissions(
+                &self.path,
+                fs::Permissions::from_mode(0o700),
+            );
+        }
+    }
+
+    if Uid::effective().is_root() {
+        return;
+    }
+
+    let temp_dir = tempdir().unwrap();
+    let ok_dir = temp_dir.path().join("ok");
+    let blocked_dir = temp_dir.path().join("blocked");
+    let later_dir = temp_dir.path().join("later");
+    fs::create_dir(&ok_dir).unwrap();
+    fs::create_dir(&blocked_dir).unwrap();
+    fs::create_dir(&later_dir).unwrap();
+    fs::write(ok_dir.join("ok.txt"), "ok").unwrap();
+    fs::write(later_dir.join("later.txt"), "later").unwrap();
+    fs::set_permissions(&blocked_dir, fs::Permissions::from_mode(0o000))
+        .unwrap();
+    let _guard = PermissionGuard {
+        path: blocked_dir.clone(),
+    };
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    let output = cmd
+        .arg("-R")
+        .arg("--no-icons")
+        .arg(&ok_dir)
+        .arg(&blocked_dir)
+        .arg(&later_dir)
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stdout = strip_str(String::from_utf8_lossy(&output.stdout));
+    let stderr = strip_str(String::from_utf8_lossy(&output.stderr));
+    assert!(stdout.contains(&format!("{}:", ok_dir.display())));
+    assert!(stdout.contains("ok.txt"));
+    assert!(stdout.contains(&format!("{}:", later_dir.display())));
+    assert!(stdout.contains("later.txt"));
+    assert!(stderr.contains("lsplus:"));
+    assert!(stderr.contains(blocked_dir.to_string_lossy().as_ref()));
+}
+
 #[test]
 fn test_tree_level_limits_nested_descendants() {
     let temp_dir = tempdir().unwrap();

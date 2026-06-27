@@ -161,10 +161,32 @@ fn render_recursive_listing(
         )?;
     }
 
+    walk_recursive_operands(directory_operands, params, &mut |section| {
+        render_listing_section(&mut rendered_section, &section, params)
+    })?;
+
+    Ok(())
+}
+
+fn walk_recursive_operands(
+    directory_operands: Vec<&PathBuf>,
+    params: &Params,
+    sink: &mut impl FnMut(ListingSection) -> io::Result<()>,
+) -> io::Result<()> {
+    let mut first_error = None;
+
     for path in directory_operands {
-        walk_recursive_directory(path, params, true, 1, &mut |section| {
-            render_listing_section(&mut rendered_section, &section, params)
-        })?;
+        if let Err(err) = walk_recursive_directory(path, params, true, 1, sink)
+        {
+            report_path_error(path, &err);
+            if first_error.is_none() {
+                first_error = Some(err);
+            }
+        }
+    }
+
+    if let Some(err) = first_error {
+        return Err(err);
     }
 
     Ok(())
@@ -323,13 +345,13 @@ fn build_listing_sections(
         });
     }
 
-    for path in directory_operands {
-        if params.recursive {
-            walk_recursive_directory(path, params, true, 1, &mut |section| {
-                sections.push(section);
-                Ok(())
-            })?;
-        } else {
+    if params.recursive {
+        walk_recursive_operands(directory_operands, params, &mut |section| {
+            sections.push(section);
+            Ok(())
+        })?;
+    } else {
+        for path in directory_operands {
             sections.push(ListingSection {
                 header: show_directory_headers.then(|| display_path(path)),
                 entries: collect_file_info(path, params)?,
