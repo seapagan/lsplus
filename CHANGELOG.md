@@ -5,15 +5,43 @@ project since the first release.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-
-## [Unreleased](https://github.com/seapagan/lsplus/tree/HEAD)
+## [0.9.0](https://github.com/seapagan/lsplus/releases/tag/0.9.0) (2026-06-27)
 
 **New Features**
 
+- Add GNU-style size unit scaling ([#133](https://github.com/seapagan/lsplus/pull/133)) by [seapagan](https://github.com/seapagan)
+- Fix: render special permission bits ([#132](https://github.com/seapagan/lsplus/pull/132)) by [seapagan](https://github.com/seapagan)
+- Fix: report glob traversal errors ([#131](https://github.com/seapagan/lsplus/pull/131)) by [seapagan](https://github.com/seapagan)
+- Add long-format accent colors ([#129](https://github.com/seapagan/lsplus/pull/129)) by [seapagan](https://github.com/seapagan)
 - Feat: add indicator style support ([#117](https://github.com/seapagan/lsplus/pull/117)) by [seapagan](https://github.com/seapagan)
 - Feat: add GNU `ls` compatibility mode ([#116](https://github.com/seapagan/lsplus/pull/116)) by [seapagan](https://github.com/seapagan)
 
-[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.8.0...HEAD) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.8.0...HEAD.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.8.0...HEAD.patch)
+**Bug Fixes**
+
+- Fix: allow CC0 license in deny check ([#128](https://github.com/seapagan/lsplus/pull/128)) by [seapagan](https://github.com/seapagan)
+
+**Documentation**
+
+- Add rustdoc coverage ([#130](https://github.com/seapagan/lsplus/pull/130)) by [seapagan](https://github.com/seapagan)
+
+**Automatic Testing**
+
+- Fix: harden gitignore tempdir test ([#127](https://github.com/seapagan/lsplus/pull/127)) by [seapagan](https://github.com/seapagan)
+
+**Dependency Updates**
+
+- Chore(deps): update rust crate config to v0.15.25 ([#134](https://github.com/seapagan/lsplus/pull/134)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update actions/checkout action to v7 ([#126](https://github.com/seapagan/lsplus/pull/126)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update rust crate ignore to v0.4.26 ([#125](https://github.com/seapagan/lsplus/pull/125)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update rust crate chrono to v0.4.45 ([#124](https://github.com/seapagan/lsplus/pull/124)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update rust crate config to v0.15.24 ([#123](https://github.com/seapagan/lsplus/pull/123)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update rust crate husky-rs to v0.3.3 ([#122](https://github.com/seapagan/lsplus/pull/122)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update rust crate nix to v0.31.3 ([#121](https://github.com/seapagan/lsplus/pull/121)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update rust crate filetime to v0.2.29 ([#120](https://github.com/seapagan/lsplus/pull/120)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update rust crate assert_cmd to v2.2.2 ([#119](https://github.com/seapagan/lsplus/pull/119)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update rust crate clap to v4.6.1 ([#118](https://github.com/seapagan/lsplus/pull/118)) by [renovate[bot]](https://github.com/apps/renovate)
+
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.8.0...0.9.0) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.8.0...0.9.0.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.8.0...0.9.0.patch)
 
 ## [0.8.0](https://github.com/seapagan/lsplus/releases/tag/0.8.0) (2026-04-04)
 
