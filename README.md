@@ -19,6 +19,7 @@ learning project, so some code may still show beginner decisions.
 - [Installation](#installation)
   - [Download a Binary](#download-a-binary)
   - [Using Cargo](#using-cargo)
+  - [Using "cargo-binstall"](#using-cargo-binstall)
   - [From Source](#from-source)
 - [Usage](#usage)
   - [Fuzzy Time](#fuzzy-time)
@@ -69,7 +70,20 @@ cargo install lsplus
 
 This will install the `lsp` binary into your `~/.cargo/bin` directory. Make
 sure that this directory is in your `PATH` environment variable so that you
-can run the `lsp` command from anywhere.
+can run the `lsp` command from anywhere. See the `binstall` section below for a
+quicker way to install using cargo.
+
+### Using "cargo-binstall"
+
+If you have [cargo-binstall](https://github.com/cargo-bins/cargo-binstall#installation)
+installed, you can install `lsplus` more quickly and easily using:
+
+```bash
+cargo binstall lsplus
+```
+
+This will install the latest binary into your cargo bin folder without needing
+compilation.
 
 ### From Source
 
