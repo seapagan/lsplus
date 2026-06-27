@@ -311,7 +311,7 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
     create_file_info_with_gitignore(path, params, &mut gitignore_cache)
 }
 
-fn create_file_info_with_gitignore(
+pub(crate) fn create_file_info_with_gitignore(
     path: &Path,
     params: &Params,
     gitignore_cache: &mut GitignoreCache,

@@ -14,8 +14,10 @@ use crate::settings;
 use crate::structs::FileInfo;
 use crate::utils;
 use crate::utils::file::{
-    collect_file_info, create_file_info, sanitize_for_terminal,
+    collect_file_info, create_file_info, create_file_info_with_gitignore,
+    sanitize_for_terminal,
 };
+use crate::utils::gitignore::GitignoreCache;
 
 #[derive(Debug)]
 pub(crate) struct ListingSection {
@@ -414,16 +416,28 @@ fn build_tree_sections(
     let mut sections = Vec::new();
 
     for path in operands {
+        let mut gitignore_cache = GitignoreCache::default();
         if is_display_directory(path) {
             let mut section = TreeSection {
                 header: display_path(path),
                 entries: Vec::new(),
                 name_prefixes: Vec::new(),
             };
-            append_tree_entries(&mut section, path, params, 1, String::new());
+            append_tree_entries(
+                &mut section,
+                path,
+                params,
+                &mut gitignore_cache,
+                1,
+                String::new(),
+            );
             sections.push(section);
         } else {
-            match create_file_info(path, params) {
+            match create_file_info_with_gitignore(
+                path,
+                params,
+                &mut gitignore_cache,
+            ) {
                 Ok(info) => sections.push(TreeSection {
                     header: display_path(path),
                     entries: vec![info],
@@ -441,6 +455,7 @@ fn append_tree_entries(
     section: &mut TreeSection,
     directory: &Path,
     params: &Params,
+    gitignore_cache: &mut GitignoreCache,
     depth: usize,
     ancestor_prefix: String,
 ) {
@@ -460,7 +475,11 @@ fn append_tree_entries(
         let is_last = index + 1 == child_count;
         let branch = if is_last { "└── " } else { "├── " };
 
-        match create_file_info(&child_path, params) {
+        match create_file_info_with_gitignore(
+            &child_path,
+            params,
+            gitignore_cache,
+        ) {
             Ok(info) => {
                 section.entries.push(info);
                 section
@@ -482,6 +501,7 @@ fn append_tree_entries(
                 section,
                 &child_path,
                 params,
+                gitignore_cache,
                 depth + 1,
                 format!("{ancestor_prefix}{next_prefix}"),
             );
