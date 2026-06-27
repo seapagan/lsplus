@@ -123,16 +123,20 @@ fn render_tree_sections(
     sections: &[TreeSection],
     params: &Params,
 ) -> io::Result<()> {
+    let show_headers = sections.len() > 1;
+
     for (index, section) in sections.iter().enumerate() {
         if index > 0 {
             writeln!(io::stdout())?;
         }
 
-        writeln!(
-            io::stdout(),
-            "{}:",
-            utils::render::directory_header_text(&section.header)
-        )?;
+        if show_headers {
+            writeln!(
+                io::stdout(),
+                "{}:",
+                utils::render::directory_header_text(&section.header)
+            )?;
+        }
         utils::render::display_long_format_with_name_prefixes(
             section
                 .entries
@@ -500,6 +504,11 @@ fn append_tree_entries(
         let child_path = directory.join(child_name);
         let is_last = index + 1 == child_count;
         let branch = if is_last { "└── " } else { "├── " };
+        let name_prefix = if depth == 1 {
+            String::new()
+        } else {
+            format!("{ancestor_prefix}{branch}")
+        };
 
         match create_file_info_with_gitignore(
             &child_path,
@@ -507,10 +516,7 @@ fn append_tree_entries(
             gitignore_cache,
         ) {
             Ok(info) => {
-                section.entries.push(TreeEntry {
-                    info,
-                    name_prefix: format!("{ancestor_prefix}{branch}"),
-                });
+                section.entries.push(TreeEntry { info, name_prefix });
             }
             Err(err) => {
                 report_path_error(&child_path, &err);
@@ -522,7 +528,13 @@ fn append_tree_entries(
             && is_recursable_directory(&child_path)
             && !should_prune_directory(&child_path, params)
         {
-            let next_prefix = if is_last { "    " } else { "│   " };
+            let next_prefix = if depth == 1 {
+                ""
+            } else if is_last {
+                "    "
+            } else {
+                "│   "
+            };
             append_tree_entries(
                 section,
                 &child_path,

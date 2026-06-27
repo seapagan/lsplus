@@ -497,7 +497,44 @@ fn test_collect_tree_sections_uses_level_limit() {
         sections[0]
             .entries
             .iter()
-            .any(|entry| entry.name_prefix.contains("└──"))
+            .any(|entry| entry.name_prefix.is_empty())
+    );
+}
+
+#[test]
+fn test_collect_tree_sections_keeps_prefixes_for_nested_entries() {
+    let temp_dir = tempdir().unwrap();
+    let child = temp_dir.path().join("child");
+    fs::create_dir(&child).unwrap();
+    fs::write(child.join("nested.txt"), "nested").unwrap();
+    let params = Params {
+        tree: true,
+        long_format: true,
+        no_icons: true,
+        tree_level: 2,
+        ..Params::default()
+    };
+
+    let sections = collect_tree_sections(
+        &[temp_dir.path().display().to_string()],
+        &params,
+    )
+    .unwrap();
+
+    let child_entry = sections[0]
+        .entries
+        .iter()
+        .find(|entry| entry.info.display_name.contains("child"))
+        .unwrap();
+    let nested_entry = sections[0]
+        .entries
+        .iter()
+        .find(|entry| entry.info.display_name.contains("nested.txt"))
+        .unwrap();
+    assert!(child_entry.name_prefix.is_empty());
+    assert!(
+        nested_entry.name_prefix.contains("└──")
+            || nested_entry.name_prefix.contains("├──")
     );
 }
 

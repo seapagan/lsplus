@@ -456,11 +456,41 @@ fn test_tree_level_limits_nested_descendants() {
         .arg(temp_dir.path());
     let (stdout, _stderr) = run_and_capture(&mut cmd);
 
+    assert!(!stdout.contains(&format!("{}:", temp_dir.path().display())));
+    let child_line =
+        stdout.lines().find(|line| line.contains("child")).unwrap();
+    assert!(!child_line.contains("├──"));
+    assert!(!child_line.contains("└──"));
     assert!(stdout.contains("├──") || stdout.contains("└──"));
     assert!(stdout.contains("child"));
     assert!(stdout.contains("grandchild"));
     assert!(stdout.contains("shown.txt"));
     assert!(!stdout.contains("too-deep.txt"));
+}
+
+#[test]
+fn test_tree_multiple_roots_keep_headers() {
+    let temp_dir = tempdir().unwrap();
+    let first = temp_dir.path().join("first");
+    let second = temp_dir.path().join("second");
+    fs::create_dir(&first).unwrap();
+    fs::create_dir(&second).unwrap();
+    fs::write(first.join("one.txt"), "one").unwrap();
+    fs::write(second.join("two.txt"), "two").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("--tree")
+        .arg("--level")
+        .arg("2")
+        .arg("--no-icons")
+        .arg(&first)
+        .arg(&second);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(&format!("{}:", first.display())));
+    assert!(stdout.contains(&format!("{}:", second.display())));
+    assert!(stdout.contains("one.txt"));
+    assert!(stdout.contains("two.txt"));
 }
 
 #[test]
