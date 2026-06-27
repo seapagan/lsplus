@@ -16,6 +16,9 @@ const ARG_ALMOST_ALL: &str = "almost_all";
 const ARG_LONG: &str = "long";
 const ARG_HUMAN_READABLE: &str = "human_readable";
 const ARG_SI: &str = "si";
+const ARG_RECURSIVE: &str = "recursive";
+const ARG_TREE: &str = "tree";
+const ARG_TREE_LEVEL: &str = "tree_level";
 const ARG_PATHS: &str = "paths";
 const ARG_SLASH: &str = "slash";
 const ARG_INDICATOR_STYLE: &str = "indicator_style";
@@ -72,6 +75,12 @@ pub struct Flags {
     pub human_readable: bool,
     /// Render human-readable file sizes using powers of 1000.
     pub si: bool,
+    /// Recurse into child directories.
+    pub recursive: bool,
+    /// Render long-format tree output.
+    pub tree: bool,
+    /// Maximum depth for tree output.
+    pub tree_level: Option<usize>,
     /// Raw path arguments collected from the CLI.
     pub paths: Vec<String>,
     /// Override the configured indicator style for this invocation.
@@ -157,6 +166,9 @@ fn build_command(mode: CompatMode) -> Command {
         .arg(long_arg())
         .arg(human_readable_arg())
         .arg(si_arg())
+        .arg(recursive_arg())
+        .arg(tree_arg())
+        .arg(tree_level_arg())
         .arg(paths_arg())
         .arg(slash_arg(mode))
         .arg(file_type_arg(mode))
@@ -171,7 +183,8 @@ fn build_command(mode: CompatMode) -> Command {
         .arg(version_arg())
         .arg(fuzzy_time_arg(mode))
         .arg(help_arg())
-        .group(indicator_group(mode));
+        .group(indicator_group(mode))
+        .group(tree_mode_group());
 
     match mode {
         CompatMode::Native => command.arg(no_indicators_arg()),
@@ -192,6 +205,12 @@ fn indicator_group(mode: CompatMode) -> ArgGroup {
     ArgGroup::new(ARG_INDICATOR_GROUP)
         .multiple(false)
         .args(args)
+}
+
+fn tree_mode_group() -> ArgGroup {
+    ArgGroup::new("tree_mode_group")
+        .multiple(false)
+        .args([ARG_RECURSIVE, ARG_TREE])
 }
 
 fn help_arg() -> Arg {
@@ -238,6 +257,37 @@ fn si_arg() -> Arg {
         .long("si")
         .action(ArgAction::SetTrue)
         .help("with -l, print sizes using 1000-byte units, like 1k 234M 2G")
+}
+
+fn recursive_arg() -> Arg {
+    Arg::new(ARG_RECURSIVE)
+        .short('R')
+        .long("recursive")
+        .action(ArgAction::SetTrue)
+        .help("List subdirectories recursively")
+}
+
+fn tree_arg() -> Arg {
+    Arg::new(ARG_TREE)
+        .long("tree")
+        .action(ArgAction::SetTrue)
+        .help("Display a long-format directory tree")
+}
+
+fn tree_level_arg() -> Arg {
+    Arg::new(ARG_TREE_LEVEL)
+        .long("level")
+        .value_name("N")
+        .value_parser(parse_tree_level)
+        .help("Limit tree output to N directory levels")
+}
+
+fn parse_tree_level(value: &str) -> Result<usize, String> {
+    match value.parse::<usize>() {
+        Ok(0) => Err(String::from("value must be at least 1")),
+        Ok(level) => Ok(level),
+        Err(err) => Err(err.to_string()),
+    }
 }
 
 fn paths_arg() -> Arg {
@@ -401,6 +451,9 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
         long: matches.get_flag(ARG_LONG),
         human_readable: matches.get_flag(ARG_HUMAN_READABLE),
         si: matches.get_flag(ARG_SI),
+        recursive: matches.get_flag(ARG_RECURSIVE),
+        tree: matches.get_flag(ARG_TREE),
+        tree_level: matches.get_one::<usize>(ARG_TREE_LEVEL).copied(),
         paths: matches
             .get_many::<String>(ARG_PATHS)
             .map(|values| values.cloned().collect())

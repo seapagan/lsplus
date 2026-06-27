@@ -34,15 +34,36 @@ pub fn display_long_format(
     print_table(&build_long_format_table(file_info, params))
 }
 
+/// Render long-format rows with prefixes prepended to the name column.
+pub(crate) fn display_long_format_with_name_prefixes(
+    file_info: &[FileInfo],
+    params: &Params,
+    name_prefixes: &[String],
+) -> io::Result<()> {
+    print_table(&build_long_format_table_with_name_prefixes(
+        file_info,
+        params,
+        name_prefixes,
+    ))
+}
+
 /// Build the long-format table without printing it.
 pub(crate) fn build_long_format_table(
     file_info: &[FileInfo],
     params: &Params,
 ) -> Table {
+    build_long_format_table_with_name_prefixes(file_info, params, &[])
+}
+
+fn build_long_format_table_with_name_prefixes(
+    file_info: &[FileInfo],
+    params: &Params,
+    name_prefixes: &[String],
+) -> Table {
     let mut table = utils::table::create_table(0);
     let color_level = long_format_color_level(params);
 
-    for info in file_info {
+    for (index, info) in file_info.iter().enumerate() {
         let display_time = if params.fuzzy_time {
             utils::fuzzy_time(info.mtime).to_string()
         } else {
@@ -93,7 +114,11 @@ pub(crate) fn build_long_format_table(
             row_cells.push(Cell::new(&format!("{} ", icon)));
         }
 
-        let display_name = check_display_name(info);
+        let display_name = format!(
+            "{}{}",
+            name_prefixes.get(index).map_or("", String::as_str),
+            check_display_name(info)
+        );
         row_cells.push(Cell::new(&display_name));
         table.add_row(Row::new(row_cells));
     }

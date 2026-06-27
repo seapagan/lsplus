@@ -4,14 +4,31 @@
 //! filesystem metadata collection, and the selected output renderer.
 
 use glob::glob;
-use std::io;
-use std::path::PathBuf;
+use std::fs;
+use std::io::{self, Write};
+use std::path::{Path, PathBuf};
 
 use crate::Params;
 use crate::cli;
 use crate::settings;
+use crate::structs::FileInfo;
 use crate::utils;
-use crate::utils::file::{collect_file_info, sanitize_for_terminal};
+use crate::utils::file::{
+    collect_file_info, create_file_info, sanitize_for_terminal,
+};
+
+#[derive(Debug)]
+pub(crate) struct ListingSection {
+    pub(crate) header: Option<String>,
+    pub(crate) entries: Vec<FileInfo>,
+}
+
+#[derive(Debug)]
+pub(crate) struct TreeSection {
+    pub(crate) header: String,
+    pub(crate) entries: Vec<FileInfo>,
+    pub(crate) name_prefixes: Vec<String>,
+}
 
 /// Run `lsplus` using parsed CLI flags and config loaded from disk.
 pub fn run_with_flags(args: cli::Flags) -> io::Result<()> {
@@ -28,6 +45,12 @@ pub fn run_with_flags_and_config(
     config: &Params,
 ) -> io::Result<()> {
     let params = Params::merge(&args, config);
+    if params.recursive && params.tree {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "--tree and --recursive cannot be used together",
+        ));
+    }
     utils::color::configure_color_output(&params);
     let patterns = patterns_from_args(args.paths);
 
@@ -44,49 +67,107 @@ pub(crate) fn patterns_from_args(paths: Vec<String>) -> Vec<String> {
 }
 
 fn run_multi(patterns: &[String], params: &Params) -> io::Result<()> {
-    let all_file_info = collect_matches(patterns, params)?;
-
-    if params.long_format {
-        utils::render::display_long_format(&all_file_info, params)
-    } else {
-        utils::render::display_short_format(&all_file_info)
+    if params.tree {
+        return render_tree_sections(
+            &collect_tree_sections(patterns, params)?,
+            params,
+        );
     }
+
+    let sections = collect_listing_sections(patterns, params)?;
+
+    render_listing_sections(&sections, params)
 }
 
-/// Expand path patterns and collect display data for all matching entries.
-///
-/// `collect_matches` reports missing patterns to stderr, skips them, and
-/// continues with other patterns.
-pub(crate) fn collect_matches(
+fn render_listing_sections(
+    sections: &[ListingSection],
+    params: &Params,
+) -> io::Result<()> {
+    for (index, section) in sections.iter().enumerate() {
+        if index > 0 {
+            writeln!(io::stdout())?;
+        }
+
+        if let Some(header) = &section.header {
+            writeln!(io::stdout(), "{header}:")?;
+        }
+
+        if params.long_format {
+            utils::render::display_long_format(&section.entries, params)?;
+        } else {
+            utils::render::display_short_format(&section.entries)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn render_tree_sections(
+    sections: &[TreeSection],
+    params: &Params,
+) -> io::Result<()> {
+    for (index, section) in sections.iter().enumerate() {
+        if index > 0 {
+            writeln!(io::stdout())?;
+        }
+
+        writeln!(io::stdout(), "{}:", section.header)?;
+        utils::render::display_long_format_with_name_prefixes(
+            &section.entries,
+            params,
+            &section.name_prefixes,
+        )?;
+    }
+
+    Ok(())
+}
+
+pub(crate) fn collect_listing_sections(
     patterns: &[String],
     params: &Params,
-) -> io::Result<Vec<crate::FileInfo>> {
+) -> io::Result<Vec<ListingSection>> {
+    let operands = collect_operands(patterns, params)?;
+    build_listing_sections(&operands, params)
+}
+
+pub(crate) fn collect_tree_sections(
+    patterns: &[String],
+    params: &Params,
+) -> io::Result<Vec<TreeSection>> {
+    let operands = collect_operands(patterns, params)?;
+    Ok(build_tree_sections(&operands, params))
+}
+
+fn collect_operands(
+    patterns: &[String],
+    params: &Params,
+) -> io::Result<Vec<PathBuf>> {
     if patterns.is_empty() {
         return Ok(Vec::new());
     }
 
-    let mut all_file_info = Vec::new();
+    let mut operands = Vec::new();
 
     for pattern in patterns {
-        append_pattern_matches(&mut all_file_info, pattern, params)?;
+        append_pattern_operands(&mut operands, pattern, params)?;
     }
 
-    Ok(all_file_info)
+    Ok(operands)
 }
 
-fn append_pattern_matches(
-    all_file_info: &mut Vec<crate::FileInfo>,
+fn append_pattern_operands(
+    operands: &mut Vec<PathBuf>,
     pattern: &str,
-    params: &Params,
+    _params: &Params,
 ) -> io::Result<()> {
     match glob(pattern) {
         Ok(entries) => {
-            let mut paths: Vec<PathBuf> = Vec::new();
+            let start_len = operands.len();
             let mut had_entry_error = false;
 
             for entry in entries {
                 match entry {
-                    Ok(path) => paths.push(path),
+                    Ok(path) => operands.push(path),
                     Err(err) => {
                         had_entry_error = true;
                         eprintln!(
@@ -100,15 +181,11 @@ fn append_pattern_matches(
                 }
             }
 
-            if paths.is_empty() {
-                if !had_entry_error {
-                    eprintln!(
-                        "lsplus: {}: No such file or directory",
-                        sanitize_for_terminal(pattern)
-                    );
-                }
-            } else {
-                append_paths(all_file_info, &paths, params)?;
+            if operands.len() == start_len && !had_entry_error {
+                eprintln!(
+                    "lsplus: {}: No such file or directory",
+                    sanitize_for_terminal(pattern)
+                );
             }
         }
         Err(e) => eprintln!("lsplus: failed to read glob pattern: {}", e),
@@ -117,15 +194,218 @@ fn append_pattern_matches(
     Ok(())
 }
 
-fn append_paths(
-    all_file_info: &mut Vec<crate::FileInfo>,
-    paths: &[PathBuf],
+fn build_listing_sections(
+    operands: &[PathBuf],
     params: &Params,
+) -> io::Result<Vec<ListingSection>> {
+    let mut file_entries = Vec::new();
+    let mut directory_operands = Vec::new();
+
+    for path in operands {
+        if is_display_directory(path) {
+            directory_operands.push(path);
+        } else {
+            file_entries.push(create_file_info(path, params)?);
+        }
+    }
+
+    let show_directory_headers = params.recursive
+        || !file_entries.is_empty()
+        || directory_operands.len() > 1;
+    let mut sections = Vec::new();
+
+    if !file_entries.is_empty() {
+        sections.push(ListingSection {
+            header: None,
+            entries: file_entries,
+        });
+    }
+
+    for path in directory_operands {
+        if params.recursive {
+            append_recursive_listing_sections(
+                &mut sections,
+                path,
+                params,
+                true,
+            )?;
+        } else {
+            sections.push(ListingSection {
+                header: show_directory_headers.then(|| display_path(path)),
+                entries: collect_file_info(path, params)?,
+            });
+        }
+    }
+
+    Ok(sections)
+}
+
+fn append_recursive_listing_sections(
+    sections: &mut Vec<ListingSection>,
+    root: &Path,
+    params: &Params,
+    fail_on_error: bool,
 ) -> io::Result<()> {
-    for path in paths {
-        let file_info = collect_file_info(path, params)?;
-        all_file_info.extend(file_info);
+    if fail_on_error {
+        sections.push(ListingSection {
+            header: Some(display_path(root)),
+            entries: collect_file_info(root, params)?,
+        });
+    } else {
+        append_recursive_listing_section(sections, root, params);
+    }
+
+    for child in child_directories(root, params) {
+        append_recursive_listing_sections(sections, &child, params, false)?;
     }
 
     Ok(())
+}
+
+fn append_recursive_listing_section(
+    sections: &mut Vec<ListingSection>,
+    path: &Path,
+    params: &Params,
+) {
+    match collect_file_info(path, params) {
+        Ok(entries) => sections.push(ListingSection {
+            header: Some(display_path(path)),
+            entries,
+        }),
+        Err(err) => report_path_error(path, &err),
+    }
+}
+
+fn build_tree_sections(
+    operands: &[PathBuf],
+    params: &Params,
+) -> Vec<TreeSection> {
+    let mut sections = Vec::new();
+
+    for path in operands {
+        if is_display_directory(path) {
+            let mut section = TreeSection {
+                header: display_path(path),
+                entries: Vec::new(),
+                name_prefixes: Vec::new(),
+            };
+            append_tree_entries(&mut section, path, params, 1, String::new());
+            sections.push(section);
+        } else {
+            match create_file_info(path, params) {
+                Ok(info) => sections.push(TreeSection {
+                    header: display_path(path),
+                    entries: vec![info],
+                    name_prefixes: vec![String::new()],
+                }),
+                Err(err) => report_path_error(path, &err),
+            }
+        }
+    }
+
+    sections
+}
+
+fn append_tree_entries(
+    section: &mut TreeSection,
+    directory: &Path,
+    params: &Params,
+    depth: usize,
+    ancestor_prefix: String,
+) {
+    let child_names = match utils::file::collect_file_names(directory, params)
+    {
+        Ok(names) => names,
+        Err(err) => {
+            report_path_error(directory, &err);
+            return;
+        }
+    };
+
+    let child_names = traversal_child_names(child_names);
+    let child_count = child_names.len();
+    for (index, child_name) in child_names.iter().enumerate() {
+        let child_path = directory.join(child_name);
+        let is_last = index + 1 == child_count;
+        let branch = if is_last { "└── " } else { "├── " };
+
+        match create_file_info(&child_path, params) {
+            Ok(info) => {
+                section.entries.push(info);
+                section
+                    .name_prefixes
+                    .push(format!("{ancestor_prefix}{branch}"));
+            }
+            Err(err) => {
+                report_path_error(&child_path, &err);
+                continue;
+            }
+        }
+
+        if depth < params.tree_level && is_recursable_directory(&child_path) {
+            let next_prefix = if is_last { "    " } else { "│   " };
+            append_tree_entries(
+                section,
+                &child_path,
+                params,
+                depth + 1,
+                format!("{ancestor_prefix}{next_prefix}"),
+            );
+        }
+    }
+}
+
+fn child_directories(path: &Path, params: &Params) -> Vec<PathBuf> {
+    let child_names = match utils::file::collect_file_names(path, params) {
+        Ok(names) => names,
+        Err(err) => {
+            report_path_error(path, &err);
+            return Vec::new();
+        }
+    };
+
+    child_names
+        .into_iter()
+        .filter(|name| is_traversable_child_name(name))
+        .map(|name| path.join(name))
+        .filter(|path| is_recursable_directory(path))
+        .collect()
+}
+
+fn traversal_child_names(child_names: Vec<String>) -> Vec<String> {
+    child_names
+        .into_iter()
+        .filter(|name| is_traversable_child_name(name))
+        .collect()
+}
+
+fn is_traversable_child_name(name: &str) -> bool {
+    name != "." && name != ".."
+}
+
+fn is_display_directory(path: &Path) -> bool {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.is_symlink() => fs::metadata(path)
+            .map(|metadata| metadata.is_dir())
+            .unwrap_or(false),
+        Ok(metadata) => metadata.is_dir(),
+        Err(err) => {
+            report_path_error(path, &err);
+            false
+        }
+    }
+}
+
+fn is_recursable_directory(path: &Path) -> bool {
+    fs::symlink_metadata(path)
+        .map(|metadata| metadata.is_dir() && !metadata.is_symlink())
+        .unwrap_or(false)
+}
+
+fn display_path(path: &Path) -> String {
+    sanitize_for_terminal(&path.to_string_lossy())
+}
+
+fn report_path_error(path: &Path, err: &io::Error) {
+    eprintln!("lsplus: {}: {}", display_path(path), err);
 }

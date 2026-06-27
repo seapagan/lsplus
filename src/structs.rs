@@ -43,6 +43,12 @@ pub struct Params {
     pub human_readable: bool,
     /// Use decimal powers for human-readable file sizes.
     pub si: bool,
+    /// Recurse into child directories.
+    pub recursive: bool,
+    /// Render long-format tree output.
+    pub tree: bool,
+    /// Maximum depth for tree output.
+    pub tree_level: usize,
     /// Disable file and directory icons.
     pub no_icons: bool,
     /// Disable colored or styled output.
@@ -69,6 +75,9 @@ impl Default for Params {
             long_format: false,
             human_readable: false,
             si: false,
+            recursive: false,
+            tree: false,
+            tree_level: 2,
             no_icons: false,
             no_color: false,
             permission_colors: true,
@@ -90,6 +99,9 @@ pub(crate) struct RawParams {
     long_format: bool,
     human_readable: bool,
     si: bool,
+    recursive: bool,
+    tree: bool,
+    tree_level: Option<usize>,
     no_icons: bool,
     no_color: bool,
     permission_colors: Option<bool>,
@@ -148,6 +160,9 @@ impl From<RawParams> for Params {
             long_format: raw.long_format,
             human_readable: raw.human_readable,
             si: raw.si,
+            recursive: raw.recursive,
+            tree: raw.tree,
+            tree_level: raw.tree_level.unwrap_or(2),
             no_icons: raw.no_icons,
             no_color: raw.no_color,
             permission_colors: raw.permission_colors.unwrap_or(true),
@@ -174,12 +189,18 @@ impl Params {
                 .unwrap_or(config.indicator_style),
             dirs_first: flags.dirs_first || config.dirs_first,
             almost_all: flags.almost_all || config.almost_all,
-            long_format: flags.long || config.long_format,
+            long_format: flags.long
+                || flags.tree
+                || config.long_format
+                || config.tree,
             human_readable: flags.si
                 || flags.human_readable
                 || config.si
                 || config.human_readable,
             si: flags.si || config.si,
+            recursive: flags.recursive || config.recursive,
+            tree: flags.tree || config.tree,
+            tree_level: flags.tree_level.unwrap_or(config.tree_level),
             no_icons: flags.no_icons || config.no_icons,
             no_color: flags.no_color || config.no_color,
             permission_colors: config.permission_colors
