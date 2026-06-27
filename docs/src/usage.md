@@ -20,6 +20,9 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `-l` / `--long` - Show long format listing
 - `-h` / `--human-readable` - Human readable file sizes using powers of 1024
 - `--si` - Human readable file sizes using powers of 1000
+- `-R` / `--recursive` - List subdirectories recursively
+- `--tree` - Show a long-format directory tree
+- `--level <N>` - Limit tree output depth
 - `-D` / `--sort-dirs` - Sort directories first
 - `-I` / `--gitignore` - Dim entries matched by Git ignore rules
 - `-N` / `--no-color` - Disable colored and styled output
@@ -36,6 +39,16 @@ listing with hidden files, append a '/' to directories, and show human-readable
 file sizes.
 
 Use the `--help` option to see the full list of options.
+
+When listing multiple directory operands, or a mix of files and directories,
+`lsp` prints file operands first and labels each directory section with a
+`path:` header. A single non-recursive directory keeps the compact output shape
+without a header.
+
+Use `-R` or `--recursive` to print GNU-style recursive directory sections.
+Use `--tree` for long-format tree output. Tree output implies `--long`, uses a
+default depth of `2`, and can be limited with `--level <N>`. `--tree` and
+`--recursive` are mutually exclusive.
 
 The indicator characters are:
 

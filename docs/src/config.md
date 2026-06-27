@@ -103,6 +103,29 @@ human-readable file sizes using powers of 1024 when set to `true`.
 This option corresponds to `--si` and displays human-readable file sizes using
 powers of 1000 when set to `true`. It also enables human-readable size output.
 
+### recursive
+
+- Permitted values: `true` or `false`
+- Default value: `false`
+
+This option corresponds to `-R` or `--recursive` and lists subdirectories in
+separate `path:` sections.
+
+### tree
+
+- Permitted values: `true` or `false`
+- Default value: `false`
+
+This option corresponds to `--tree` and displays long-format tree output. Tree
+output implies long format.
+
+### tree_level
+
+- Permitted values: integers greater than or equal to `1`
+- Default value: `2`
+
+This option corresponds to `--level` and limits tree output depth.
+
 ### no_icons
 
 - Permitted values: `true` or `false`
@@ -178,6 +201,9 @@ indicator_style = "classify"
 dirs_first = true
 human_readable = true
 # si = true
+# recursive = true
+# tree = true
+# tree_level = 2
 no_color = true
 permission_colors = false
 time_gradient = false
