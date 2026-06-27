@@ -12,6 +12,10 @@
 - [ ] When adding recursion or tree-style output, revisit whether directory
       traversal should move over to the `ignore` crate instead of the current
       custom walker.
+- [ ] Add inode, allocated block size, and optional column header support for
+      long-format output.
+- [ ] Evaluate the Rust crate `uutils-term-grid` as a short-format layout
+      alternative before expanding the current custom grid code.
 - [ ] better handle dotfiles?
 - [ ] option to list dotfiles (and folders) before non-dotfiles
 - [ ] Investigate an optional name-shortening mode for very long filenames
