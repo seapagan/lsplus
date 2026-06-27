@@ -176,8 +176,8 @@ impl From<RawParams> for Params {
             si: raw.si,
             recursive: raw.recursive,
             tree: raw.tree,
-            tree_level: raw.tree_level.unwrap_or(2),
-            recursive_level: raw.tree_level,
+            tree_level: normalized_tree_level(raw.tree_level),
+            recursive_level: raw.tree_level.filter(|level| *level > 0),
             prune_noisy_dirs: raw.prune_noisy_dirs,
             prune_dirs: configured_prune_dirs(
                 raw.prune_noisy_dirs,
@@ -257,6 +257,10 @@ fn configured_prune_dirs(
             .extend(NOISY_DIR_PRESET.iter().map(|name| name.to_string()));
     }
     prune_dirs
+}
+
+fn normalized_tree_level(tree_level: Option<usize>) -> usize {
+    tree_level.filter(|level| *level > 0).unwrap_or(2)
 }
 
 fn merged_prune_dirs(flags: &cli::Flags, config: &Params) -> Vec<String> {

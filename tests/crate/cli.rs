@@ -104,6 +104,14 @@ fn test_level_zero_is_rejected() {
 }
 
 #[test]
+fn test_level_help_mentions_recursive_and_tree_output() {
+    let err = Flags::try_parse_from(["lsplus", "--help"]).unwrap_err();
+    let help = err.to_string();
+
+    assert!(help.contains("Limit recursive or tree output"));
+}
+
+#[test]
 fn test_tree_and_recursive_are_conflicting() {
     let err = Flags::try_parse_from(["lsplus", "--tree", "--recursive"])
         .unwrap_err();

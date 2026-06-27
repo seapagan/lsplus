@@ -143,6 +143,24 @@ fn test_config_conversion_prefers_indicator_style_over_append_slash_alias() {
 }
 
 #[test]
+fn test_config_conversion_rejects_zero_tree_level() {
+    let temp_dir = tempdir().unwrap();
+    let config_path = temp_dir.path().join("config.toml");
+
+    fs::write(&config_path, "tree_level = 0\n").unwrap();
+
+    let config = Config::builder()
+        .add_source(config::File::from(config_path))
+        .build()
+        .unwrap();
+
+    let params: Params = config.into();
+
+    assert_eq!(params.tree_level, 2);
+    assert_eq!(params.recursive_level, None);
+}
+
+#[test]
 fn test_params_merge_prefers_true_from_either_source() {
     let config = Params {
         show_all: true,

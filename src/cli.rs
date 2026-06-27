@@ -287,7 +287,7 @@ fn tree_level_arg() -> Arg {
         .long("level")
         .value_name("N")
         .value_parser(parse_tree_level)
-        .help("Limit tree output to N directory levels")
+        .help("Limit recursive or tree output to N directory levels")
 }
 
 fn prune_noisy_dirs_arg() -> Arg {
