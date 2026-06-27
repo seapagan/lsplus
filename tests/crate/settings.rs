@@ -64,6 +64,8 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
             time_gradient = false
             size_colors = false
             gitignore = true
+            prune_noisy_dirs = true
+            prune_dirs = ["target", "dist"]
             fuzzy_time = true
         "#,
     )
@@ -84,6 +86,16 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
                 tree: false,
                 tree_level: 2,
                 recursive_level: None,
+                prune_noisy_dirs: true,
+                prune_dirs: vec![
+                    String::from("target"),
+                    String::from("dist"),
+                    String::from(".git"),
+                    String::from(".hg"),
+                    String::from(".svn"),
+                    String::from("node_modules"),
+                    String::from("__pycache__"),
+                ],
                 no_icons: true,
                 no_color: true,
                 permission_colors: false,

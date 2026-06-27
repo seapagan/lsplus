@@ -14,6 +14,8 @@ fn test_default_flags() {
     assert!(!args.recursive);
     assert!(!args.tree);
     assert_eq!(args.tree_level, None);
+    assert!(!args.prune_noisy_dirs);
+    assert!(args.prune_dirs.is_empty());
     assert_eq!(args.indicator_style, None);
     assert!(!args.dirs_first);
     assert!(!args.no_icons);
@@ -54,6 +56,11 @@ fn test_all_flags() {
         "--no-time-gradient",
         "--no-size-colors",
         "--gitignore",
+        "--prune-noisy-dirs",
+        "--prune-dir",
+        "target",
+        "--prune-dir",
+        "dist",
         "--fuzzy-time",
     ]);
     assert!(args.show_all);
@@ -72,6 +79,11 @@ fn test_all_flags() {
     assert!(args.no_time_gradient);
     assert!(args.no_size_colors);
     assert!(args.gitignore);
+    assert!(args.prune_noisy_dirs);
+    assert_eq!(
+        args.prune_dirs,
+        vec![String::from("target"), String::from("dist")]
+    );
     assert!(args.fuzzy_time);
 }
 
@@ -179,6 +191,30 @@ fn test_parse_from_mode_accepts_recursive_and_tree_options() {
                 .unwrap();
         assert!(tree.tree);
         assert_eq!(tree.tree_level, Some(3));
+    }
+}
+
+#[test]
+fn test_parse_from_mode_accepts_prune_options() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let args = try_parse_from_mode(
+            mode,
+            [
+                "lsplus",
+                "--prune-noisy-dirs",
+                "--prune-dir",
+                "target",
+                "--prune-dir",
+                "dist",
+            ],
+        )
+        .unwrap();
+
+        assert!(args.prune_noisy_dirs);
+        assert_eq!(
+            args.prune_dirs,
+            vec![String::from("target"), String::from("dist")]
+        );
     }
 }
 

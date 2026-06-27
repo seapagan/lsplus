@@ -299,6 +299,64 @@ fn test_recursive_level_limits_nested_directory_headers() {
 }
 
 #[test]
+fn test_recursive_prune_noisy_dirs_keeps_parent_entry_only() {
+    let temp_dir = tempdir().unwrap();
+    let git_dir = temp_dir.path().join(".git");
+    fs::create_dir(&git_dir).unwrap();
+    fs::write(git_dir.join("config"), "config").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-R")
+        .arg("--all")
+        .arg("--prune-noisy-dirs")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(".git"));
+    assert!(!stdout.contains(&format!("{}:", git_dir.display())));
+    assert!(!stdout.contains("config"));
+}
+
+#[test]
+fn test_recursive_prune_dir_keeps_parent_entry_only() {
+    let temp_dir = tempdir().unwrap();
+    let target = temp_dir.path().join("target");
+    fs::create_dir(&target).unwrap();
+    fs::write(target.join("hidden.txt"), "hidden").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-R")
+        .arg("--prune-dir")
+        .arg("target")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains("target"));
+    assert!(!stdout.contains(&format!("{}:", target.display())));
+    assert!(!stdout.contains("hidden.txt"));
+}
+
+#[test]
+fn test_recursive_prune_noisy_dirs_honors_explicit_operand() {
+    let temp_dir = tempdir().unwrap();
+    let git_dir = temp_dir.path().join(".git");
+    fs::create_dir(&git_dir).unwrap();
+    fs::write(git_dir.join("config"), "config").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-R")
+        .arg("--prune-noisy-dirs")
+        .arg("--no-icons")
+        .arg(&git_dir);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(&format!("{}:", git_dir.display())));
+    assert!(stdout.contains("config"));
+}
+
+#[test]
 fn test_tree_level_limits_nested_descendants() {
     let temp_dir = tempdir().unwrap();
     let child = temp_dir.path().join("child");
@@ -323,6 +381,44 @@ fn test_tree_level_limits_nested_descendants() {
     assert!(stdout.contains("grandchild"));
     assert!(stdout.contains("shown.txt"));
     assert!(!stdout.contains("too-deep.txt"));
+}
+
+#[test]
+fn test_tree_prune_noisy_dirs_keeps_parent_entry_only() {
+    let temp_dir = tempdir().unwrap();
+    let git_dir = temp_dir.path().join(".git");
+    fs::create_dir(&git_dir).unwrap();
+    fs::write(git_dir.join("config"), "config").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("--tree")
+        .arg("--all")
+        .arg("--prune-noisy-dirs")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(".git"));
+    assert!(!stdout.contains("config"));
+}
+
+#[test]
+fn test_tree_prune_dir_keeps_parent_entry_only() {
+    let temp_dir = tempdir().unwrap();
+    let target = temp_dir.path().join("target");
+    fs::create_dir(&target).unwrap();
+    fs::write(target.join("hidden.txt"), "hidden").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("--tree")
+        .arg("--prune-dir")
+        .arg("target")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains("target"));
+    assert!(!stdout.contains("hidden.txt"));
 }
 
 #[test]

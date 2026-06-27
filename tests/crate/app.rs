@@ -89,6 +89,8 @@ fn test_run_with_flags_lists_matching_entries() {
             recursive: false,
             tree: false,
             tree_level: None,
+            prune_noisy_dirs: false,
+            prune_dirs: Vec::new(),
             paths: vec![temp_dir.path().display().to_string()],
             indicator_style: None,
             dirs_first: false,
@@ -302,6 +304,73 @@ fn test_collect_listing_sections_recursive_skips_symlinked_directories() {
 }
 
 #[test]
+fn test_collect_listing_sections_recursive_prunes_noisy_directories() {
+    let temp_dir = tempdir().unwrap();
+    let git_dir = temp_dir.path().join(".git");
+    fs::create_dir(&git_dir).unwrap();
+    fs::write(git_dir.join("config"), "config").unwrap();
+    let params = Params {
+        recursive: true,
+        show_all: true,
+        prune_noisy_dirs: true,
+        prune_dirs: vec![String::from(".git")],
+        ..Params::default()
+    };
+
+    let sections = collect_listing_sections(
+        &[temp_dir.path().display().to_string()],
+        &params,
+    )
+    .unwrap();
+
+    assert_eq!(sections.len(), 1);
+    assert!(
+        sections[0]
+            .entries
+            .iter()
+            .any(|info| info.display_name.contains(".git"))
+    );
+    assert!(
+        !sections
+            .iter()
+            .any(|section| section.header
+                == Some(git_dir.display().to_string()))
+    );
+}
+
+#[test]
+fn test_collect_listing_sections_recursive_prunes_custom_directories() {
+    let temp_dir = tempdir().unwrap();
+    let target = temp_dir.path().join("target");
+    fs::create_dir(&target).unwrap();
+    fs::write(target.join("hidden.txt"), "hidden").unwrap();
+    let params = Params {
+        recursive: true,
+        prune_dirs: vec![String::from("target")],
+        ..Params::default()
+    };
+
+    let sections = collect_listing_sections(
+        &[temp_dir.path().display().to_string()],
+        &params,
+    )
+    .unwrap();
+
+    assert_eq!(sections.len(), 1);
+    assert!(
+        sections[0]
+            .entries
+            .iter()
+            .any(|info| info.display_name.contains("target"))
+    );
+    assert!(
+        !sections.iter().any(
+            |section| section.header == Some(target.display().to_string())
+        )
+    );
+}
+
+#[test]
 fn test_collect_tree_sections_uses_level_limit() {
     let temp_dir = tempdir().unwrap();
     let child = temp_dir.path().join("child");
@@ -374,6 +443,78 @@ fn test_collect_tree_sections_ignores_dot_entries() {
             .entries
             .iter()
             .any(|info| info.display_name == "." || info.display_name == "..")
+    );
+}
+
+#[test]
+fn test_collect_tree_sections_prunes_noisy_directory_descendants() {
+    let temp_dir = tempdir().unwrap();
+    let git_dir = temp_dir.path().join(".git");
+    fs::create_dir(&git_dir).unwrap();
+    fs::write(git_dir.join("config"), "config").unwrap();
+    let params = Params {
+        tree: true,
+        long_format: true,
+        show_all: true,
+        no_icons: true,
+        prune_noisy_dirs: true,
+        prune_dirs: vec![String::from(".git")],
+        ..Params::default()
+    };
+
+    let sections = collect_tree_sections(
+        &[temp_dir.path().display().to_string()],
+        &params,
+    )
+    .unwrap();
+
+    assert_eq!(sections.len(), 1);
+    assert!(
+        sections[0]
+            .entries
+            .iter()
+            .any(|info| info.display_name.contains(".git"))
+    );
+    assert!(
+        !sections[0]
+            .entries
+            .iter()
+            .any(|info| info.display_name.contains("config"))
+    );
+}
+
+#[test]
+fn test_collect_tree_sections_prunes_custom_directory_descendants() {
+    let temp_dir = tempdir().unwrap();
+    let target = temp_dir.path().join("target");
+    fs::create_dir(&target).unwrap();
+    fs::write(target.join("hidden.txt"), "hidden").unwrap();
+    let params = Params {
+        tree: true,
+        long_format: true,
+        no_icons: true,
+        prune_dirs: vec![String::from("target")],
+        ..Params::default()
+    };
+
+    let sections = collect_tree_sections(
+        &[temp_dir.path().display().to_string()],
+        &params,
+    )
+    .unwrap();
+
+    assert_eq!(sections.len(), 1);
+    assert!(
+        sections[0]
+            .entries
+            .iter()
+            .any(|info| info.display_name.contains("target"))
+    );
+    assert!(
+        !sections[0]
+            .entries
+            .iter()
+            .any(|info| info.display_name.contains("hidden.txt"))
     );
 }
 

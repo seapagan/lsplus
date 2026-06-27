@@ -42,6 +42,8 @@ fn test_public_run_with_flags_accepts_missing_patterns() {
         recursive: false,
         tree: false,
         tree_level: None,
+        prune_noisy_dirs: false,
+        prune_dirs: Vec::new(),
         paths: vec![String::from("**/definitely_missing_coverage_pattern")],
         indicator_style: None,
         dirs_first: false,

@@ -467,7 +467,10 @@ fn append_tree_entries(
             }
         }
 
-        if depth < params.tree_level && is_recursable_directory(&child_path) {
+        if depth < params.tree_level
+            && is_recursable_directory(&child_path)
+            && !should_prune_directory(&child_path, params)
+        {
             let next_prefix = if is_last { "    " } else { "│   " };
             append_tree_entries(
                 section,
@@ -494,6 +497,7 @@ fn child_directories(path: &Path, params: &Params) -> Vec<PathBuf> {
         .filter(|name| is_traversable_child_name(name))
         .map(|name| path.join(name))
         .filter(|path| is_recursable_directory(path))
+        .filter(|path| !should_prune_directory(path, params))
         .collect()
 }
 
@@ -525,6 +529,14 @@ fn is_recursable_directory(path: &Path) -> bool {
     fs::symlink_metadata(path)
         .map(|metadata| metadata.is_dir() && !metadata.is_symlink())
         .unwrap_or(false)
+}
+
+fn should_prune_directory(path: &Path, params: &Params) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| {
+            params.prune_dirs.iter().any(|pruned| pruned == name)
+        })
 }
 
 fn display_path(path: &Path) -> String {

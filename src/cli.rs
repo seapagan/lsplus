@@ -19,6 +19,8 @@ const ARG_SI: &str = "si";
 const ARG_RECURSIVE: &str = "recursive";
 const ARG_TREE: &str = "tree";
 const ARG_TREE_LEVEL: &str = "tree_level";
+const ARG_PRUNE_NOISY_DIRS: &str = "prune_noisy_dirs";
+const ARG_PRUNE_DIR: &str = "prune_dir";
 const ARG_PATHS: &str = "paths";
 const ARG_SLASH: &str = "slash";
 const ARG_INDICATOR_STYLE: &str = "indicator_style";
@@ -81,6 +83,10 @@ pub struct Flags {
     pub tree: bool,
     /// Maximum depth for tree output.
     pub tree_level: Option<usize>,
+    /// Enable the built-in noisy-directory traversal prune preset.
+    pub prune_noisy_dirs: bool,
+    /// Directory basenames to skip while traversing recursive/tree output.
+    pub prune_dirs: Vec<String>,
     /// Raw path arguments collected from the CLI.
     pub paths: Vec<String>,
     /// Override the configured indicator style for this invocation.
@@ -169,6 +175,8 @@ fn build_command(mode: CompatMode) -> Command {
         .arg(recursive_arg())
         .arg(tree_arg())
         .arg(tree_level_arg())
+        .arg(prune_noisy_dirs_arg())
+        .arg(prune_dir_arg())
         .arg(paths_arg())
         .arg(slash_arg(mode))
         .arg(file_type_arg(mode))
@@ -280,6 +288,21 @@ fn tree_level_arg() -> Arg {
         .value_name("N")
         .value_parser(parse_tree_level)
         .help("Limit tree output to N directory levels")
+}
+
+fn prune_noisy_dirs_arg() -> Arg {
+    Arg::new(ARG_PRUNE_NOISY_DIRS)
+        .long("prune-noisy-dirs")
+        .action(ArgAction::SetTrue)
+        .help("Skip descending into built-in noisy directories")
+}
+
+fn prune_dir_arg() -> Arg {
+    Arg::new(ARG_PRUNE_DIR)
+        .long("prune-dir")
+        .value_name("NAME")
+        .action(ArgAction::Append)
+        .help("Skip descending into directory basename NAME")
 }
 
 fn parse_tree_level(value: &str) -> Result<usize, String> {
@@ -454,6 +477,11 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
         recursive: matches.get_flag(ARG_RECURSIVE),
         tree: matches.get_flag(ARG_TREE),
         tree_level: matches.get_one::<usize>(ARG_TREE_LEVEL).copied(),
+        prune_noisy_dirs: matches.get_flag(ARG_PRUNE_NOISY_DIRS),
+        prune_dirs: matches
+            .get_many::<String>(ARG_PRUNE_DIR)
+            .map(|values| values.cloned().collect())
+            .unwrap_or_default(),
         paths: matches
             .get_many::<String>(ARG_PATHS)
             .map(|values| values.cloned().collect())

@@ -19,6 +19,8 @@ fn test_default_params() {
     assert!(!params.tree);
     assert_eq!(params.tree_level, 2);
     assert_eq!(params.recursive_level, None);
+    assert!(!params.prune_noisy_dirs);
+    assert!(params.prune_dirs.is_empty());
     assert_eq!(params.size_scale(), None);
     assert!(!params.no_icons);
     assert!(!params.no_color);
@@ -47,6 +49,8 @@ fn test_config_conversion() {
             recursive = true
             tree = true
             tree_level = 4
+            prune_noisy_dirs = true
+            prune_dirs = ["target", "dist"]
             no_icons = true
             no_color = true
             permission_colors = false
@@ -79,6 +83,16 @@ fn test_config_conversion() {
             tree: true,
             tree_level: 4,
             recursive_level: Some(4),
+            prune_noisy_dirs: true,
+            prune_dirs: vec![
+                String::from("target"),
+                String::from("dist"),
+                String::from(".git"),
+                String::from(".hg"),
+                String::from(".svn"),
+                String::from("node_modules"),
+                String::from("__pycache__"),
+            ],
             no_icons: true,
             no_color: true,
             permission_colors: false,
@@ -142,6 +156,15 @@ fn test_params_merge_prefers_true_from_either_source() {
         tree: false,
         tree_level: 5,
         recursive_level: Some(5),
+        prune_noisy_dirs: true,
+        prune_dirs: vec![
+            String::from(".git"),
+            String::from(".hg"),
+            String::from(".svn"),
+            String::from("node_modules"),
+            String::from("__pycache__"),
+            String::from("from-config"),
+        ],
         no_icons: false,
         no_color: true,
         permission_colors: true,
@@ -164,6 +187,8 @@ fn test_params_merge_prefers_true_from_either_source() {
         recursive: false,
         tree: true,
         tree_level: Some(3),
+        prune_noisy_dirs: false,
+        prune_dirs: vec![String::from("from-cli")],
         no_icons: true,
         no_color: false,
         no_permission_colors: true,
@@ -186,6 +211,19 @@ fn test_params_merge_prefers_true_from_either_source() {
     assert!(params.tree);
     assert_eq!(params.tree_level, 3);
     assert_eq!(params.recursive_level, Some(3));
+    assert!(params.prune_noisy_dirs);
+    assert_eq!(
+        params.prune_dirs,
+        vec![
+            String::from(".git"),
+            String::from(".hg"),
+            String::from(".svn"),
+            String::from("node_modules"),
+            String::from("__pycache__"),
+            String::from("from-config"),
+            String::from("from-cli"),
+        ]
+    );
     assert_eq!(params.size_scale(), Some(SizeScale::Binary));
     assert!(params.no_icons);
     assert!(params.no_color);
@@ -211,6 +249,8 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
         recursive: false,
         tree: false,
         tree_level: None,
+        prune_noisy_dirs: false,
+        prune_dirs: Vec::new(),
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
@@ -240,6 +280,8 @@ fn test_params_merge_si_enables_decimal_human_readable_output() {
         recursive: false,
         tree: false,
         tree_level: None,
+        prune_noisy_dirs: false,
+        prune_dirs: Vec::new(),
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
@@ -276,6 +318,8 @@ fn test_params_merge_config_si_overrides_config_human_readable() {
         recursive: false,
         tree: false,
         tree_level: None,
+        prune_noisy_dirs: false,
+        prune_dirs: Vec::new(),
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
@@ -290,4 +334,43 @@ fn test_params_merge_config_si_overrides_config_human_readable() {
     assert!(params.human_readable);
     assert!(params.si);
     assert_eq!(params.size_scale(), Some(SizeScale::Decimal));
+}
+
+#[test]
+fn test_params_merge_cli_prune_dirs_append_config_prune_dirs() {
+    let config = Params {
+        prune_dirs: vec![String::from("from-config")],
+        ..Params::default()
+    };
+    let flags = Flags {
+        version: false,
+        paths: vec![],
+        show_all: false,
+        almost_all: false,
+        indicator_style: None,
+        dirs_first: false,
+        long: false,
+        human_readable: false,
+        si: false,
+        recursive: false,
+        tree: false,
+        tree_level: None,
+        prune_noisy_dirs: false,
+        prune_dirs: vec![String::from("from-cli")],
+        no_icons: false,
+        no_color: false,
+        no_permission_colors: false,
+        no_time_gradient: false,
+        no_size_colors: false,
+        gitignore: false,
+        fuzzy_time: false,
+    };
+
+    let params = Params::merge(&flags, &config);
+
+    assert!(!params.prune_noisy_dirs);
+    assert_eq!(
+        params.prune_dirs,
+        vec![String::from("from-config"), String::from("from-cli")]
+    );
 }

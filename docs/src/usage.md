@@ -23,6 +23,8 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `-R` / `--recursive` - List subdirectories recursively
 - `--tree` - Show a long-format directory tree
 - `--level <N>` - Limit tree output depth
+- `--prune-noisy-dirs` - Skip descending into common noisy directories
+- `--prune-dir <NAME>` - Skip descending into matching directory basenames
 - `-D` / `--sort-dirs` - Sort directories first
 - `-I` / `--gitignore` - Dim entries matched by Git ignore rules
 - `-N` / `--no-color` - Disable colored and styled output
@@ -50,6 +52,27 @@ Recursive output is unlimited unless you pass `--level <N>`. Use `--tree` for
 long-format tree output. Tree output implies `--long`, uses a default depth of
 `2`, and can be limited with `--level <N>`. `--tree` and `--recursive` are
 mutually exclusive.
+
+Use `--prune-noisy-dirs` with recursive or tree output to list common noisy
+directories in their parent but skip their descendants. The built-in preset
+matches `.git`, `.hg`, `.svn`, `node_modules`, and `__pycache__` by exact
+basename:
+
+```sh
+lsp -R --prune-noisy-dirs project
+lsp --tree --prune-noisy-dirs project
+```
+
+Use `--prune-dir <NAME>` for custom basenames. Repeat the option to add more
+names. Custom names also work without the built-in preset:
+
+```sh
+lsp --tree --prune-dir target --prune-dir dist project
+```
+
+Pruning only controls recursive descent. It does not hide matching directories
+from their parent listing, and it does not apply to explicit directory
+operands.
 
 The indicator characters are:
 
