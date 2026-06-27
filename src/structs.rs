@@ -50,7 +50,7 @@ pub struct Params {
     pub recursive: bool,
     /// Render long-format tree output.
     pub tree: bool,
-    /// Maximum depth for tree output.
+    /// Maximum visible entry depth for recursive/tree output.
     pub tree_level: usize,
     /// Optional maximum depth for recursive output.
     pub recursive_level: Option<usize>,

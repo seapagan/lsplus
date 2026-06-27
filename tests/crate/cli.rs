@@ -108,7 +108,11 @@ fn test_level_help_mentions_recursive_and_tree_output() {
     let err = Flags::try_parse_from(["lsplus", "--help"]).unwrap_err();
     let help = err.to_string();
 
-    assert!(help.contains("Limit recursive or tree output"));
+    assert!(
+        help.contains(
+            "Limit recursive or tree output to N visible entry levels"
+        )
+    );
 }
 
 #[test]

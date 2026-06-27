@@ -164,7 +164,7 @@ fn render_recursive_directory(
     path: &Path,
     params: &Params,
     fail_on_error: bool,
-    depth: usize,
+    visible_entry_depth: usize,
 ) -> io::Result<()> {
     match collect_file_info(path, params) {
         Ok(entries) => {
@@ -184,7 +184,10 @@ fn render_recursive_directory(
         }
     }
 
-    if params.recursive_level.is_some_and(|limit| depth >= limit) {
+    if params
+        .recursive_level
+        .is_some_and(|limit| visible_entry_depth >= limit)
+    {
         return Ok(());
     }
 
@@ -194,7 +197,7 @@ fn render_recursive_directory(
             &child,
             params,
             false,
-            depth + 1,
+            visible_entry_depth + 1,
         )?;
     }
 
@@ -359,7 +362,7 @@ fn append_recursive_listing_sections(
     root: &Path,
     params: &Params,
     fail_on_error: bool,
-    depth: usize,
+    visible_entry_depth: usize,
 ) -> io::Result<()> {
     if fail_on_error {
         sections.push(ListingSection {
@@ -370,7 +373,10 @@ fn append_recursive_listing_sections(
         append_recursive_listing_section(sections, root, params);
     }
 
-    if params.recursive_level.is_some_and(|limit| depth >= limit) {
+    if params
+        .recursive_level
+        .is_some_and(|limit| visible_entry_depth >= limit)
+    {
         return Ok(());
     }
 
@@ -380,7 +386,7 @@ fn append_recursive_listing_sections(
             &child,
             params,
             false,
-            depth + 1,
+            visible_entry_depth + 1,
         )?;
     }
 

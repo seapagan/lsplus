@@ -124,9 +124,10 @@ output implies long format.
 - Permitted values: integers greater than or equal to `1`
 - Default value: `2`
 
-This option corresponds to `--level` and limits tree output depth. It also
-limits recursive output when `recursive = true`; without this option,
-recursive output is unlimited.
+This option corresponds to `--level` and limits recursive or tree output to
+visible entry levels below each operand. A value of `1` shows only entries
+directly under the requested directory; a value of `2` also shows
+grandchildren. Without this option, recursive output is unlimited.
 
 ### prune_noisy_dirs
 

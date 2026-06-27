@@ -81,7 +81,7 @@ pub struct Flags {
     pub recursive: bool,
     /// Render long-format tree output.
     pub tree: bool,
-    /// Maximum depth for tree output.
+    /// Maximum visible entry depth for recursive/tree output.
     pub tree_level: Option<usize>,
     /// Enable the built-in noisy-directory traversal prune preset.
     pub prune_noisy_dirs: bool,
@@ -287,7 +287,7 @@ fn tree_level_arg() -> Arg {
         .long("level")
         .value_name("N")
         .value_parser(parse_tree_level)
-        .help("Limit recursive or tree output to N directory levels")
+        .help("Limit recursive or tree output to N visible entry levels")
 }
 
 fn prune_noisy_dirs_arg() -> Arg {

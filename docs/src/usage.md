@@ -22,7 +22,7 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `--si` - Human readable file sizes using powers of 1000
 - `-R` / `--recursive` - List subdirectories recursively
 - `--tree` - Show a long-format directory tree
-- `--level <N>` - Limit tree output depth
+- `--level <N>` - Limit recursive or tree output to visible entry depth
 - `--prune-noisy-dirs` - Skip descending into common noisy directories
 - `--prune-dir <NAME>` - Skip descending into matching directory basenames
 - `-D` / `--sort-dirs` - Sort directories first
@@ -52,6 +52,10 @@ Recursive output is unlimited unless you pass `--level <N>`. Use `--tree` for
 long-format tree output. Tree output implies `--long`, uses a default depth of
 `2`, and can be limited with `--level <N>`. `--tree` and `--recursive` are
 mutually exclusive.
+
+In both recursive and tree output, `--level <N>` counts visible entry levels
+below each operand. For example, `--level 1` shows only entries directly under
+the requested directory, while `--level 2` also shows grandchildren.
 
 Use `--prune-noisy-dirs` with recursive or tree output to list common noisy
 directories in their parent but skip their descendants. The built-in preset
