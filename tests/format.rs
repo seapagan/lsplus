@@ -1,5 +1,5 @@
 use lsplus::utils::format::{
-    SizeScale, human_readable_format, mode_to_rwx, show_size,
+    SizeScale, human_readable_format, mode_to_octal, mode_to_rwx, show_size,
 };
 
 #[test]
@@ -157,4 +157,14 @@ fn test_mode_to_rwx_special_bits() {
     assert_eq!(mode_to_rwx(0o1755), "rwxr-xr-t");
     assert_eq!(mode_to_rwx(0o1644), "rw-r--r-T");
     assert_eq!(mode_to_rwx(0o7777), "rwsrwsrwt");
+}
+
+#[test]
+fn test_mode_to_octal_masks_permission_bits() {
+    assert_eq!(mode_to_octal(0o100644), "0644");
+    assert_eq!(mode_to_octal(0o100755), "0755");
+    assert_eq!(mode_to_octal(0o0000), "0000");
+    assert_eq!(mode_to_octal(0o104755), "4755");
+    assert_eq!(mode_to_octal(0o041777), "1777");
+    assert_eq!(mode_to_octal(0o107777), "7777");
 }

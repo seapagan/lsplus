@@ -194,6 +194,39 @@ fn test_long_format_si_sizes() {
     assert!(stdout.contains("1.5 k"));
 }
 
+#[cfg(unix)]
+#[test]
+fn test_long_format_permission_display_modes() {
+    let home_dir = tempdir().unwrap();
+    let temp_dir = tempdir().unwrap();
+    let file_path = temp_dir.path().join("script.sh");
+    fs::write(&file_path, "#!/bin/sh\n").unwrap();
+    fs::set_permissions(&file_path, fs::Permissions::from_mode(0o755))
+        .unwrap();
+
+    let mut octal = command_with_home(home_dir.path());
+    octal
+        .arg("-l")
+        .arg("--no-icons")
+        .arg("--permissions")
+        .arg("octal")
+        .arg(&file_path);
+    let (stdout, _stderr) = run_and_capture(&mut octal);
+    assert!(stdout.contains("- 0755"));
+    assert!(!stdout.contains("-rwxr-xr-x"));
+
+    let mut none = command_with_home(home_dir.path());
+    none.arg("-l")
+        .arg("--no-icons")
+        .arg("--permissions")
+        .arg("none")
+        .arg(&file_path);
+    let (stdout, _stderr) = run_and_capture(&mut none);
+    assert!(stdout.contains("script.sh"));
+    assert!(!stdout.contains("- 0755"));
+    assert!(!stdout.contains("-rwxr-xr-x"));
+}
+
 #[test]
 fn test_multiple_paths() {
     let temp_dir = tempdir().unwrap();

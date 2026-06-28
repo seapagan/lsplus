@@ -9,7 +9,7 @@ use crate::utils::render::{
     build_long_format_table, directory_header_text, render_short_format_lines,
     size_style_spec_for_color_level, terminal_width_or_default,
 };
-use crate::{FileInfo, NameStyle, Params};
+use crate::{FileInfo, NameStyle, Params, PermissionDisplay};
 use colored_text::{ColorMode, Colorize};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
@@ -25,6 +25,7 @@ fn test_file_info(
     FileInfo {
         file_type: String::from("-"),
         mode: String::from("rw-r--r--"),
+        mode_bits: 0o644,
         nlink: 1,
         user: String::from("user"),
         group: String::from("group"),
@@ -45,6 +46,117 @@ fn normalized_lines(lines: Vec<String>) -> String {
 
 fn normalized_table(table: prettytable::Table) -> String {
     table.to_string().replace("\r\n", "\n")
+}
+
+#[test]
+fn test_build_long_format_table_shows_symbolic_permissions_by_default() {
+    let mut info = test_file_info("plain.txt", None, 12, SystemTime::now());
+    info.file_type = String::from("-");
+    info.mode = String::from("rw-r--r--");
+    info.mode_bits = 0o644;
+
+    let rendered = normalized_table(build_long_format_table(
+        &[info],
+        &plain_permission_params(),
+    ));
+
+    assert!(rendered.contains("-rw-r--r--"));
+    assert!(!rendered.contains("0644"));
+}
+
+#[test]
+fn test_build_long_format_table_replaces_symbolic_permissions_with_octal() {
+    let mut info = test_file_info("script.sh", None, 12, SystemTime::now());
+    info.file_type = String::from("-");
+    info.mode = String::from("rwxr-xr-x");
+    info.mode_bits = 0o4755;
+    let params = Params {
+        permissions: PermissionDisplay::Octal,
+        ..plain_permission_params()
+    };
+
+    let rendered = normalized_table(build_long_format_table(&[info], &params));
+    let stripped = strip_str(&rendered);
+
+    assert!(stripped.contains("- 4755  1"));
+    assert!(!rendered.contains("-rwxr-xr-x"));
+}
+
+#[test]
+fn test_build_long_format_table_shows_symbolic_and_octal_permissions() {
+    let mut info = test_file_info("sticky", None, 12, SystemTime::now());
+    info.file_type = String::from("d");
+    info.mode = String::from("rwxrwxrwt");
+    info.mode_bits = 0o1777;
+    let params = Params {
+        permissions: PermissionDisplay::Both,
+        ..plain_permission_params()
+    };
+
+    let rendered = normalized_table(build_long_format_table(&[info], &params));
+    let stripped = strip_str(&rendered);
+
+    assert!(stripped.contains("drwxrwxrwt 1777  1"));
+}
+
+#[test]
+fn test_build_long_format_table_colors_octal_permissions_subtly() {
+    for (env, expected) in [
+        (
+            [("COLORTERM", Some("truecolor")), ("TERM", None::<&str>)],
+            "\u{1b}[38;2;238;204;92m0755\u{1b}[0m",
+        ),
+        (
+            [
+                ("COLORTERM", None::<&str>),
+                ("TERM", Some("xterm-256color")),
+            ],
+            "\u{1b}[38;5;221m0755\u{1b}[0m",
+        ),
+        (
+            [("COLORTERM", None::<&str>), ("TERM", Some("xterm"))],
+            "\u{1b}[2;33m0755\u{1b}[0m",
+        ),
+    ] {
+        temp_env::with_vars(env, || {
+            with_color_output_enabled(|| {
+                let mut info =
+                    test_file_info("script.sh", None, 12, SystemTime::now());
+                info.file_type = String::from("-");
+                info.mode_bits = 0o755;
+                let params = Params {
+                    permissions: PermissionDisplay::Octal,
+                    ..fixed_time_params()
+                };
+
+                let rendered = normalized_table(build_long_format_table(
+                    &[info],
+                    &params,
+                ));
+
+                assert!(rendered.contains(expected));
+                assert!(rendered.contains("\u{1b}[2m-\u{1b}[0m"));
+            });
+        });
+    }
+}
+
+#[test]
+fn test_build_long_format_table_omits_permissions() {
+    let mut info = test_file_info("private", None, 12, SystemTime::now());
+    info.file_type = String::from("-");
+    info.mode = String::from("---------");
+    info.mode_bits = 0;
+    let params = Params {
+        permissions: PermissionDisplay::None,
+        ..plain_permission_params()
+    };
+
+    let rendered = normalized_table(build_long_format_table(&[info], &params));
+
+    assert!(rendered.contains("private"));
+    assert!(!rendered.contains("---------"));
+    assert!(!rendered.contains("0000"));
 }
 
 #[test]

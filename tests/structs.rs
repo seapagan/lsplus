@@ -1,7 +1,7 @@
 use config::Config;
 use lsplus::cli::Flags;
 use lsplus::utils::format::SizeScale;
-use lsplus::{IndicatorStyle, Params};
+use lsplus::{IndicatorStyle, Params, PermissionDisplay};
 use std::fs;
 use tempfile::tempdir;
 
@@ -24,6 +24,7 @@ fn test_default_params() {
     assert!(!params.no_icons);
     assert!(!params.no_color);
     assert!(params.permission_colors);
+    assert_eq!(params.permissions, PermissionDisplay::Symbolic);
     assert!(params.time_gradient);
     assert!(params.size_colors);
     assert!(!params.gitignore);
@@ -53,6 +54,7 @@ fn test_config_conversion() {
             no_icons = true
             no_color = true
             permission_colors = false
+            permissions = "octal"
             time_gradient = false
             size_colors = false
             gitignore = true
@@ -94,6 +96,7 @@ fn test_config_conversion() {
             no_icons: true,
             no_color: true,
             permission_colors: false,
+            permissions: PermissionDisplay::Octal,
             time_gradient: false,
             size_colors: false,
             gitignore: true,
@@ -183,6 +186,7 @@ fn test_params_merge_prefers_true_from_either_source() {
         no_icons: false,
         no_color: true,
         permission_colors: true,
+        permissions: PermissionDisplay::Octal,
         time_gradient: false,
         size_colors: true,
         gitignore: true,
@@ -207,6 +211,7 @@ fn test_params_merge_prefers_true_from_either_source() {
         no_icons: true,
         no_color: false,
         no_permission_colors: true,
+        permissions: Some(PermissionDisplay::Both),
         no_time_gradient: false,
         no_size_colors: true,
         gitignore: false,
@@ -242,6 +247,7 @@ fn test_params_merge_prefers_true_from_either_source() {
     assert!(params.no_icons);
     assert!(params.no_color);
     assert!(!params.permission_colors);
+    assert_eq!(params.permissions, PermissionDisplay::Both);
     assert!(!params.time_gradient);
     assert!(!params.size_colors);
     assert!(params.gitignore);
@@ -268,6 +274,7 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
+        permissions: None,
         no_time_gradient: false,
         no_size_colors: false,
         gitignore: false,
@@ -277,6 +284,50 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
     let params = Params::merge(&flags, &Params::default());
 
     assert_eq!(params, Params::default());
+}
+
+#[test]
+fn test_params_merge_uses_config_permissions_until_cli_overrides() {
+    let config = Params {
+        permissions: PermissionDisplay::Octal,
+        ..Params::default()
+    };
+    let flags = Flags {
+        version: false,
+        paths: vec![],
+        show_all: false,
+        almost_all: false,
+        indicator_style: None,
+        dirs_first: false,
+        long: false,
+        human_readable: false,
+        si: false,
+        recursive: false,
+        tree: false,
+        tree_level: None,
+        prune_noisy_dirs: false,
+        prune_dirs: Vec::new(),
+        no_icons: false,
+        no_color: false,
+        no_permission_colors: false,
+        permissions: None,
+        no_time_gradient: false,
+        no_size_colors: false,
+        gitignore: false,
+        fuzzy_time: false,
+    };
+
+    let params = Params::merge(&flags, &config);
+
+    assert_eq!(params.permissions, PermissionDisplay::Octal);
+
+    let flags = Flags {
+        permissions: Some(PermissionDisplay::None),
+        ..flags
+    };
+    let params = Params::merge(&flags, &config);
+
+    assert_eq!(params.permissions, PermissionDisplay::None);
 }
 
 #[test]
@@ -299,6 +350,7 @@ fn test_params_merge_si_enables_decimal_human_readable_output() {
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
+        permissions: None,
         no_time_gradient: false,
         no_size_colors: false,
         gitignore: false,
@@ -337,6 +389,7 @@ fn test_params_merge_config_si_overrides_config_human_readable() {
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
+        permissions: None,
         no_time_gradient: false,
         no_size_colors: false,
         gitignore: false,
@@ -374,6 +427,7 @@ fn test_params_merge_cli_prune_dirs_append_config_prune_dirs() {
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
+        permissions: None,
         no_time_gradient: false,
         no_size_colors: false,
         gitignore: false,
@@ -418,6 +472,7 @@ fn test_params_merge_deduplicates_prune_preset() {
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
+        permissions: None,
         no_time_gradient: false,
         no_size_colors: false,
         gitignore: false,
