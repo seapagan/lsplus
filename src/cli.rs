@@ -427,7 +427,7 @@ fn permissions_arg() -> Arg {
         .long("permissions")
         .action(ArgAction::Set)
         .value_name("MODE")
-        .value_parser(["symbolic", "octal", "both", "none"])
+        .value_parser(clap::value_parser!(PermissionDisplay))
         .help("Select long-format permission display: symbolic, octal, both, or none")
 }
 
@@ -506,15 +506,9 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
         no_icons: matches.get_flag(ARG_NO_ICONS),
         no_color: matches.get_flag(ARG_NO_COLOR),
         no_permission_colors: matches.get_flag(ARG_NO_PERMISSION_COLORS),
-        permissions: matches.get_one::<String>(ARG_PERMISSIONS).and_then(
-            |value| match value.as_str() {
-                "symbolic" => Some(PermissionDisplay::Symbolic),
-                "octal" => Some(PermissionDisplay::Octal),
-                "both" => Some(PermissionDisplay::Both),
-                "none" => Some(PermissionDisplay::None),
-                _ => None,
-            },
-        ),
+        permissions: matches
+            .get_one::<PermissionDisplay>(ARG_PERMISSIONS)
+            .copied(),
         no_time_gradient: matches.get_flag(ARG_NO_TIME_GRADIENT),
         no_size_colors: matches.get_flag(ARG_NO_SIZE_COLORS),
         gitignore: matches.get_flag(ARG_GITIGNORE),

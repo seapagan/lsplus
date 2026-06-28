@@ -1,4 +1,5 @@
 use super::utils::icons::Icon;
+use clap::ValueEnum;
 use config::Config;
 use serde::Deserialize;
 use std::convert::From;
@@ -30,8 +31,11 @@ pub enum IndicatorStyle {
 }
 
 /// Long-format permission column display modes.
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Default)]
+#[derive(
+    Debug, Clone, Copy, Deserialize, PartialEq, Eq, Default, ValueEnum,
+)]
 #[serde(rename_all = "kebab-case")]
+#[value(rename_all = "kebab-case")]
 pub enum PermissionDisplay {
     /// Show the existing file-type character plus symbolic permissions.
     #[default]
