@@ -187,6 +187,17 @@ This option controls long-format colors for the file type character and
 permission bits. Set it to `false`, or pass `--no-permission-colors`, to render
 those fields without accent colors.
 
+### permissions
+
+- Permitted values: `symbolic`, `octal`, `both`, or `none`
+- Default value: `symbolic`
+
+This option corresponds to `--permissions` and controls long-format permission
+fields. `symbolic` shows the default file type character and symbolic
+permissions, `octal` replaces that field with the file type character and
+four-digit octal permission bits, `both` adds an octal permission cell after
+the symbolic field, and `none` omits permission fields.
+
 ### time_gradient
 
 - Permitted values: `true` or `false`
@@ -245,6 +256,7 @@ human_readable = true
 # prune_dirs = ["target", "dist"]
 no_color = true
 permission_colors = false
+permissions = "symbolic"
 time_gradient = false
 size_colors = false
 fuzzy_time = true

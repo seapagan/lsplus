@@ -18,6 +18,8 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `-F` / `--classify` - Append type indicators, including `*` for executables
 - `--no-indicators` - Disable file type indicators
 - `-l` / `--long` - Show long format listing
+- `--permissions <MODE>` - Select long-format permission display:
+  `symbolic`, `octal`, `both`, or `none`
 - `-h` / `--human-readable` - Human readable file sizes using powers of 1024
 - `--si` - Human readable file sizes using powers of 1000
 - `-R` / `--recursive` - List subdirectories recursively
@@ -94,6 +96,11 @@ Styled output is enabled automatically when writing to a terminal. Captured,
 piped, and redirected output is plain by default. You can also disable styled
 output explicitly with `--no-color`, `no_color = true` in the config file, or
 the `NO_COLOR` environment variable.
+
+Long-format output shows symbolic permissions by default. Use
+`--permissions octal` to replace them with octal permission bits,
+`--permissions both` to add octal bits after the symbolic field, or
+`--permissions none` to omit permission fields.
 
 Long-format output colors permission bits, timestamp freshness, and large file
 sizes by default. You can adjust those accents independently with
