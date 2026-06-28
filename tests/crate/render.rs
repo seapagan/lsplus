@@ -572,10 +572,15 @@ fn test_build_long_format_table_aligns_names_with_blank_icon_cells() {
         .lines()
         .find(|line| line.contains("example.rs"))
         .unwrap();
+    let icon = Icon::RustFile.to_string();
 
     assert_eq!(
         visible_column_start(plain_row, "plain.txt"),
         visible_column_start(icon_row, "example.rs")
+    );
+    assert_eq!(
+        visible_column_start(icon_row, "example.rs"),
+        visible_column_end(icon_row, &icon) + 2
     );
 }
 

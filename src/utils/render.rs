@@ -177,7 +177,6 @@ fn apply_long_format_gaps(table: &mut Table, columns: &[LongColumn]) {
             [LongColumn::Permissions(_), LongColumn::Octal]
                 | [LongColumn::User, LongColumn::Group]
                 | [LongColumn::Size, LongColumn::Unit]
-                | [LongColumn::Icon, LongColumn::Name]
         ) {
             table.set_column_gap(index, LONG_TABLE_RELATED_GAP);
         }

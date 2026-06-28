@@ -278,7 +278,8 @@ impl Table {
 
     fn column_widths(&self) -> Vec<usize> {
         let row_column_count = self
-            .rows_for_widths()
+            .rows
+            .iter()
             .map(|row| row.cells.len())
             .max()
             .unwrap_or(0);
@@ -289,7 +290,7 @@ impl Table {
         let column_count = row_column_count.max(header_column_count);
         let mut widths = vec![0; column_count];
 
-        for row in self.rows_for_widths() {
+        for row in &self.rows {
             for (index, cell) in row.cells.iter().enumerate() {
                 widths[index] = widths[index].max(cell.width);
             }
@@ -317,10 +318,6 @@ impl Table {
         }
 
         widths
-    }
-
-    fn rows_for_widths(&self) -> impl Iterator<Item = &Row> {
-        self.rows.iter()
     }
 }
 
