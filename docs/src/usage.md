@@ -104,8 +104,8 @@ Long-format output shows symbolic permissions by default. Use
 `--permissions none` to omit permission fields.
 
 Use `--header` with long-format output to add a title row for the active
-columns. In the config file, set `header = true` alongside
-`long_format = true`.
+columns. It has no effect on short output. In the config file, set
+`header = true` alongside `long_format = true` or `tree = true`.
 
 Long-format output colors permission bits, timestamp freshness, and large file
 sizes by default. You can adjust those accents independently with
