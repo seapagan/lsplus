@@ -1,12 +1,10 @@
 //! Output rendering for long and short listing formats.
 //!
-//! Long format uses `prettytable` rows with optional accent colors. Short
-//! format computes terminal-width-aware columns using visible Unicode width so
-//! ANSI styling and wide glyphs do not distort layout.
+//! Long and short formats compute terminal-width-aware columns using visible
+//! Unicode width so ANSI styling and wide glyphs do not distort layout.
 
 use chrono::{DateTime, Local};
 use colored_text::{Colorize, StyledText};
-use prettytable::{Cell, Row, Table};
 use std::fmt::Write as FmtWrite;
 use std::io::{self, Write as IoWrite};
 use std::time::{Duration, SystemTime};
@@ -19,6 +17,7 @@ use crate::structs::{FileInfo, NameStyle};
 use crate::utils;
 use crate::utils::color::{LongFormatColorLevel, long_format_color_level};
 use crate::utils::file::check_display_name;
+use crate::utils::table::{Cell, Row, Table};
 use crate::utils::time::{DAY, MONTH, WEEK, YEAR};
 use crate::{Params, structs::PermissionDisplay};
 
@@ -60,11 +59,11 @@ pub(crate) fn build_long_format_table(
     )
 }
 
-fn build_long_format_table_with_name_prefixes<'a>(
+pub(crate) fn build_long_format_table_with_name_prefixes<'a>(
     file_info: impl IntoIterator<Item = (&'a FileInfo, &'a str)>,
     params: &Params,
 ) -> Table {
-    let mut table = utils::table::create_table(0);
+    let mut table = Table::new();
     let color_level = long_format_color_level(params);
 
     for (info, name_prefix) in file_info {
@@ -82,9 +81,9 @@ fn build_long_format_table_with_name_prefixes<'a>(
         let mut row_cells = Vec::with_capacity(10);
 
         append_permission_cells(&mut row_cells, info, params, color_level);
-        row_cells.push(Cell::new(&info.nlink.to_string()));
-        row_cells.push(Cell::new(&format!(" {}", info.user.cyan())));
-        row_cells.push(Cell::new(&format!("{} ", info.group.green())));
+        row_cells.push(Cell::new(info.nlink.to_string()));
+        row_cells.push(Cell::new(format!(" {}", info.user.cyan())));
+        row_cells.push(Cell::new(format!("{} ", info.group.green())));
         row_cells.push(size_cell(
             &display_size,
             info.size,
@@ -103,16 +102,17 @@ fn build_long_format_table_with_name_prefixes<'a>(
             ));
         }
 
-        row_cells.push(
-            Cell::new(&format!(
-                " {} ",
-                long_time_text(&display_time, info.mtime, params, color_level)
-            ))
-            .style_spec("r"),
-        );
+        row_cells.push(Cell::right(format!(
+            " {} ",
+            long_time_text(&display_time, info.mtime, params, color_level)
+        )));
 
-        if let Some(icon) = &info.item_icon {
-            row_cells.push(Cell::new(&format!("{} ", icon)));
+        if !params.no_icons {
+            if let Some(icon) = &info.item_icon {
+                row_cells.push(Cell::new(format!("{} ", icon)));
+            } else {
+                row_cells.push(Cell::new(""));
+            }
         }
 
         let display_name =
@@ -132,21 +132,21 @@ fn append_permission_cells(
 ) {
     match params.permissions {
         PermissionDisplay::Symbolic => {
-            row_cells.push(Cell::new(&format!(
+            row_cells.push(Cell::new(format!(
                 "{} ",
                 long_permission_text(info, params)
             )));
         }
         PermissionDisplay::Octal => {
-            row_cells.push(Cell::new(&format!(
+            row_cells.push(Cell::new(format!(
                 "{} {} ",
                 long_file_type_text(info, params),
                 long_octal_permission_text(info, params, color_level)
             )));
         }
         PermissionDisplay::Both => {
-            row_cells.push(Cell::new(&long_permission_text(info, params)));
-            row_cells.push(Cell::new(&format!(
+            row_cells.push(Cell::new(long_permission_text(info, params)));
+            row_cells.push(Cell::new(format!(
                 "{} ",
                 long_octal_permission_text(info, params, color_level)
             )));
@@ -230,15 +230,18 @@ fn size_cell(
     color_level: LongFormatColorLevel,
     base: &str,
 ) -> Cell {
-    Cell::new(text).style_spec(size_style_spec_for_color_level(
-        size,
-        params,
-        color_level,
-        base,
-    ))
+    let text = size_text(
+        text,
+        size_style_spec_for_color_level(size, params, color_level, base),
+    );
+    if base == "r" {
+        Cell::right(text)
+    } else {
+        Cell::new(text)
+    }
 }
 
-/// Return the prettytable style spec for a size cell.
+/// Return the style spec for a size cell.
 pub(crate) fn size_style_spec_for_color_level(
     size: u64,
     params: &Params,
@@ -252,6 +255,14 @@ pub(crate) fn size_style_spec_for_color_level(
         (true, LARGE_SIZE_BYTES.., _) => "Fy",
         (_, _, "r") => "r",
         _ => "",
+    }
+}
+
+fn size_text(text: &str, style_spec: &str) -> String {
+    match style_spec {
+        "rFrb" | "Frb" => text.red().bold().to_string(),
+        "rFy" | "Fy" => text.yellow().to_string(),
+        _ => text.to_string(),
     }
 }
 
@@ -543,9 +554,9 @@ fn visible_text_width(text: &str) -> usize {
 }
 
 fn print_table(table: &Table) -> io::Result<()> {
-    // Use tty-aware output so prettytable style_spec colors stay out of pipes.
-    table.print_tty(false)?;
-    io::stdout().flush()
+    let mut stdout = io::stdout();
+    table.write_to(&mut stdout)?;
+    stdout.flush()
 }
 
 fn print_short_lines(lines: &[String]) -> io::Result<()> {

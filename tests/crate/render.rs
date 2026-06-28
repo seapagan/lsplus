@@ -6,7 +6,8 @@ use crate::utils::color::LongFormatColorLevel;
 use crate::utils::format::mode_to_rwx;
 use crate::utils::icons::Icon;
 use crate::utils::render::{
-    build_long_format_table, directory_header_text, render_short_format_lines,
+    build_long_format_table, build_long_format_table_with_name_prefixes,
+    directory_header_text, render_short_format_lines,
     size_style_spec_for_color_level, terminal_width_or_default,
 };
 use crate::{FileInfo, NameStyle, Params, structs::PermissionDisplay};
@@ -15,6 +16,7 @@ use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 use strip_ansi_escapes::strip_str;
 use terminal_size::{Height, Width};
+use unicode_width::UnicodeWidthStr;
 
 fn test_file_info(
     display_name: &str,
@@ -44,8 +46,13 @@ fn normalized_lines(lines: Vec<String>) -> String {
     lines.join("\n")
 }
 
-fn normalized_table(table: prettytable::Table) -> String {
+fn normalized_table(table: impl std::fmt::Display) -> String {
     table.to_string().replace("\r\n", "\n")
+}
+
+fn visible_column_start(row: &str, needle: &str) -> usize {
+    let byte_start = row.find(needle).unwrap();
+    UnicodeWidthStr::width(strip_str(&row[..byte_start]).as_str())
 }
 
 #[test]
@@ -212,6 +219,105 @@ fn test_build_long_format_table_omits_optional_units_and_icons() {
     assert!(rendered.contains("12"));
     assert!(!rendered.contains("K"));
     assert!(!rendered.contains(&Icon::RustFile.to_string()));
+}
+
+#[test]
+fn test_build_long_format_table_aligns_after_colored_symbolic_permissions() {
+    with_color_output_enabled(|| {
+        let mut first =
+            test_file_info("first.txt", None, 12, SystemTime::now());
+        first.file_type = String::from("d");
+        first.mode = String::from("rwsr-tS-T");
+        first.nlink = 1;
+
+        let mut second =
+            test_file_info("second.txt", None, 12, SystemTime::now());
+        second.file_type = String::from("-");
+        second.mode = String::from("rwxrwxrwx");
+        second.nlink = 123_456;
+
+        let rendered = normalized_table(build_long_format_table(
+            &[first, second],
+            &fixed_time_params(),
+        ));
+        let rows: Vec<_> = rendered
+            .lines()
+            .filter(|line| line.contains(".txt"))
+            .collect();
+
+        assert_eq!(rows.len(), 2);
+        assert!(rows[0].contains("\u{1b}["));
+        assert_eq!(
+            visible_column_start(rows[0], "user"),
+            visible_column_start(rows[1], "user")
+        );
+        assert_eq!(
+            visible_column_start(rows[0], "group"),
+            visible_column_start(rows[1], "group")
+        );
+    });
+}
+
+#[test]
+fn test_build_long_format_table_aligns_names_with_blank_icon_cells() {
+    let files = [
+        test_file_info("plain.txt", None, 12, SystemTime::now()),
+        test_file_info(
+            "example.rs",
+            Some(Icon::RustFile),
+            12,
+            SystemTime::now(),
+        ),
+    ];
+
+    let rendered =
+        normalized_table(build_long_format_table(&files, &Params::default()));
+    let plain_row = rendered
+        .lines()
+        .find(|line| line.contains("plain.txt"))
+        .unwrap();
+    let icon_row = rendered
+        .lines()
+        .find(|line| line.contains("example.rs"))
+        .unwrap();
+
+    assert_eq!(
+        visible_column_start(plain_row, "plain.txt"),
+        visible_column_start(icon_row, "example.rs")
+    );
+}
+
+#[test]
+fn test_build_long_format_table_with_name_prefixes_uses_same_alignment() {
+    let files = [
+        test_file_info("plain.txt", None, 12, SystemTime::now()),
+        test_file_info(
+            "example.rs",
+            Some(Icon::RustFile),
+            12,
+            SystemTime::now(),
+        ),
+    ];
+    let prefixed = [(&files[0], "|-- "), (&files[1], "`-- ")];
+
+    let rendered =
+        normalized_table(build_long_format_table_with_name_prefixes(
+            prefixed,
+            &Params::default(),
+        ));
+    let plain_row = rendered
+        .lines()
+        .find(|line| line.contains("plain.txt"))
+        .unwrap();
+    let icon_row = rendered
+        .lines()
+        .find(|line| line.contains("example.rs"))
+        .unwrap();
+
+    assert_eq!(
+        visible_column_start(plain_row, "|-- plain.txt"),
+        visible_column_start(icon_row, "`-- example.rs")
+    );
 }
 
 #[test]
