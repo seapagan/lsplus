@@ -106,6 +106,10 @@ impl HeaderRow {
     pub(crate) fn new(cells: Vec<HeaderCell>) -> Self {
         Self { cells }
     }
+
+    fn column_count(&self) -> usize {
+        self.cells.iter().map(|cell| cell.span).sum()
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -174,7 +178,7 @@ impl Table {
 
             let span = header_cell.span.min(widths.len() - column);
             let target_width = self.spanned_width(widths, column, span);
-            let skip_right_fill = column + span >= widths.len();
+            let skip_right_fill = span == 1 && column + span >= widths.len();
             header_cell.cell.write_padded(
                 output,
                 target_width,
@@ -245,11 +249,16 @@ impl Table {
     }
 
     fn column_widths(&self) -> Vec<usize> {
-        let column_count = self
+        let row_column_count = self
             .rows_for_widths()
             .map(|row| row.cells.len())
             .max()
             .unwrap_or(0);
+        let header_column_count = self
+            .header
+            .as_ref()
+            .map_or(0, |header| header.column_count());
+        let column_count = row_column_count.max(header_column_count);
         let mut widths = vec![0; column_count];
 
         for row in self.rows_for_widths() {
@@ -265,11 +274,14 @@ impl Table {
                     break;
                 }
 
-                if header_cell.span == 1 {
-                    widths[column] =
-                        widths[column].max(header_cell.cell.width);
+                let span = header_cell.span.min(widths.len() - column);
+                let target_width = self.spanned_width(&widths, column, span);
+                if header_cell.cell.width > target_width {
+                    let overflow = header_cell.cell.width - target_width;
+                    let last_column = column + span - 1;
+                    widths[last_column] += overflow;
                 }
-                column += header_cell.span;
+                column += span;
             }
         }
 
@@ -353,6 +365,26 @@ mod tests {
             Cell::new("file"),
         ]));
 
-        assert_eq!(table.to_string(), " Size  Name\n 4 K  file\n");
+        assert_eq!(table.to_string(), " Size  Name\n 4 K   file\n");
+    }
+
+    #[test]
+    fn table_header_cell_spanning_final_columns_keeps_interior_padding() {
+        let mut table = Table::new();
+        table.set_header(HeaderRow::new(vec![HeaderCell::new("Hi").span(2)]));
+        table.add_row(Row::new(vec![Cell::new("x"), Cell::new("y")]));
+
+        assert_eq!(table.to_string(), " Hi \n x y\n");
+    }
+
+    #[test]
+    fn table_header_only_output_keeps_header_content() {
+        let mut table = Table::new();
+        table.set_header(HeaderRow::new(vec![
+            HeaderCell::new("Name"),
+            HeaderCell::right("Size"),
+        ]));
+
+        assert_eq!(table.to_string(), " Name Size\n");
     }
 }
