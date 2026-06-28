@@ -700,6 +700,43 @@ fn test_collect_tree_sections_prunes_custom_directory_descendants() {
     );
 }
 
+#[cfg(unix)]
+#[test]
+fn test_collect_tree_sections_skips_symlinked_directory_descendants() {
+    let temp_dir = tempdir().unwrap();
+    let root = temp_dir.path().join("root");
+    let real = temp_dir.path().join("real");
+    let link = root.join("link");
+    fs::create_dir(&root).unwrap();
+    fs::create_dir(&real).unwrap();
+    fs::write(real.join("deep.txt"), "deep").unwrap();
+    std::os::unix::fs::symlink(&real, &link).unwrap();
+    let params = Params {
+        tree: true,
+        long_format: true,
+        no_icons: true,
+        tree_level: 2,
+        ..Params::default()
+    };
+
+    let sections =
+        collect_tree_sections(&[root.display().to_string()], &params).unwrap();
+
+    assert_eq!(sections.len(), 1);
+    assert!(
+        sections[0]
+            .entries
+            .iter()
+            .any(|entry| entry.info.short_name.contains("link"))
+    );
+    assert!(
+        !sections[0]
+            .entries
+            .iter()
+            .any(|entry| entry.info.short_name.contains("deep.txt"))
+    );
+}
+
 #[test]
 fn test_color_mode_for_uses_never_when_no_color_is_enabled() {
     let params = Params {
