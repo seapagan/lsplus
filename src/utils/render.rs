@@ -192,11 +192,8 @@ fn long_permission_text(info: &FileInfo, params: &Params) -> String {
         return format!("{}{}", info.file_type, info.mode);
     }
 
-    let mut output =
-        String::with_capacity(info.file_type.len() + info.mode.len());
-    for value in info.file_type.chars() {
-        write_file_type_char(&mut output, value);
-    }
+    let mut output = long_file_type_text(info, params);
+    output.reserve(info.mode.len());
     for value in info.mode.chars() {
         write_permission_char(&mut output, value);
     }
