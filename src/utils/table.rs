@@ -120,6 +120,26 @@ pub(crate) struct Table {
     column_gaps: Vec<usize>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct ColumnSpan {
+    start: usize,
+    len: usize,
+}
+
+impl ColumnSpan {
+    fn end(self) -> usize {
+        self.start + self.len
+    }
+
+    fn last_column(self) -> usize {
+        self.end() - 1
+    }
+
+    fn contains_final_column(self, widths: &[usize]) -> bool {
+        self.end() >= widths.len()
+    }
+}
+
 impl Table {
     pub(crate) fn new() -> Self {
         Self {
@@ -176,16 +196,17 @@ impl Table {
                 break;
             }
 
-            let span = header_cell.span.min(widths.len() - column);
-            let target_width = self.spanned_width(widths, column, span);
-            let skip_right_fill = span == 1 && column + span >= widths.len();
+            let span = self.column_span(column, header_cell.span, widths);
+            let target_width = self.spanned_width(widths, span);
+            let skip_right_fill =
+                span.len == 1 && span.contains_final_column(widths);
             header_cell.cell.write_padded(
                 output,
                 target_width,
                 skip_right_fill,
             )?;
 
-            column += span;
+            column = span.end();
             if column < widths.len() {
                 write_spaces(output, self.gap_after(column - 1))?;
             }
@@ -234,15 +255,22 @@ impl Table {
             .unwrap_or(self.default_gap)
     }
 
-    fn spanned_width(
+    fn column_span(
         &self,
-        widths: &[usize],
         start: usize,
-        span: usize,
-    ) -> usize {
-        let end = start + span;
-        let content_width = widths[start..end].iter().sum::<usize>();
-        let gap_width = (start..end.saturating_sub(1))
+        requested_len: usize,
+        widths: &[usize],
+    ) -> ColumnSpan {
+        ColumnSpan {
+            start,
+            len: requested_len.min(widths.len() - start),
+        }
+    }
+
+    fn spanned_width(&self, widths: &[usize], span: ColumnSpan) -> usize {
+        let content_width =
+            widths[span.start..span.end()].iter().sum::<usize>();
+        let gap_width = (span.start..span.last_column())
             .map(|column| self.gap_after(column))
             .sum::<usize>();
         content_width + gap_width
@@ -274,14 +302,17 @@ impl Table {
                     break;
                 }
 
-                let span = header_cell.span.min(widths.len() - column);
-                let target_width = self.spanned_width(&widths, column, span);
+                let span = self.column_span(column, header_cell.span, &widths);
+                let target_width = self.spanned_width(&widths, span);
                 if header_cell.cell.width > target_width {
                     let overflow = header_cell.cell.width - target_width;
-                    let last_column = column + span - 1;
-                    widths[last_column] += overflow;
+                    let overflow_column = match header_cell.cell.align {
+                        Alignment::Left => span.start,
+                        Alignment::Right => span.last_column(),
+                    };
+                    widths[overflow_column] += overflow;
                 }
-                column += span;
+                column = span.end();
             }
         }
 
@@ -366,6 +397,22 @@ mod tests {
         ]));
 
         assert_eq!(table.to_string(), " Size  Name\n 4 K   file\n");
+    }
+
+    #[test]
+    fn table_left_aligned_spanned_header_expands_first_column() {
+        let mut table = Table::new();
+        table.set_header(HeaderRow::new(vec![
+            HeaderCell::new("Label").span(2),
+            HeaderCell::new("Name"),
+        ]));
+        table.add_row(Row::new(vec![
+            Cell::new("x"),
+            Cell::new("y"),
+            Cell::new("file"),
+        ]));
+
+        assert_eq!(table.to_string(), " Label Name\n x   y file\n");
     }
 
     #[test]
