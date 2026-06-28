@@ -88,7 +88,7 @@ pub(crate) fn build_long_format_table_with_name_prefixes<'a>(
             info.size,
             params,
             color_level,
-            "r",
+            true,
         ));
 
         if size_scale.is_some() {
@@ -97,7 +97,7 @@ pub(crate) fn build_long_format_table_with_name_prefixes<'a>(
                 info.size,
                 params,
                 color_level,
-                "",
+                false,
             ));
         }
 
@@ -227,9 +227,10 @@ fn size_cell(
     size: u64,
     params: &Params,
     color_level: LongFormatColorLevel,
-    base: &str,
+    align_right: bool,
 ) -> Cell {
-    let style = size_style_for_color_level(size, params, color_level, base);
+    let style =
+        size_style_for_color_level(size, params, color_level, align_right);
     let text = style.format(text);
     if style.align_right() {
         Cell::right(text)
@@ -278,14 +279,18 @@ pub(crate) fn size_style_for_color_level(
     size: u64,
     params: &Params,
     color_level: LongFormatColorLevel,
-    base: &str,
+    align_right: bool,
 ) -> SizeCellStyle {
-    match (params.size_colors && color_level.is_enabled(), size, base) {
-        (true, HUGE_SIZE_BYTES.., "r") => SizeCellStyle::HugeRight,
+    match (
+        params.size_colors && color_level.is_enabled(),
+        size,
+        align_right,
+    ) {
+        (true, HUGE_SIZE_BYTES.., true) => SizeCellStyle::HugeRight,
         (true, HUGE_SIZE_BYTES.., _) => SizeCellStyle::Huge,
-        (true, LARGE_SIZE_BYTES.., "r") => SizeCellStyle::LargeRight,
+        (true, LARGE_SIZE_BYTES.., true) => SizeCellStyle::LargeRight,
         (true, LARGE_SIZE_BYTES.., _) => SizeCellStyle::Large,
-        (_, _, "r") => SizeCellStyle::PlainRight,
+        (_, _, true) => SizeCellStyle::PlainRight,
         _ => SizeCellStyle::Plain,
     }
 }

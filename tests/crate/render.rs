@@ -561,19 +561,29 @@ fn test_size_style_for_color_level_colors_size_boundaries() {
     let color_level = LongFormatColorLevel::Named;
 
     assert_eq!(
-        size_style_for_color_level(1024 * 1024 - 1, &params, color_level, "r"),
+        size_style_for_color_level(
+            1024 * 1024 - 1,
+            &params,
+            color_level,
+            true
+        ),
         SizeCellStyle::PlainRight
     );
     assert_eq!(
-        size_style_for_color_level(1024 * 1024 - 1, &params, color_level, ""),
+        size_style_for_color_level(
+            1024 * 1024 - 1,
+            &params,
+            color_level,
+            false
+        ),
         SizeCellStyle::Plain
     );
     assert_eq!(
-        size_style_for_color_level(1024 * 1024, &params, color_level, "r"),
+        size_style_for_color_level(1024 * 1024, &params, color_level, true),
         SizeCellStyle::LargeRight
     );
     assert_eq!(
-        size_style_for_color_level(1024 * 1024, &params, color_level, ""),
+        size_style_for_color_level(1024 * 1024, &params, color_level, false),
         SizeCellStyle::Large
     );
     assert_eq!(
@@ -581,7 +591,7 @@ fn test_size_style_for_color_level_colors_size_boundaries() {
             1024 * 1024 * 1024,
             &params,
             color_level,
-            "r"
+            true
         ),
         SizeCellStyle::HugeRight
     );
@@ -590,7 +600,7 @@ fn test_size_style_for_color_level_colors_size_boundaries() {
             1024 * 1024 * 1024,
             &params,
             color_level,
-            ""
+            false
         ),
         SizeCellStyle::Huge
     );
@@ -605,11 +615,11 @@ fn test_size_style_for_color_level_omits_size_colors_when_disabled() {
     let color_level = LongFormatColorLevel::Named;
 
     assert_eq!(
-        size_style_for_color_level(1024 * 1024, &params, color_level, "r"),
+        size_style_for_color_level(1024 * 1024, &params, color_level, true),
         SizeCellStyle::PlainRight
     );
     assert_eq!(
-        size_style_for_color_level(1024 * 1024, &params, color_level, ""),
+        size_style_for_color_level(1024 * 1024, &params, color_level, false),
         SizeCellStyle::Plain
     );
 }
@@ -621,11 +631,11 @@ fn test_size_style_for_color_level_omits_size_colors_when_global_color_is_disabl
     let color_level = LongFormatColorLevel::None;
 
     assert_eq!(
-        size_style_for_color_level(1024 * 1024, &params, color_level, "r"),
+        size_style_for_color_level(1024 * 1024, &params, color_level, true),
         SizeCellStyle::PlainRight
     );
     assert_eq!(
-        size_style_for_color_level(1024 * 1024, &params, color_level, ""),
+        size_style_for_color_level(1024 * 1024, &params, color_level, false),
         SizeCellStyle::Plain
     );
 }
