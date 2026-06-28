@@ -2,6 +2,7 @@ use crate::IndicatorStyle;
 use crate::cli::{
     CompatMode, Flags, format_version_info, try_parse_from_mode, version_info,
 };
+use clap::error::ErrorKind;
 
 #[test]
 fn test_default_flags() {
@@ -107,7 +108,7 @@ fn test_recursive_level_flag() {
 fn test_level_requires_recursive_or_tree_mode() {
     let err = Flags::try_parse_from(["lsplus", "--level", "3"]).unwrap_err();
 
-    assert!(err.to_string().contains("required"));
+    assert_eq!(err.kind(), ErrorKind::MissingRequiredArgument);
 }
 
 #[test]
@@ -115,7 +116,7 @@ fn test_level_zero_is_rejected() {
     let err = Flags::try_parse_from(["lsplus", "--tree", "--level", "0"])
         .unwrap_err();
 
-    assert!(err.to_string().contains("invalid value"));
+    assert_eq!(err.kind(), ErrorKind::ValueValidation);
 }
 
 #[test]
@@ -135,7 +136,7 @@ fn test_tree_and_recursive_are_conflicting() {
     let err = Flags::try_parse_from(["lsplus", "--tree", "--recursive"])
         .unwrap_err();
 
-    assert!(err.to_string().contains("cannot be used"));
+    assert_eq!(err.kind(), ErrorKind::ArgumentConflict);
 }
 
 #[test]
