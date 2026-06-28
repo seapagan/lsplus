@@ -16,7 +16,9 @@ use crate::structs::{FileInfo, NameStyle};
 use crate::utils;
 use crate::utils::color::{LongFormatColorLevel, long_format_color_level};
 use crate::utils::file::check_display_name;
-use crate::utils::table::{Cell, Row, Table, visible_width};
+use crate::utils::table::{
+    Cell, HeaderCell, HeaderRow, Row, Table, visible_width,
+};
 use crate::utils::time::{DAY, MONTH, WEEK, YEAR};
 use crate::{Params, structs::PermissionDisplay};
 
@@ -227,21 +229,35 @@ fn long_format_row(
 fn long_format_header_row(
     columns: &[LongColumn],
     color_level: LongFormatColorLevel,
-) -> Row {
-    Row::new(
-        columns
-            .iter()
-            .map(|column| header_cell(*column, color_level))
-            .collect(),
-    )
+) -> HeaderRow {
+    let mut cells = Vec::with_capacity(columns.len());
+    let mut index = 0;
+
+    while index < columns.len() {
+        let column = columns[index];
+        if matches!(column, LongColumn::Size)
+            && columns.get(index + 1) == Some(&LongColumn::Unit)
+        {
+            cells.push(header_cell(column, color_level).span(2));
+            index += 2;
+        } else {
+            cells.push(header_cell(column, color_level));
+            index += 1;
+        }
+    }
+
+    HeaderRow::new(cells)
 }
 
-fn header_cell(column: LongColumn, color_level: LongFormatColorLevel) -> Cell {
+fn header_cell(
+    column: LongColumn,
+    color_level: LongFormatColorLevel,
+) -> HeaderCell {
     let text = header_text(column.header(), color_level);
     if column.header_aligns_right() {
-        Cell::right(text)
+        HeaderCell::right(text)
     } else {
-        Cell::new(text)
+        HeaderCell::new(text)
     }
 }
 

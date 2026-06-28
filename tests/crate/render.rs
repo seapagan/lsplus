@@ -395,6 +395,7 @@ fn test_build_long_format_table_header_uses_column_alignment() {
     let params = Params {
         fuzzy_time: true,
         header: true,
+        human_readable: true,
         no_icons: true,
         ..plain_permission_params()
     };
@@ -413,6 +414,10 @@ fn test_build_long_format_table_header_uses_column_alignment() {
     assert_eq!(
         visible_column_start(rows[0], "Name"),
         visible_column_start(rows[1], "plain.txt")
+    );
+    assert_eq!(
+        visible_column_end(rows[0], "Size"),
+        visible_column_end(rows[1], "12 B")
     );
     assert_eq!(
         visible_column_end(rows[0], "Date Modified"),

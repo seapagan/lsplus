@@ -73,8 +73,44 @@ impl Row {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct HeaderCell {
+    cell: Cell,
+    span: usize,
+}
+
+impl HeaderCell {
+    pub(crate) fn new(text: impl Into<String>) -> Self {
+        Self::from_cell(Cell::new(text))
+    }
+
+    pub(crate) fn right(text: impl Into<String>) -> Self {
+        Self::from_cell(Cell::right(text))
+    }
+
+    pub(crate) fn span(mut self, span: usize) -> Self {
+        self.span = span.max(1);
+        self
+    }
+
+    fn from_cell(cell: Cell) -> Self {
+        Self { cell, span: 1 }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct HeaderRow {
+    cells: Vec<HeaderCell>,
+}
+
+impl HeaderRow {
+    pub(crate) fn new(cells: Vec<HeaderCell>) -> Self {
+        Self { cells }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct Table {
-    header: Option<Row>,
+    header: Option<HeaderRow>,
     rows: Vec<Row>,
     default_gap: usize,
     column_gaps: Vec<usize>,
@@ -90,7 +126,7 @@ impl Table {
         }
     }
 
-    pub(crate) fn set_header(&mut self, header: Row) {
+    pub(crate) fn set_header(&mut self, header: HeaderRow) {
         self.header = Some(header);
     }
 
@@ -112,13 +148,55 @@ impl Table {
     pub(crate) fn write_to(&self, output: &mut impl Write) -> io::Result<()> {
         let widths = self.column_widths();
         if let Some(header) = &self.header {
-            self.write_row(output, header, &widths)?;
+            self.write_header(output, header, &widths)?;
         }
 
         for row in &self.rows {
             self.write_row(output, row, &widths)?;
         }
 
+        Ok(())
+    }
+
+    fn write_header(
+        &self,
+        output: &mut impl Write,
+        header: &HeaderRow,
+        widths: &[usize],
+    ) -> io::Result<()> {
+        write!(output, " ")?;
+
+        let mut column = 0;
+        for header_cell in &header.cells {
+            if column >= widths.len() {
+                break;
+            }
+
+            let span = header_cell.span.min(widths.len() - column);
+            let target_width = self.spanned_width(widths, column, span);
+            let skip_right_fill = column + span >= widths.len();
+            header_cell.cell.write_padded(
+                output,
+                target_width,
+                skip_right_fill,
+            )?;
+
+            column += span;
+            if column < widths.len() {
+                write_spaces(output, self.gap_after(column - 1))?;
+            }
+        }
+
+        while column < widths.len() {
+            let skip_right_fill = column == widths.len() - 1;
+            if !skip_right_fill {
+                write_spaces(output, widths[column])?;
+                write_spaces(output, self.gap_after(column))?;
+            }
+            column += 1;
+        }
+
+        writeln!(output)?;
         Ok(())
     }
 
@@ -152,6 +230,20 @@ impl Table {
             .unwrap_or(self.default_gap)
     }
 
+    fn spanned_width(
+        &self,
+        widths: &[usize],
+        start: usize,
+        span: usize,
+    ) -> usize {
+        let end = start + span;
+        let content_width = widths[start..end].iter().sum::<usize>();
+        let gap_width = (start..end.saturating_sub(1))
+            .map(|column| self.gap_after(column))
+            .sum::<usize>();
+        content_width + gap_width
+    }
+
     fn column_widths(&self) -> Vec<usize> {
         let column_count = self
             .rows_for_widths()
@@ -166,11 +258,26 @@ impl Table {
             }
         }
 
+        if let Some(header) = &self.header {
+            let mut column = 0;
+            for header_cell in &header.cells {
+                if column >= widths.len() {
+                    break;
+                }
+
+                if header_cell.span == 1 {
+                    widths[column] =
+                        widths[column].max(header_cell.cell.width);
+                }
+                column += header_cell.span;
+            }
+        }
+
         widths
     }
 
     fn rows_for_widths(&self) -> impl Iterator<Item = &Row> {
-        self.header.iter().chain(self.rows.iter())
+        self.rows.iter()
     }
 }
 
@@ -206,16 +313,16 @@ fn write_spaces(output: &mut impl Write, count: usize) -> io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Cell, Row, Table};
+    use super::{Cell, HeaderCell, HeaderRow, Row, Table};
 
     #[test]
     fn table_header_contributes_to_widths_and_uses_column_gaps() {
         let mut table = Table::new();
         table.set_default_gap(2);
         table.set_column_gap(0, 1);
-        table.set_header(Row::new(vec![
-            Cell::new("Long Header"),
-            Cell::new("Next"),
+        table.set_header(HeaderRow::new(vec![
+            HeaderCell::new("Long Header"),
+            HeaderCell::new("Next"),
         ]));
         table.add_row(Row::new(vec![Cell::new("x"), Cell::new("y")]));
 
@@ -229,5 +336,23 @@ mod tests {
         table.add_row(Row::new(vec![Cell::new("b"), Cell::new("longer")]));
 
         assert_eq!(table.to_string(), " a short\n b longer\n");
+    }
+
+    #[test]
+    fn table_header_cell_can_span_existing_columns() {
+        let mut table = Table::new();
+        table.set_default_gap(2);
+        table.set_column_gap(0, 1);
+        table.set_header(HeaderRow::new(vec![
+            HeaderCell::right("Size").span(2),
+            HeaderCell::new("Name"),
+        ]));
+        table.add_row(Row::new(vec![
+            Cell::right("4"),
+            Cell::new("K"),
+            Cell::new("file"),
+        ]));
+
+        assert_eq!(table.to_string(), " Size  Name\n 4 K  file\n");
     }
 }
