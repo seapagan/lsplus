@@ -17,6 +17,9 @@
       between output modes.
 - [ ] Add configurable tree rendering styles, including the current compact
       root display, classic root branch graphics, and an ASCII fallback.
+- [ ] Consider GNU-style `total` lines or another consistent empty-directory
+      marker for long and tree output, rather than special-casing single-root
+      tree output.
 - [ ] Add inode, allocated block size, and optional column header support for
       long-format output.
 - [ ] Evaluate the Rust crate `uutils-term-grid` as a short-format layout
