@@ -38,6 +38,7 @@ const ARG_VERSION: &str = "version";
 const ARG_FUZZY_TIME: &str = "fuzzy_time";
 const ARG_HELP: &str = "help";
 const ARG_INDICATOR_GROUP: &str = "indicator_style_group";
+const ARG_TREE_MODE_GROUP: &str = "tree_mode_group";
 
 /// CLI compatibility mode used when building the clap command.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -216,7 +217,7 @@ fn indicator_group(mode: CompatMode) -> ArgGroup {
 }
 
 fn tree_mode_group() -> ArgGroup {
-    ArgGroup::new("tree_mode_group")
+    ArgGroup::new(ARG_TREE_MODE_GROUP)
         .multiple(false)
         .args([ARG_RECURSIVE, ARG_TREE])
 }
@@ -287,6 +288,7 @@ fn tree_level_arg() -> Arg {
         .long("level")
         .value_name("N")
         .value_parser(parse_tree_level)
+        .requires(ARG_TREE_MODE_GROUP)
         .help("Limit recursive or tree output to N visible entry levels")
 }
 

@@ -96,6 +96,21 @@ fn test_tree_flags() {
 }
 
 #[test]
+fn test_recursive_level_flag() {
+    let args = Flags::parse_from(["lsplus", "-R", "--level", "3"]);
+
+    assert!(args.recursive);
+    assert_eq!(args.tree_level, Some(3));
+}
+
+#[test]
+fn test_level_requires_recursive_or_tree_mode() {
+    let err = Flags::try_parse_from(["lsplus", "--level", "3"]).unwrap_err();
+
+    assert!(err.to_string().contains("required"));
+}
+
+#[test]
 fn test_level_zero_is_rejected() {
     let err = Flags::try_parse_from(["lsplus", "--tree", "--level", "0"])
         .unwrap_err();
