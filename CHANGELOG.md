@@ -5,6 +5,18 @@ project since the first release.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased](https://github.com/seapagan/lsplus/tree/HEAD)
+
+**New Features**
+
+- Add recursive and tree listing modes ([#137](https://github.com/seapagan/lsplus/pull/137)) by [seapagan](https://github.com/seapagan)
+
+**Documentation**
+
+- Update README and screenshots ([#136](https://github.com/seapagan/lsplus/pull/136)) by [seapagan](https://github.com/seapagan)
+
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.9.0...HEAD) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.9.0...HEAD.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.9.0...HEAD.patch)
+
 ## [0.9.0](https://github.com/seapagan/lsplus/releases/tag/0.9.0) (2026-06-27)
 
 **New Features**
