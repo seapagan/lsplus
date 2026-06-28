@@ -107,7 +107,11 @@ fn render_listing_sections(
         }
 
         if let Some(header) = &section.header {
-            writeln!(io::stdout(), "{header}:")?;
+            writeln!(
+                io::stdout(),
+                "{}:",
+                utils::render::directory_header_text(header)
+            )?;
         }
 
         if params.long_format {
