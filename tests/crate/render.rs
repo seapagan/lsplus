@@ -241,6 +241,27 @@ fn test_build_long_format_table_omits_header_by_default() {
 }
 
 #[test]
+fn test_build_long_format_table_preserves_left_aligned_links_without_header() {
+    let mut first = test_file_info("one.txt", None, 12, SystemTime::now());
+    first.nlink = 1;
+    let mut second = test_file_info("many.txt", None, 12, SystemTime::now());
+    second.nlink = 123_456;
+    let params = Params {
+        no_icons: true,
+        ..plain_permission_params()
+    };
+
+    let rendered =
+        normalized_table(build_long_format_table(&[first, second], &params));
+    let rows: Vec<_> = rendered.lines().collect();
+
+    assert_eq!(
+        visible_column_start(rows[0], "1"),
+        visible_column_start(rows[1], "123456")
+    );
+}
+
+#[test]
 fn test_build_long_format_table_adds_header_before_rows() {
     let info = test_file_info("plain.txt", None, 12, SystemTime::now());
     let params = Params {

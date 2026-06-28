@@ -32,7 +32,7 @@ const HEADER_SALMON_ANSI_256: u8 = 209;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum LongColumn {
-    Permissions,
+    Permissions(PermissionColumn),
     Octal,
     Links,
     User,
@@ -44,10 +44,16 @@ enum LongColumn {
     Name,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum PermissionColumn {
+    Symbolic,
+    OctalWithType,
+}
+
 impl LongColumn {
     fn header(self) -> &'static str {
         match self {
-            LongColumn::Permissions => "Permissions",
+            LongColumn::Permissions(_) => "Permissions",
             LongColumn::Octal => "Octal",
             LongColumn::Links => "Links",
             LongColumn::User => "User",
@@ -133,11 +139,16 @@ fn long_format_columns(params: &Params) -> Vec<LongColumn> {
     let mut columns = Vec::with_capacity(10);
 
     match params.permissions {
-        PermissionDisplay::Symbolic | PermissionDisplay::Octal => {
-            columns.push(LongColumn::Permissions);
+        PermissionDisplay::Symbolic => {
+            columns.push(LongColumn::Permissions(PermissionColumn::Symbolic));
+        }
+        PermissionDisplay::Octal => {
+            columns.push(LongColumn::Permissions(
+                PermissionColumn::OctalWithType,
+            ));
         }
         PermissionDisplay::Both => {
-            columns.push(LongColumn::Permissions);
+            columns.push(LongColumn::Permissions(PermissionColumn::Symbolic));
             columns.push(LongColumn::Octal);
         }
         PermissionDisplay::None => {}
@@ -166,7 +177,7 @@ fn apply_long_format_gaps(table: &mut Table, columns: &[LongColumn]) {
     for (index, pair) in columns.windows(2).enumerate() {
         if matches!(
             pair,
-            [LongColumn::Permissions, LongColumn::Octal]
+            [LongColumn::Permissions(_), LongColumn::Octal]
                 | [LongColumn::User, LongColumn::Group]
                 | [LongColumn::Size, LongColumn::Unit]
                 | [LongColumn::Icon, LongColumn::Name]
@@ -197,13 +208,13 @@ fn long_format_row(
 
     for column in columns {
         cells.push(match column {
-            LongColumn::Permissions => {
-                permission_cell(info, params, color_level)
+            LongColumn::Permissions(permission_column) => {
+                permission_cell(info, *permission_column, params, color_level)
             }
             LongColumn::Octal => {
                 octal_permission_cell(info, params, color_level)
             }
-            LongColumn::Links => Cell::right(info.nlink.to_string()),
+            LongColumn::Links => Cell::new(info.nlink.to_string()),
             LongColumn::User => Cell::new(info.user.cyan().to_string()),
             LongColumn::Group => Cell::new(info.group.green().to_string()),
             LongColumn::Size => {
@@ -283,19 +294,19 @@ fn header_text(text: &str, color_level: LongFormatColorLevel) -> String {
 
 fn permission_cell(
     info: &FileInfo,
+    column: PermissionColumn,
     params: &Params,
     color_level: LongFormatColorLevel,
 ) -> Cell {
-    match params.permissions {
-        PermissionDisplay::Symbolic | PermissionDisplay::Both => {
+    match column {
+        PermissionColumn::Symbolic => {
             Cell::new(long_permission_text(info, params))
         }
-        PermissionDisplay::Octal => Cell::new(format!(
+        PermissionColumn::OctalWithType => Cell::new(format!(
             "{} {}",
             long_file_type_text(info, params),
             long_octal_permission_text(info, params, color_level)
         )),
-        PermissionDisplay::None => Cell::new(""),
     }
 }
 
