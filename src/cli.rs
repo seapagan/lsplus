@@ -14,6 +14,7 @@ use crate::{IndicatorStyle, structs::PermissionDisplay};
 const ARG_SHOW_ALL: &str = "show_all";
 const ARG_ALMOST_ALL: &str = "almost_all";
 const ARG_LONG: &str = "long";
+const ARG_HEADER: &str = "header";
 const ARG_HUMAN_READABLE: &str = "human_readable";
 const ARG_SI: &str = "si";
 const ARG_RECURSIVE: &str = "recursive";
@@ -75,6 +76,8 @@ pub struct Flags {
     pub almost_all: bool,
     /// Render long-format output.
     pub long: bool,
+    /// Show a title row in long-format output.
+    pub header: bool,
     /// Render human-readable file sizes in long format.
     pub human_readable: bool,
     /// Render human-readable file sizes using powers of 1000.
@@ -174,6 +177,7 @@ fn build_command(mode: CompatMode) -> Command {
         .arg(show_all_arg())
         .arg(almost_all_arg())
         .arg(long_arg())
+        .arg(header_arg())
         .arg(human_readable_arg())
         .arg(si_arg())
         .arg(recursive_arg())
@@ -255,6 +259,13 @@ fn long_arg() -> Arg {
         .long("long")
         .action(ArgAction::SetTrue)
         .help("Display detailed information")
+}
+
+fn header_arg() -> Arg {
+    Arg::new(ARG_HEADER)
+        .long("header")
+        .action(ArgAction::SetTrue)
+        .help("Show a title row in long-format output")
 }
 
 fn human_readable_arg() -> Arg {
@@ -487,6 +498,7 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
         show_all: matches.get_flag(ARG_SHOW_ALL),
         almost_all: matches.get_flag(ARG_ALMOST_ALL),
         long: matches.get_flag(ARG_LONG),
+        header: matches.get_flag(ARG_HEADER),
         human_readable: matches.get_flag(ARG_HUMAN_READABLE),
         si: matches.get_flag(ARG_SI),
         recursive: matches.get_flag(ARG_RECURSIVE),

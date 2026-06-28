@@ -18,6 +18,7 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `-F` / `--classify` - Append type indicators, including `*` for executables
 - `--no-indicators` - Disable file type indicators
 - `-l` / `--long` - Show long format listing
+- `--header` - Show a title row in long-format output
 - `--permissions <MODE>` - Select long-format permission display:
   `symbolic`, `octal`, `both`, or `none`
 - `-h` / `--human-readable` - Human readable file sizes using powers of 1024
@@ -101,6 +102,10 @@ Long-format output shows symbolic permissions by default. Use
 `--permissions octal` to replace them with octal permission bits,
 `--permissions both` to add octal bits after the symbolic field, or
 `--permissions none` to omit permission fields.
+
+Use `--header` with long-format output to add a title row for the active
+columns. In the config file, set `header = true` alongside
+`long_format = true`.
 
 Long-format output colors permission bits, timestamp freshness, and large file
 sizes by default. You can adjust those accents independently with

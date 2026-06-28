@@ -23,6 +23,8 @@ use crate::{Params, structs::PermissionDisplay};
 const SHORT_CELL_PADDING: usize = 2;
 const LARGE_SIZE_BYTES: u64 = 1024 * 1024;
 const HUGE_SIZE_BYTES: u64 = 1024 * 1024 * 1024;
+const HEADER_SALMON_TRUECOLOR: (u8, u8, u8) = (250, 128, 114);
+const HEADER_SALMON_ANSI_256: u8 = 209;
 
 /// Render long-format rows to stdout.
 pub fn display_long_format(
@@ -64,8 +66,13 @@ pub(crate) fn build_long_format_table_with_name_prefixes<'a>(
 ) -> Table {
     let mut table = Table::new();
     let color_level = long_format_color_level(params);
+    let entries: Vec<_> = file_info.into_iter().collect();
 
-    for (info, name_prefix) in file_info {
+    if params.header && !entries.is_empty() {
+        table.add_row(long_format_header_row(params, color_level));
+    }
+
+    for (info, name_prefix) in entries {
         let display_time = if params.fuzzy_time {
             utils::fuzzy_time(info.mtime).to_string()
         } else {
@@ -121,6 +128,66 @@ pub(crate) fn build_long_format_table_with_name_prefixes<'a>(
     }
 
     table
+}
+
+fn long_format_header_row(
+    params: &Params,
+    color_level: LongFormatColorLevel,
+) -> Row {
+    let mut cells = Vec::with_capacity(10);
+
+    match params.permissions {
+        PermissionDisplay::Symbolic | PermissionDisplay::Octal => {
+            cells.push(header_cell("Permissions", color_level));
+        }
+        PermissionDisplay::Both => {
+            cells.push(header_cell("Permissions", color_level));
+            cells.push(header_cell("Octal", color_level));
+        }
+        PermissionDisplay::None => {}
+    }
+
+    cells.push(header_cell("Links", color_level));
+    cells.push(header_cell("User", color_level));
+    cells.push(header_cell("Group", color_level));
+    cells.push(header_cell("Size", color_level));
+
+    if params.size_scale().is_some() {
+        cells.push(header_cell("", color_level));
+    }
+
+    cells.push(header_cell("Date Modified", color_level));
+
+    if !params.no_icons {
+        cells.push(header_cell("", color_level));
+    }
+
+    cells.push(header_cell("Name", color_level));
+    Row::new(cells)
+}
+
+fn header_cell(text: &str, color_level: LongFormatColorLevel) -> Cell {
+    Cell::new(header_text(text, color_level))
+}
+
+fn header_text(text: &str, color_level: LongFormatColorLevel) -> String {
+    if text.is_empty() {
+        return String::new();
+    }
+
+    match color_level {
+        LongFormatColorLevel::Truecolor => format!(
+            "\x1b[4;38;2;{};{};{}m{text}\x1b[0m",
+            HEADER_SALMON_TRUECOLOR.0,
+            HEADER_SALMON_TRUECOLOR.1,
+            HEADER_SALMON_TRUECOLOR.2
+        ),
+        LongFormatColorLevel::Ansi256 => {
+            format!("\x1b[4;38;5;{HEADER_SALMON_ANSI_256}m{text}\x1b[0m")
+        }
+        LongFormatColorLevel::Named => text.red().underline().to_string(),
+        LongFormatColorLevel::None => text.to_string(),
+    }
 }
 
 fn append_permission_cells(

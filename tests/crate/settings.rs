@@ -57,6 +57,7 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
             dirs_first = true
             almost_all = true
             long_format = true
+            header = true
             human_readable = true
             no_icons = true
             no_color = true
@@ -80,6 +81,7 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
                 dirs_first: true,
                 almost_all: true,
                 long_format: true,
+                header: true,
                 human_readable: true,
                 si: false,
                 recursive: false,

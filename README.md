@@ -114,6 +114,7 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `-F` / `--classify` - Append type indicators, including `*` for executables
 - `--no-indicators` - Disable file type indicators
 - `-l` / `--long` - Show long format listing
+- `--header` - Show a title row in long-format output
 - `--permissions <MODE>` - Select long-format permission display:
   `symbolic`, `octal`, `both`, or `none`
 - `-h` / `--human-readable` - Human readable file sizes using powers of 1024

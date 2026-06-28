@@ -84,6 +84,7 @@ fn test_run_with_flags_lists_matching_entries() {
             show_all: false,
             almost_all: false,
             long: false,
+            header: false,
             human_readable: false,
             si: false,
             recursive: false,

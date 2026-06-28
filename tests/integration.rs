@@ -181,6 +181,52 @@ fn test_long_format() {
 }
 
 #[test]
+fn test_long_format_header_flag() {
+    let temp_dir = tempdir().unwrap();
+    let file_path = temp_dir.path().join("header.txt");
+    fs::write(&file_path, "header").unwrap();
+
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("-l")
+        .arg("--header")
+        .arg("--no-icons")
+        .arg(&file_path);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+    let rows: Vec<_> = stdout.lines().collect();
+
+    assert!(rows[0].contains("Permissions"));
+    assert!(rows[0].contains("Links"));
+    assert!(rows[0].contains("Date Modified"));
+    assert!(rows[0].contains("Name"));
+    assert!(!rows[0].contains("Unit"));
+    assert!(rows[1].contains("header.txt"));
+}
+
+#[test]
+fn test_long_format_header_from_config() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(
+        config_dir.join("config.toml"),
+        "long_format = true\nheader = true\nno_icons = true\n",
+    )
+    .unwrap();
+    let file_path = temp_dir.path().join("configured.txt");
+    fs::write(&file_path, "configured").unwrap();
+
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg(&file_path);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+    let rows: Vec<_> = stdout.lines().collect();
+
+    assert!(rows[0].contains("Permissions"));
+    assert!(rows[0].contains("Date Modified"));
+    assert!(rows[0].contains("Name"));
+    assert!(rows[1].contains("configured.txt"));
+}
+
+#[test]
 fn test_long_format_si_sizes() {
     let temp_dir = tempdir().unwrap();
     let file_path = temp_dir.path().join("size.txt");

@@ -37,6 +37,7 @@ fn test_public_run_with_flags_accepts_missing_patterns() {
         show_all: false,
         almost_all: false,
         long: false,
+        header: false,
         human_readable: false,
         si: false,
         recursive: false,

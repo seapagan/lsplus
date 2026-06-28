@@ -225,6 +225,221 @@ fn test_build_long_format_table_omits_optional_units_and_icons() {
 }
 
 #[test]
+fn test_build_long_format_table_omits_header_by_default() {
+    let info = test_file_info("plain.txt", None, 12, SystemTime::now());
+
+    let rendered =
+        normalized_table(build_long_format_table(&[info], &Params::default()));
+
+    assert!(!rendered.contains("Permissions"));
+    assert!(!rendered.contains("Date Modified"));
+}
+
+#[test]
+fn test_build_long_format_table_adds_header_before_rows() {
+    let info = test_file_info("plain.txt", None, 12, SystemTime::now());
+    let params = Params {
+        header: true,
+        no_icons: true,
+        ..Params::default()
+    };
+
+    let rendered = normalized_table(build_long_format_table(&[info], &params));
+    let stripped = strip_str(&rendered);
+    let rows: Vec<_> = stripped.lines().collect();
+
+    assert!(rows[0].contains("Permissions"));
+    assert!(rows[0].contains("Links"));
+    assert!(rows[0].contains("Date Modified"));
+    assert!(rows[0].contains("Name"));
+    assert!(rows[1].contains("plain.txt"));
+}
+
+#[test]
+fn test_build_long_format_table_header_matches_optional_columns() {
+    let info = test_file_info(
+        "example.rs",
+        Some(Icon::RustFile),
+        2 * 1024,
+        SystemTime::now(),
+    );
+    let params = Params {
+        header: true,
+        human_readable: true,
+        permissions: PermissionDisplay::Both,
+        ..Params::default()
+    };
+
+    let rendered = normalized_table(build_long_format_table(&[info], &params));
+    let header = strip_str(&rendered).lines().next().unwrap().to_string();
+
+    assert!(header.contains("Permissions"));
+    assert!(header.contains("Octal"));
+    assert!(header.contains("Links"));
+    assert!(header.contains("User"));
+    assert!(header.contains("Group"));
+    assert!(header.contains("Size"));
+    assert!(header.contains("Date Modified"));
+    assert!(header.contains("Name"));
+    assert!(!header.contains("Unit"));
+}
+
+#[test]
+fn test_build_long_format_table_header_omits_disabled_columns() {
+    let info = test_file_info("plain.txt", None, 12, SystemTime::now());
+    let params = Params {
+        header: true,
+        no_icons: true,
+        permissions: PermissionDisplay::None,
+        ..Params::default()
+    };
+
+    let rendered = normalized_table(build_long_format_table(&[info], &params));
+    let header = strip_str(&rendered).lines().next().unwrap().to_string();
+
+    assert!(!header.contains("Permissions"));
+    assert!(!header.contains("Octal"));
+    assert!(!header.contains("Unit"));
+    assert!(header.contains("Links"));
+    assert!(header.contains("Name"));
+}
+
+#[test]
+fn test_build_long_format_table_omits_header_for_empty_rows() {
+    let params = Params {
+        header: true,
+        ..Params::default()
+    };
+
+    let rendered = normalized_table(build_long_format_table(&[], &params));
+
+    assert!(!rendered.contains("Permissions"));
+    assert!(!rendered.contains("Name"));
+}
+
+#[test]
+fn test_build_long_format_table_header_aligns_with_colored_rows() {
+    temp_env::with_vars(
+        [("COLORTERM", Some("truecolor")), ("TERM", None::<&str>)],
+        || {
+            with_color_output_enabled(|| {
+                let mut first =
+                    test_file_info("first.txt", None, 12, SystemTime::now());
+                first.file_type = String::from("d");
+                first.mode = String::from("rwsr-tS-T");
+                first.nlink = 1;
+
+                let mut second = test_file_info(
+                    "second.txt",
+                    Some(Icon::RustFile),
+                    12,
+                    SystemTime::now(),
+                );
+                second.file_type = String::from("-");
+                second.mode = String::from("rwxrwxrwx");
+                second.nlink = 123_456;
+
+                let params = Params {
+                    header: true,
+                    human_readable: true,
+                    ..fixed_time_params()
+                };
+                let rendered = normalized_table(build_long_format_table(
+                    &[first, second],
+                    &params,
+                ));
+                let rows: Vec<_> = rendered.lines().collect();
+
+                assert!(rows[0].contains("Permissions"));
+                assert!(rows[1].contains("\u{1b}["));
+                assert!(
+                    visible_column_start(rows[0], "User")
+                        < visible_column_start(rows[0], "Group")
+                );
+                assert!(
+                    visible_column_start(rows[0], "Group")
+                        < visible_column_start(rows[0], "Name")
+                );
+                assert_eq!(
+                    visible_column_start(rows[1], "user"),
+                    visible_column_start(rows[2], "user")
+                );
+                assert_eq!(
+                    visible_column_start(rows[1], "group"),
+                    visible_column_start(rows[2], "group")
+                );
+                assert_eq!(
+                    visible_column_start(rows[1], "first.txt"),
+                    visible_column_start(rows[2], "second.txt")
+                );
+            });
+        },
+    );
+}
+
+#[test]
+fn test_build_long_format_table_colors_header_when_enabled() {
+    for (env, expected) in [
+        (
+            [("COLORTERM", Some("truecolor")), ("TERM", None::<&str>)],
+            "\u{1b}[4;38;2;250;128;114mPermissions\u{1b}[0m",
+        ),
+        (
+            [
+                ("COLORTERM", None::<&str>),
+                ("TERM", Some("xterm-256color")),
+            ],
+            "\u{1b}[4;38;5;209mPermissions\u{1b}[0m",
+        ),
+        (
+            [("COLORTERM", None::<&str>), ("TERM", Some("xterm"))],
+            "\u{1b}[4;31mPermissions\u{1b}[0m",
+        ),
+    ] {
+        temp_env::with_vars(env, || {
+            with_color_output_enabled(|| {
+                let info =
+                    test_file_info("plain.txt", None, 12, SystemTime::now());
+                let params = Params {
+                    header: true,
+                    no_icons: true,
+                    ..fixed_time_params()
+                };
+
+                let rendered = normalized_table(build_long_format_table(
+                    &[info],
+                    &params,
+                ));
+
+                assert!(rendered.contains(expected));
+            });
+        });
+    }
+}
+
+#[test]
+fn test_build_long_format_table_keeps_header_plain_when_color_disabled() {
+    with_color_output_enabled(|| {
+        let info = test_file_info("plain.txt", None, 12, SystemTime::now());
+        let params = Params {
+            header: true,
+            no_color: true,
+            no_icons: true,
+            ..Params::default()
+        };
+
+        let rendered =
+            normalized_table(build_long_format_table(&[info], &params));
+        let header = rendered
+            .lines()
+            .find(|line| line.contains("Permissions"))
+            .unwrap();
+
+        assert_eq!(strip_str(header), header);
+    });
+}
+
+#[test]
 fn test_build_long_format_table_aligns_after_colored_symbolic_permissions() {
     with_color_output_enabled(|| {
         let mut first =
