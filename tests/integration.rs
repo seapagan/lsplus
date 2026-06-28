@@ -2,6 +2,7 @@ use assert_cmd::Command;
 use filetime::FileTime;
 use lsplus::utils::icons::Icon;
 use std::fs;
+use std::path::Path;
 use std::time::{Duration, SystemTime};
 use strip_ansi_escapes::strip_str;
 use tempfile::tempdir;
@@ -38,6 +39,12 @@ fn run_and_capture_raw(cmd: &mut Command) -> (String, String) {
     )
 }
 
+fn command_with_home(home: &Path) -> Command {
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env("HOME", home);
+    cmd
+}
+
 fn has_ansi(text: &str) -> bool {
     text.contains("\u{1b}[")
 }
@@ -64,13 +71,11 @@ fn create_indicator_fixture() -> tempfile::TempDir {
 fn test_version_flag() {
     let temp_dir = tempdir().unwrap();
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        let mut cmd = Command::cargo_bin("lsp").unwrap();
-        cmd.arg("--version")
-            .assert()
-            .success()
-            .stdout(predicates::str::contains("lsplus"));
-    });
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("--version")
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("lsplus"));
 }
 
 #[test]
@@ -157,11 +162,8 @@ fn test_config_file() {
     // Write an invalid config file
     fs::write(&config_file, "invalid = toml [ content").unwrap();
 
-    // Set the home directory environment variable temporarily
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        let mut cmd = Command::cargo_bin("lsp").unwrap();
-        cmd.assert().success(); // Should use default params when config is invalid
-    });
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.assert().success(); // Should use default params when config is invalid
 }
 
 #[test]
@@ -170,12 +172,9 @@ fn test_long_format() {
     let file_path = temp_dir.path().join("size.txt");
     fs::write(&file_path, vec![b'x'; 2048]).unwrap();
 
-    let (stdout, _stderr) =
-        temp_env::with_var("HOME", Some(temp_dir.path()), || {
-            let mut cmd = Command::cargo_bin("lsp").unwrap();
-            cmd.arg("-l").arg("-h").arg(&file_path);
-            run_and_capture(&mut cmd)
-        });
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("-l").arg("-h").arg(&file_path);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
 
     assert!(stdout.contains("size.txt"));
     assert!(stdout.contains("2 K"));
@@ -187,12 +186,9 @@ fn test_long_format_si_sizes() {
     let file_path = temp_dir.path().join("size.txt");
     fs::write(&file_path, vec![b'x'; 1500]).unwrap();
 
-    let (stdout, _stderr) =
-        temp_env::with_var("HOME", Some(temp_dir.path()), || {
-            let mut cmd = Command::cargo_bin("lsp").unwrap();
-            cmd.arg("-l").arg("--si").arg(&file_path);
-            run_and_capture(&mut cmd)
-        });
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("-l").arg("--si").arg(&file_path);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
 
     assert!(stdout.contains("size.txt"));
     assert!(stdout.contains("1.5 k"));
@@ -215,25 +211,339 @@ fn test_multiple_paths() {
 }
 
 #[test]
+fn test_multiple_directory_paths_show_headers() {
+    let temp_dir = tempdir().unwrap();
+    let left = temp_dir.path().join("left");
+    let right = temp_dir.path().join("right");
+    fs::create_dir(&left).unwrap();
+    fs::create_dir(&right).unwrap();
+    fs::write(left.join("alpha.txt"), "alpha").unwrap();
+    fs::write(right.join("beta.txt"), "beta").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("--no-icons").arg(&left).arg(&right);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(&format!("{}:", left.display())));
+    assert!(stdout.contains(&format!("{}:", right.display())));
+    assert!(stdout.contains("alpha.txt"));
+    assert!(stdout.contains("beta.txt"));
+}
+
+#[test]
+fn test_mixed_file_and_directory_paths_show_file_first() {
+    let temp_dir = tempdir().unwrap();
+    let file = temp_dir.path().join("top.txt");
+    let dir = temp_dir.path().join("dir");
+    fs::write(&file, "top").unwrap();
+    fs::create_dir(&dir).unwrap();
+    fs::write(dir.join("child.txt"), "child").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("--no-icons").arg(&file).arg(&dir);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    let file_position = stdout.find("top.txt").unwrap();
+    let header_position = stdout.find(&format!("{}:", dir.display())).unwrap();
+    let child_position = stdout.find("child.txt").unwrap();
+
+    assert!(file_position < header_position);
+    assert!(header_position < child_position);
+}
+
+#[test]
+fn test_recursive_lists_nested_directory_headers() {
+    let temp_dir = tempdir().unwrap();
+    let nested = temp_dir.path().join("nested");
+    fs::create_dir(&nested).unwrap();
+    fs::write(temp_dir.path().join("root.txt"), "root").unwrap();
+    fs::write(nested.join("deep.txt"), "deep").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-R").arg("--no-icons").arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(&format!("{}:", temp_dir.path().display())));
+    assert!(stdout.contains(&format!("{}:", nested.display())));
+    assert!(stdout.contains("root.txt"));
+    assert!(stdout.contains("deep.txt"));
+}
+
+#[test]
+fn test_recursive_current_directory_omits_root_header_and_cleans_child_headers()
+ {
+    let temp_dir = tempdir().unwrap();
+    let child = temp_dir.path().join("child");
+    fs::create_dir(&child).unwrap();
+    fs::write(temp_dir.path().join("root.txt"), "root").unwrap();
+    fs::write(child.join("deep.txt"), "deep").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg(".");
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(!stdout.lines().any(|line| line == ".:"));
+    assert!(stdout.lines().any(|line| line == "child:"));
+    assert!(!stdout.lines().any(|line| line == "./child:"));
+    assert!(stdout.contains("root.txt"));
+    assert!(stdout.contains("deep.txt"));
+}
+
+#[test]
+fn test_recursive_level_limits_nested_directory_headers() {
+    let temp_dir = tempdir().unwrap();
+    let child = temp_dir.path().join("child");
+    let grandchild = child.join("grandchild");
+    fs::create_dir(&child).unwrap();
+    fs::create_dir(&grandchild).unwrap();
+    fs::write(child.join("shown.txt"), "shown").unwrap();
+    fs::write(grandchild.join("hidden.txt"), "hidden").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-R")
+        .arg("--level")
+        .arg("2")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(&format!("{}:", temp_dir.path().display())));
+    assert!(stdout.contains(&format!("{}:", child.display())));
+    assert!(stdout.contains("shown.txt"));
+    assert!(stdout.contains("grandchild"));
+    assert!(!stdout.contains(&format!("{}:", grandchild.display())));
+    assert!(!stdout.contains("hidden.txt"));
+}
+
+#[test]
+fn test_recursive_prune_noisy_dirs_keeps_parent_entry_only() {
+    let temp_dir = tempdir().unwrap();
+    let git_dir = temp_dir.path().join(".git");
+    fs::create_dir(&git_dir).unwrap();
+    fs::write(git_dir.join("config"), "config").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-R")
+        .arg("--all")
+        .arg("--prune-noisy-dirs")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(".git"));
+    assert!(!stdout.contains(&format!("{}:", git_dir.display())));
+    assert!(!stdout.contains("config"));
+}
+
+#[test]
+fn test_recursive_prune_dir_keeps_parent_entry_only() {
+    let temp_dir = tempdir().unwrap();
+    let target = temp_dir.path().join("target");
+    fs::create_dir(&target).unwrap();
+    fs::write(target.join("hidden.txt"), "hidden").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-R")
+        .arg("--prune-dir")
+        .arg("target")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains("target"));
+    assert!(!stdout.contains(&format!("{}:", target.display())));
+    assert!(!stdout.contains("hidden.txt"));
+}
+
+#[test]
+fn test_recursive_prune_noisy_dirs_honors_explicit_operand() {
+    let temp_dir = tempdir().unwrap();
+    let git_dir = temp_dir.path().join(".git");
+    fs::create_dir(&git_dir).unwrap();
+    fs::write(git_dir.join("config"), "config").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("-R")
+        .arg("--prune-noisy-dirs")
+        .arg("--no-icons")
+        .arg(&git_dir);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(&format!("{}:", git_dir.display())));
+    assert!(stdout.contains("config"));
+}
+
+#[cfg(unix)]
+#[test]
+fn test_recursive_continues_after_unreadable_directory_operand() {
+    struct PermissionGuard {
+        path: std::path::PathBuf,
+    }
+
+    impl Drop for PermissionGuard {
+        fn drop(&mut self) {
+            let _ = fs::set_permissions(
+                &self.path,
+                fs::Permissions::from_mode(0o700),
+            );
+        }
+    }
+
+    if Uid::effective().is_root() {
+        return;
+    }
+
+    let temp_dir = tempdir().unwrap();
+    let ok_dir = temp_dir.path().join("ok");
+    let blocked_dir = temp_dir.path().join("blocked");
+    let later_dir = temp_dir.path().join("later");
+    fs::create_dir(&ok_dir).unwrap();
+    fs::create_dir(&blocked_dir).unwrap();
+    fs::create_dir(&later_dir).unwrap();
+    fs::write(ok_dir.join("ok.txt"), "ok").unwrap();
+    fs::write(later_dir.join("later.txt"), "later").unwrap();
+    fs::set_permissions(&blocked_dir, fs::Permissions::from_mode(0o000))
+        .unwrap();
+    let _guard = PermissionGuard {
+        path: blocked_dir.clone(),
+    };
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    let output = cmd
+        .arg("-R")
+        .arg("--no-icons")
+        .arg(&ok_dir)
+        .arg(&blocked_dir)
+        .arg(&later_dir)
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stdout = strip_str(String::from_utf8_lossy(&output.stdout));
+    let stderr = strip_str(String::from_utf8_lossy(&output.stderr));
+    assert!(stdout.contains(&format!("{}:", ok_dir.display())));
+    assert!(stdout.contains("ok.txt"));
+    assert!(stdout.contains(&format!("{}:", later_dir.display())));
+    assert!(stdout.contains("later.txt"));
+    assert!(stderr.contains("lsplus:"));
+    assert!(stderr.contains(blocked_dir.to_string_lossy().as_ref()));
+}
+
+#[test]
+fn test_tree_level_limits_nested_descendants() {
+    let temp_dir = tempdir().unwrap();
+    let child = temp_dir.path().join("child");
+    let grandchild = child.join("grandchild");
+    let depth_three = grandchild.join("depth_three");
+    fs::create_dir(&child).unwrap();
+    fs::create_dir(&grandchild).unwrap();
+    fs::create_dir(&depth_three).unwrap();
+    fs::write(depth_three.join("too-deep.txt"), "deep").unwrap();
+    fs::write(child.join("shown.txt"), "shown").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("--tree")
+        .arg("--level")
+        .arg("2")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(!stdout.contains(&format!("{}:", temp_dir.path().display())));
+    let child_line =
+        stdout.lines().find(|line| line.contains("child")).unwrap();
+    assert!(!child_line.contains("├──"));
+    assert!(!child_line.contains("└──"));
+    assert!(stdout.contains("├──") || stdout.contains("└──"));
+    assert!(stdout.contains("child"));
+    assert!(stdout.contains("grandchild"));
+    assert!(stdout.contains("shown.txt"));
+    assert!(!stdout.contains("too-deep.txt"));
+}
+
+#[test]
+fn test_tree_multiple_roots_keep_headers() {
+    let temp_dir = tempdir().unwrap();
+    let first = temp_dir.path().join("first");
+    let second = temp_dir.path().join("second");
+    fs::create_dir(&first).unwrap();
+    fs::create_dir(&second).unwrap();
+    fs::write(first.join("one.txt"), "one").unwrap();
+    fs::write(second.join("two.txt"), "two").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("--tree")
+        .arg("--level")
+        .arg("2")
+        .arg("--no-icons")
+        .arg(&first)
+        .arg(&second);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(&format!("{}:", first.display())));
+    assert!(stdout.contains(&format!("{}:", second.display())));
+    assert!(stdout.contains("one.txt"));
+    assert!(stdout.contains("two.txt"));
+}
+
+#[test]
+fn test_tree_prune_noisy_dirs_keeps_parent_entry_only() {
+    let temp_dir = tempdir().unwrap();
+    let git_dir = temp_dir.path().join(".git");
+    fs::create_dir(&git_dir).unwrap();
+    fs::write(git_dir.join("config"), "config").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("--tree")
+        .arg("--all")
+        .arg("--prune-noisy-dirs")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(".git"));
+    assert!(!stdout.contains("config"));
+}
+
+#[test]
+fn test_tree_prune_dir_keeps_parent_entry_only() {
+    let temp_dir = tempdir().unwrap();
+    let target = temp_dir.path().join("target");
+    fs::create_dir(&target).unwrap();
+    fs::write(target.join("hidden.txt"), "hidden").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.arg("--tree")
+        .arg("--prune-dir")
+        .arg("target")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains("target"));
+    assert!(!stdout.contains("hidden.txt"));
+}
+
+#[test]
 fn test_no_icons_omits_file_icons() {
     let temp_dir = tempdir().unwrap();
     let rust_file = temp_dir.path().join("example.rs");
     fs::write(&rust_file, "fn main() {}").unwrap();
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        let mut with_icons = Command::cargo_bin("lsp").unwrap();
-        with_icons.arg(&rust_file);
-        let (stdout_with_icons, _stderr) = run_and_capture(&mut with_icons);
+    let mut with_icons = command_with_home(temp_dir.path());
+    with_icons.arg(&rust_file);
+    let (stdout_with_icons, _stderr) = run_and_capture(&mut with_icons);
 
-        let mut without_icons = Command::cargo_bin("lsp").unwrap();
-        without_icons.arg("--no-icons").arg(&rust_file);
-        let (stdout_without_icons, _stderr) =
-            run_and_capture(&mut without_icons);
+    let mut without_icons = command_with_home(temp_dir.path());
+    without_icons.arg("--no-icons").arg(&rust_file);
+    let (stdout_without_icons, _stderr) = run_and_capture(&mut without_icons);
 
-        assert!(stdout_with_icons.contains(""));
-        assert!(!stdout_without_icons.contains(""));
-        assert!(stdout_without_icons.contains("example.rs"));
-    });
+    assert!(stdout_with_icons.contains(""));
+    assert!(!stdout_without_icons.contains(""));
+    assert!(stdout_without_icons.contains("example.rs"));
 }
 
 #[test]
@@ -243,13 +553,11 @@ fn test_short_output_handles_wide_filename_without_panicking() {
     let wide_file = temp_dir.path().join(&wide_name);
     fs::write(&wide_file, "wide").unwrap();
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        let mut cmd = Command::cargo_bin("lsp").unwrap();
-        cmd.arg("--no-icons").arg(&wide_file);
-        let (stdout, _stderr) = run_and_capture(&mut cmd);
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("--no-icons").arg(&wide_file);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
 
-        assert!(stdout.contains(&wide_name));
-    });
+    assert!(stdout.contains(&wide_name));
 }
 
 #[test]
@@ -302,22 +610,24 @@ fn test_long_format_handles_wide_filename_rows() {
     fs::write(temp_dir.path().join(wide_name), "wide").unwrap();
     fs::write(temp_dir.path().join(ascii_name), "plain").unwrap();
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        let mut cmd = Command::cargo_bin("lsp").unwrap();
-        cmd.arg("-l").arg("--no-icons").arg(temp_dir.path());
-        let (stdout, _stderr) = run_and_capture(&mut cmd);
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("-l").arg("--no-icons").arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
 
-        let rows: Vec<_> = stdout
-            .lines()
-            .filter(|line| !line.trim().is_empty())
-            .collect();
+    let rows: Vec<_> = stdout
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .collect();
 
-        assert_eq!(rows.len(), 2);
-        assert!(rows.iter().any(|line| line.trim_start().starts_with('-')
-            && line.contains(wide_name)));
-        assert!(rows.iter().any(|line| line.trim_start().starts_with('-')
-            && line.contains(ascii_name)));
-    });
+    assert_eq!(rows.len(), 2);
+    assert!(
+        rows.iter().any(|line| line.trim_start().starts_with('-')
+            && line.contains(wide_name))
+    );
+    assert!(
+        rows.iter().any(|line| line.trim_start().starts_with('-')
+            && line.contains(ascii_name))
+    );
 }
 
 #[test]
@@ -329,12 +639,9 @@ fn test_long_format_does_not_pad_short_rows_to_longest_filename() {
     fs::write(temp_dir.path().join(short_name), "plain").unwrap();
     fs::write(temp_dir.path().join(long_name), "long").unwrap();
 
-    let (stdout, _stderr) =
-        temp_env::with_var("HOME", Some(temp_dir.path()), || {
-            let mut cmd = Command::cargo_bin("lsp").unwrap();
-            cmd.arg("-l").arg("--no-icons").arg(temp_dir.path());
-            run_and_capture(&mut cmd)
-        });
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("-l").arg("--no-icons").arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
 
     let short_row = stdout
         .lines()
@@ -384,14 +691,12 @@ fn test_no_color_config_keeps_long_output_plain() {
     fs::write(config_dir.join("config.toml"), "no_color = true\n").unwrap();
     fs::write(&file_path, "plain").unwrap();
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        let mut cmd = Command::cargo_bin("lsp").unwrap();
-        cmd.arg("-l").arg("--no-icons").arg(&file_path);
-        let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("-l").arg("--no-icons").arg(&file_path);
+    let (stdout, _stderr) = run_and_capture_raw(&mut cmd);
 
-        assert!(!has_ansi(&stdout));
-        assert!(stdout.contains("plain.txt"));
-    });
+    assert!(!has_ansi(&stdout));
+    assert!(stdout.contains("plain.txt"));
 }
 
 #[test]
@@ -422,25 +727,25 @@ fn test_long_format_renders_hidden_git_icons() {
     fs::create_dir(&git_dir).unwrap();
     fs::write(&gitignore, "*.log\n").unwrap();
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        let mut cmd = Command::cargo_bin("lsp").unwrap();
-        cmd.arg("-l").arg("-a").arg(temp_dir.path());
-        let (stdout, _stderr) = run_and_capture(&mut cmd);
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("-l").arg("-a").arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
 
-        let rows: Vec<_> = stdout
-            .lines()
-            .filter(|line| !line.trim().is_empty())
-            .collect();
-        let git_icon = Icon::GitFile.to_string();
+    let rows: Vec<_> = stdout
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .collect();
+    let git_icon = Icon::GitFile.to_string();
 
-        assert!(rows.iter().any(
+    assert!(
+        rows.iter().any(
             |line| line.contains(&git_icon) && line.contains(".gitignore")
-        ));
-        assert!(
-            rows.iter()
-                .any(|line| line.contains(&git_icon) && line.contains(".git"))
-        );
-    });
+        )
+    );
+    assert!(
+        rows.iter()
+            .any(|line| line.contains(&git_icon) && line.contains(".git"))
+    );
 }
 
 #[test]
@@ -691,17 +996,15 @@ fn test_long_format_renders_symlink_icon() {
     fs::write(&target, "target").unwrap();
     std::os::unix::fs::symlink(&target, &link).unwrap();
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        let mut cmd = Command::cargo_bin("lsp").unwrap();
-        cmd.arg("-l").arg(&link);
-        let (stdout_raw, _stderr) = run_and_capture_raw(&mut cmd);
-        let stdout = strip_str(&stdout_raw).to_string();
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("-l").arg(&link);
+    let (stdout_raw, _stderr) = run_and_capture_raw(&mut cmd);
+    let stdout = strip_str(&stdout_raw).to_string();
 
-        assert!(stdout.contains(&Icon::Symlink.to_string()));
-        assert!(stdout.contains("link.txt"));
-        assert!(stdout.contains("->"));
-        assert!(!has_ansi(&stdout_raw));
-    });
+    assert!(stdout.contains(&Icon::Symlink.to_string()));
+    assert!(stdout.contains("link.txt"));
+    assert!(stdout.contains("->"));
+    assert!(!has_ansi(&stdout_raw));
 }
 
 #[cfg(unix)]
@@ -760,13 +1063,11 @@ fn test_gnu_compat_mode_from_config_rejects_conflicting_short_flag() {
     fs::write(config_dir.join("config.toml"), "compat_mode = \"gnu\"\n")
         .unwrap();
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        let mut cmd = Command::cargo_bin("lsp").unwrap();
-        cmd.arg("-N")
-            .assert()
-            .failure()
-            .stderr(predicates::str::contains("unexpected argument '-N'"));
-    });
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("-N")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("unexpected argument '-N'"));
 }
 
 #[test]
@@ -788,13 +1089,11 @@ fn test_invalid_config_compat_mode_fails_startup() {
     fs::write(config_dir.join("config.toml"), "compat_mode = \"bogus\"\n")
         .unwrap();
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        let mut cmd = Command::cargo_bin("lsp").unwrap();
-        cmd.assert()
-            .failure()
-            .stderr(predicates::str::contains("invalid compat_mode setting"))
-            .stderr(predicates::str::contains("bogus"));
-    });
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.assert()
+        .failure()
+        .stderr(predicates::str::contains("invalid compat_mode setting"))
+        .stderr(predicates::str::contains("bogus"));
 }
 
 #[test]
@@ -808,18 +1107,16 @@ fn test_env_compat_mode_overrides_config_mode() {
     fs::create_dir(temp_dir.path().join("zeta_dir")).unwrap();
     fs::write(temp_dir.path().join("alpha.txt"), "alpha").unwrap();
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        let mut cmd = Command::cargo_bin("lsp").unwrap();
-        cmd.env("LSP_COMPAT_MODE", "native")
-            .arg("-D")
-            .arg(temp_dir.path());
-        let (stdout, _stderr) = run_and_capture(&mut cmd);
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.env("LSP_COMPAT_MODE", "native")
+        .arg("-D")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
 
-        let dir_position = stdout.find("zeta_dir").unwrap();
-        let file_position = stdout.find("alpha.txt").unwrap();
+    let dir_position = stdout.find("zeta_dir").unwrap();
+    let file_position = stdout.find("alpha.txt").unwrap();
 
-        assert!(dir_position < file_position);
-    });
+    assert!(dir_position < file_position);
 }
 
 #[test]
@@ -991,27 +1288,25 @@ fn test_gnu_compat_mode_accepts_short_p() {
 fn test_native_file_type_and_classify_indicator_output() {
     let temp_dir = create_indicator_fixture();
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        let mut file_type = Command::cargo_bin("lsp").unwrap();
-        file_type
-            .arg("--file-type")
-            .arg("--no-icons")
-            .arg(temp_dir.path());
-        let (file_type_stdout, _stderr) = run_and_capture(&mut file_type);
+    let mut file_type = command_with_home(temp_dir.path());
+    file_type
+        .arg("--file-type")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (file_type_stdout, _stderr) = run_and_capture(&mut file_type);
 
-        assert!(file_type_stdout.contains("child/"));
-        assert!(file_type_stdout.contains("link@"));
-        assert!(file_type_stdout.contains("run.sh"));
-        assert!(!file_type_stdout.contains("run.sh*"));
+    assert!(file_type_stdout.contains("child/"));
+    assert!(file_type_stdout.contains("link@"));
+    assert!(file_type_stdout.contains("run.sh"));
+    assert!(!file_type_stdout.contains("run.sh*"));
 
-        let mut classify = Command::cargo_bin("lsp").unwrap();
-        classify.arg("-F").arg("--no-icons").arg(temp_dir.path());
-        let (classify_stdout, _stderr) = run_and_capture(&mut classify);
+    let mut classify = command_with_home(temp_dir.path());
+    classify.arg("-F").arg("--no-icons").arg(temp_dir.path());
+    let (classify_stdout, _stderr) = run_and_capture(&mut classify);
 
-        assert!(classify_stdout.contains("child/"));
-        assert!(classify_stdout.contains("link@"));
-        assert!(classify_stdout.contains("run.sh*"));
-    });
+    assert!(classify_stdout.contains("child/"));
+    assert!(classify_stdout.contains("link@"));
+    assert!(classify_stdout.contains("run.sh*"));
 }
 
 #[cfg(unix)]
@@ -1019,17 +1314,15 @@ fn test_native_file_type_and_classify_indicator_output() {
 fn test_native_long_mode_omits_symlink_at_indicator() {
     let temp_dir = create_indicator_fixture();
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        let mut cmd = Command::cargo_bin("lsp").unwrap();
-        cmd.arg("-l")
-            .arg("--file-type")
-            .arg("--no-icons")
-            .arg(temp_dir.path());
-        let (stdout, _stderr) = run_and_capture(&mut cmd);
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("-l")
+        .arg("--file-type")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
 
-        assert!(stdout.contains("link -> "));
-        assert!(!stdout.contains("link@ -> "));
-    });
+    assert!(stdout.contains("link -> "));
+    assert!(!stdout.contains("link@ -> "));
 }
 
 #[cfg(unix)]
@@ -1044,20 +1337,18 @@ fn test_native_no_indicators_overrides_config_indicator_style() {
     )
     .unwrap();
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        let mut cmd = Command::cargo_bin("lsp").unwrap();
-        cmd.arg("--no-indicators")
-            .arg("--no-icons")
-            .arg(temp_dir.path());
-        let (stdout, _stderr) = run_and_capture(&mut cmd);
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("--no-indicators")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
 
-        assert!(stdout.contains("child"));
-        assert!(stdout.contains("link"));
-        assert!(stdout.contains("run.sh"));
-        assert!(!stdout.contains("child/"));
-        assert!(!stdout.contains("link@"));
-        assert!(!stdout.contains("run.sh*"));
-    });
+    assert!(stdout.contains("child"));
+    assert!(stdout.contains("link"));
+    assert!(stdout.contains("run.sh"));
+    assert!(!stdout.contains("child/"));
+    assert!(!stdout.contains("link@"));
+    assert!(!stdout.contains("run.sh*"));
 }
 
 #[cfg(unix)]

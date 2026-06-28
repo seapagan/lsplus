@@ -20,6 +20,11 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `-l` / `--long` - Show long format listing
 - `-h` / `--human-readable` - Human readable file sizes using powers of 1024
 - `--si` - Human readable file sizes using powers of 1000
+- `-R` / `--recursive` - List subdirectories recursively
+- `--tree` - Show a long-format directory tree
+- `--level <N>` - Limit recursive or tree output to visible entry depth
+- `--prune-noisy-dirs` - Skip descending into common noisy directories
+- `--prune-dir <NAME>` - Skip descending into matching directory basenames
 - `-D` / `--sort-dirs` - Sort directories first
 - `-I` / `--gitignore` - Dim entries matched by Git ignore rules
 - `-N` / `--no-color` - Disable colored and styled output
@@ -36,6 +41,42 @@ listing with hidden files, append a '/' to directories, and show human-readable
 file sizes.
 
 Use the `--help` option to see the full list of options.
+
+When listing multiple directory operands, or a mix of files and directories,
+`lsp` prints file operands first and labels each directory section with a
+`path:` header. A single non-recursive directory keeps the compact output shape
+without a header.
+
+Use `-R` or `--recursive` to print GNU-style recursive directory sections.
+Recursive output is unlimited unless you pass `--level <N>`. Use `--tree` for
+long-format tree output. Tree output implies `--long`, uses a default depth of
+`2`, and can be limited with `--level <N>`. `--tree` and `--recursive` are
+mutually exclusive.
+
+In both recursive and tree output, `--level <N>` counts visible entry levels
+below each operand. For example, `--level 1` shows only entries directly under
+the requested directory, while `--level 2` also shows grandchildren.
+
+Use `--prune-noisy-dirs` with recursive or tree output to list common noisy
+directories in their parent but skip their descendants. The built-in preset
+matches `.git`, `.hg`, `.svn`, `node_modules`, and `__pycache__` by exact
+basename:
+
+```sh
+lsp -R --prune-noisy-dirs project
+lsp --tree --prune-noisy-dirs project
+```
+
+Use `--prune-dir <NAME>` for custom basenames. Repeat the option to add more
+names. Custom names also work without the built-in preset:
+
+```sh
+lsp --tree --prune-dir target --prune-dir dist project
+```
+
+Pruning only controls recursive descent. It does not hide matching directories
+from their parent listing, and it does not apply to explicit directory
+operands.
 
 The indicator characters are:
 

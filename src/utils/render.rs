@@ -34,15 +34,40 @@ pub fn display_long_format(
     print_table(&build_long_format_table(file_info, params))
 }
 
+/// Style a directory section header.
+pub(crate) fn directory_header_text(header: &str) -> String {
+    header.blue().bold().to_string()
+}
+
+/// Render long-format rows with prefixes prepended to the name column.
+pub(crate) fn display_long_format_with_name_prefixes<'a>(
+    file_info: impl IntoIterator<Item = (&'a FileInfo, &'a str)>,
+    params: &Params,
+) -> io::Result<()> {
+    print_table(&build_long_format_table_with_name_prefixes(
+        file_info, params,
+    ))
+}
+
 /// Build the long-format table without printing it.
 pub(crate) fn build_long_format_table(
     file_info: &[FileInfo],
     params: &Params,
 ) -> Table {
+    build_long_format_table_with_name_prefixes(
+        file_info.iter().map(|info| (info, "")),
+        params,
+    )
+}
+
+fn build_long_format_table_with_name_prefixes<'a>(
+    file_info: impl IntoIterator<Item = (&'a FileInfo, &'a str)>,
+    params: &Params,
+) -> Table {
     let mut table = utils::table::create_table(0);
     let color_level = long_format_color_level(params);
 
-    for info in file_info {
+    for (info, name_prefix) in file_info {
         let display_time = if params.fuzzy_time {
             utils::fuzzy_time(info.mtime).to_string()
         } else {
@@ -93,7 +118,8 @@ pub(crate) fn build_long_format_table(
             row_cells.push(Cell::new(&format!("{} ", icon)));
         }
 
-        let display_name = check_display_name(info);
+        let display_name =
+            format!("{}{}", name_prefix, check_display_name(info));
         row_cells.push(Cell::new(&display_name));
         table.add_row(Row::new(row_cells));
     }

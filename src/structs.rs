@@ -8,6 +8,9 @@ use std::time::SystemTime;
 use crate::cli;
 use crate::utils::format::SizeScale;
 
+const NOISY_DIR_PRESET: [&str; 5] =
+    [".git", ".hg", ".svn", "node_modules", "__pycache__"];
+
 /// Entry-name indicator styles supported by `lsplus`.
 ///
 /// These map to GNU-style indicator modes and the native `--slash-dirs`,
@@ -43,6 +46,16 @@ pub struct Params {
     pub human_readable: bool,
     /// Use decimal powers for human-readable file sizes.
     pub si: bool,
+    /// Recurse into child directories.
+    pub recursive: bool,
+    /// Render long-format tree output.
+    pub tree: bool,
+    /// Maximum visible entry depth for recursive/tree output.
+    pub tree_level: usize,
+    /// Optional maximum depth for recursive output.
+    pub recursive_level: Option<usize>,
+    /// Directory basenames to skip while traversing recursive/tree output.
+    pub prune_dirs: Vec<String>,
     /// Disable file and directory icons.
     pub no_icons: bool,
     /// Disable colored or styled output.
@@ -69,6 +82,11 @@ impl Default for Params {
             long_format: false,
             human_readable: false,
             si: false,
+            recursive: false,
+            tree: false,
+            tree_level: 2,
+            recursive_level: None,
+            prune_dirs: Vec::new(),
             no_icons: false,
             no_color: false,
             permission_colors: true,
@@ -90,6 +108,11 @@ pub(crate) struct RawParams {
     long_format: bool,
     human_readable: bool,
     si: bool,
+    recursive: bool,
+    tree: bool,
+    tree_level: Option<usize>,
+    prune_noisy_dirs: bool,
+    prune_dirs: Vec<String>,
     no_icons: bool,
     no_color: bool,
     permission_colors: Option<bool>,
@@ -148,6 +171,14 @@ impl From<RawParams> for Params {
             long_format: raw.long_format,
             human_readable: raw.human_readable,
             si: raw.si,
+            recursive: raw.recursive,
+            tree: raw.tree,
+            tree_level: normalized_tree_level(raw.tree_level),
+            recursive_level: raw.tree_level.filter(|level| *level > 0),
+            prune_dirs: configured_prune_dirs(
+                raw.prune_noisy_dirs,
+                raw.prune_dirs,
+            ),
             no_icons: raw.no_icons,
             no_color: raw.no_color,
             permission_colors: raw.permission_colors.unwrap_or(true),
@@ -174,12 +205,20 @@ impl Params {
                 .unwrap_or(config.indicator_style),
             dirs_first: flags.dirs_first || config.dirs_first,
             almost_all: flags.almost_all || config.almost_all,
-            long_format: flags.long || config.long_format,
+            long_format: flags.long
+                || flags.tree
+                || config.long_format
+                || config.tree,
             human_readable: flags.si
                 || flags.human_readable
                 || config.si
                 || config.human_readable,
             si: flags.si || config.si,
+            recursive: flags.recursive || config.recursive,
+            tree: flags.tree || config.tree,
+            tree_level: flags.tree_level.unwrap_or(config.tree_level),
+            recursive_level: flags.tree_level.or(config.recursive_level),
+            prune_dirs: merged_prune_dirs(flags, config),
             no_icons: flags.no_icons || config.no_icons,
             no_color: flags.no_color || config.no_color,
             permission_colors: config.permission_colors
@@ -199,6 +238,49 @@ impl Params {
             Some(SizeScale::Binary)
         } else {
             None
+        }
+    }
+}
+
+fn configured_prune_dirs(
+    prune_noisy_dirs: bool,
+    mut prune_dirs: Vec<String>,
+) -> Vec<String> {
+    if prune_noisy_dirs {
+        append_prune_names(&mut prune_dirs, NOISY_DIR_PRESET);
+    }
+    prune_dirs
+}
+
+fn normalized_tree_level(tree_level: Option<usize>) -> usize {
+    tree_level.filter(|level| *level > 0).unwrap_or(2)
+}
+
+fn merged_prune_dirs(flags: &cli::Flags, config: &Params) -> Vec<String> {
+    let mut prune_dirs = Vec::new();
+
+    if flags.prune_noisy_dirs {
+        append_prune_names(&mut prune_dirs, NOISY_DIR_PRESET);
+    }
+
+    append_prune_names(
+        &mut prune_dirs,
+        config.prune_dirs.iter().map(String::as_str),
+    );
+    append_prune_names(
+        &mut prune_dirs,
+        flags.prune_dirs.iter().map(String::as_str),
+    );
+    prune_dirs
+}
+
+fn append_prune_names<'a>(
+    prune_dirs: &mut Vec<String>,
+    names: impl IntoIterator<Item = &'a str>,
+) {
+    for name in names {
+        if !prune_dirs.iter().any(|existing| existing == name) {
+            prune_dirs.push(name.to_string());
         }
     }
 }

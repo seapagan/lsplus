@@ -311,7 +311,7 @@ pub fn create_file_info(path: &Path, params: &Params) -> io::Result<FileInfo> {
     create_file_info_with_gitignore(path, params, &mut gitignore_cache)
 }
 
-fn create_file_info_with_gitignore(
+pub(crate) fn create_file_info_with_gitignore(
     path: &Path,
     params: &Params,
     gitignore_cache: &mut GitignoreCache,
@@ -325,7 +325,7 @@ fn create_file_info_with_gitignore(
     ))
 }
 
-fn create_file_info_from_metadata_with_gitignore(
+pub(crate) fn create_file_info_from_metadata_with_gitignore(
     path: &Path,
     metadata: &fs::Metadata,
     params: &Params,
@@ -458,7 +458,7 @@ pub(crate) fn sanitize_for_terminal(text: &str) -> String {
     sanitized
 }
 
-fn sanitize_path_for_terminal(path: &Path) -> String {
+pub(crate) fn sanitize_path_for_terminal(path: &Path) -> String {
     sanitize_for_terminal(&path.to_string_lossy())
 }
 

@@ -12,10 +12,33 @@
 - [ ] When adding recursion or tree-style output, revisit whether directory
       traversal should move over to the `ignore` crate instead of the current
       custom walker.
+- [ ] Unify recursive and tree traversal policy behind a shared walker so
+      depth limits, symlink handling, pruning, and error handling cannot drift
+      between output modes.
+- [ ] Add configurable tree rendering styles, including the current compact
+      root display, classic root branch graphics, and an ASCII fallback.
+- [ ] Consider GNU-style `total` lines or another consistent empty-directory
+      marker for long and tree output, rather than special-casing single-root
+      tree output.
 - [ ] Add inode, allocated block size, and optional column header support for
       long-format output.
 - [ ] Evaluate the Rust crate `uutils-term-grid` as a short-format layout
       alternative before expanding the current custom grid code.
+- [ ] Improve listing performance with focused architecture changes, in this
+      order:
+      1. Add a short-format entry model so short output does not build full
+         long-format `FileInfo` data such as owner/group names, permissions,
+         size, mtime, and long symlink target text.
+      2. Pass a shared buffered stdout writer through render paths so recursive
+         streaming does not pay for many small stdout writes.
+      3. Cache UID-to-user and GID-to-group lookups during long-format runs.
+      4. Carry cheap `DirEntry::file_type()` data through directory filtering
+         and sorting so short mode can avoid extra metadata calls where
+         possible.
+      5. Reuse a single `GitignoreCache` across recursive and tree traversal
+         so ancestor ignore files are not rediscovered for every directory.
+      6. Revisit `prettytable` for long recursive output; a custom row
+         formatter may be leaner for hot paths.
 - [ ] better handle dotfiles?
 - [ ] option to list dotfiles (and folders) before non-dotfiles
 - [ ] Investigate an optional name-shortening mode for very long filenames

@@ -103,6 +103,66 @@ human-readable file sizes using powers of 1024 when set to `true`.
 This option corresponds to `--si` and displays human-readable file sizes using
 powers of 1000 when set to `true`. It also enables human-readable size output.
 
+### recursive
+
+- Permitted values: `true` or `false`
+- Default value: `false`
+
+This option corresponds to `-R` or `--recursive` and lists subdirectories in
+separate `path:` sections.
+
+### tree
+
+- Permitted values: `true` or `false`
+- Default value: `false`
+
+This option corresponds to `--tree` and displays long-format tree output. Tree
+output implies long format.
+
+### tree_level
+
+- Permitted values: integers greater than or equal to `1`
+- Default value: `2`
+
+This option corresponds to `--level` and limits recursive or tree output to
+visible entry levels below each operand. A value of `1` shows only entries
+directly under the requested directory; a value of `2` also shows
+grandchildren. Without this option, recursive output is unlimited.
+
+### prune_noisy_dirs
+
+- Permitted values: `true` or `false`
+- Default value: `false`
+
+This option enables the built-in traversal prune preset for recursive and tree
+output. Matching directories still appear in their parent listing, but `lsp`
+does not descend into them. The preset matches these exact basenames:
+
+- `.git`
+- `.hg`
+- `.svn`
+- `node_modules`
+- `__pycache__`
+
+Pruning only applies while traversing children for `recursive = true` or
+`tree = true`. It does not hide matching entries, does not apply to explicit
+directory operands, and is not disabled by `show_all = true`.
+
+### prune_dirs
+
+- Permitted values: an array of strings
+- Default value: `[]`
+
+This option adds custom exact directory basenames to skip while traversing
+recursive and tree output. Custom prune names apply even when
+`prune_noisy_dirs = false`.
+
+For example:
+
+```toml
+prune_dirs = ["target", "dist"]
+```
+
 ### no_icons
 
 - Permitted values: `true` or `false`
@@ -178,6 +238,11 @@ indicator_style = "classify"
 dirs_first = true
 human_readable = true
 # si = true
+# recursive = true
+# tree = true
+# tree_level = 2
+# prune_noisy_dirs = true
+# prune_dirs = ["target", "dist"]
 no_color = true
 permission_colors = false
 time_gradient = false
