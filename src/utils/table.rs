@@ -6,6 +6,8 @@ use std::io::{self, Write};
 use strip_ansi_escapes::strip_str;
 use unicode_width::UnicodeWidthStr;
 
+const SPACE_BUFFER: [u8; 64] = [b' '; 64];
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum Alignment {
     Left,
@@ -138,14 +140,17 @@ impl fmt::Display for Table {
     }
 }
 
-fn visible_width(text: &str) -> usize {
+pub(crate) fn visible_width(text: &str) -> usize {
     let stripped = strip_str(text);
     UnicodeWidthStr::width(stripped.as_str())
 }
 
 fn write_spaces(output: &mut impl Write, count: usize) -> io::Result<()> {
-    for _ in 0..count {
-        write!(output, " ")?;
+    let mut remaining = count;
+    while remaining > 0 {
+        let chunk = remaining.min(SPACE_BUFFER.len());
+        output.write_all(&SPACE_BUFFER[..chunk])?;
+        remaining -= chunk;
     }
     Ok(())
 }

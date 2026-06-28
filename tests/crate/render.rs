@@ -51,7 +51,9 @@ fn normalized_table(table: impl std::fmt::Display) -> String {
 }
 
 fn visible_column_start(row: &str, needle: &str) -> usize {
-    let byte_start = row.find(needle).unwrap();
+    let byte_start = row.find(needle).unwrap_or_else(|| {
+        panic!("needle {needle:?} not found in row {row:?}")
+    });
     UnicodeWidthStr::width(strip_str(&row[..byte_start]).as_str())
 }
 

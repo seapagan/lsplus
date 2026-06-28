@@ -11,13 +11,12 @@ use std::time::{Duration, SystemTime};
 
 use strip_ansi_escapes::strip_str;
 use terminal_size::{Height, Width, terminal_size};
-use unicode_width::UnicodeWidthStr;
 
 use crate::structs::{FileInfo, NameStyle};
 use crate::utils;
 use crate::utils::color::{LongFormatColorLevel, long_format_color_level};
 use crate::utils::file::check_display_name;
-use crate::utils::table::{Cell, Row, Table};
+use crate::utils::table::{Cell, Row, Table, visible_width};
 use crate::utils::time::{DAY, MONTH, WEEK, YEAR};
 use crate::{Params, structs::PermissionDisplay};
 
@@ -259,6 +258,11 @@ pub(crate) fn size_style_spec_for_color_level(
 }
 
 fn size_text(text: &str, style_spec: &str) -> String {
+    debug_assert!(
+        matches!(style_spec, "rFrb" | "Frb" | "rFy" | "Fy" | "r" | ""),
+        "unexpected size style spec: {style_spec:?}"
+    );
+
     match style_spec {
         "rFrb" | "Frb" => text.red().bold().to_string(),
         "rFy" | "Fy" => text.yellow().to_string(),
@@ -549,8 +553,7 @@ fn style_short_segment(info: &FileInfo, text: String) -> String {
 }
 
 fn visible_text_width(text: &str) -> usize {
-    let stripped = strip_str(text);
-    UnicodeWidthStr::width(stripped.as_str())
+    visible_width(text)
 }
 
 fn print_table(table: &Table) -> io::Result<()> {
