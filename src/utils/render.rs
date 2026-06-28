@@ -66,10 +66,7 @@ impl LongColumn {
     }
 
     fn header_aligns_right(self) -> bool {
-        matches!(
-            self,
-            LongColumn::Links | LongColumn::Size | LongColumn::Date
-        )
+        matches!(self, LongColumn::Size | LongColumn::Date)
     }
 }
 

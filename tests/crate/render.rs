@@ -405,7 +405,7 @@ fn test_build_long_format_table_header_aligns_with_colored_rows() {
 
 #[test]
 fn test_build_long_format_table_header_uses_column_alignment() {
-    let info = test_file_info(
+    let mut info = test_file_info(
         "plain.txt",
         None,
         12,
@@ -413,6 +413,7 @@ fn test_build_long_format_table_header_uses_column_alignment() {
             .checked_sub(Duration::from_secs(2 * 60 * 60))
             .unwrap(),
     );
+    info.nlink = 123_456;
     let params = Params {
         fuzzy_time: true,
         header: true,
@@ -424,6 +425,10 @@ fn test_build_long_format_table_header_uses_column_alignment() {
     let rendered = normalized_table(build_long_format_table(&[info], &params));
     let rows: Vec<_> = rendered.lines().collect();
 
+    assert_eq!(
+        visible_column_start(rows[0], "Links"),
+        visible_column_start(rows[1], "123456")
+    );
     assert_eq!(
         visible_column_start(rows[0], "User"),
         visible_column_start(rows[1], "user")
