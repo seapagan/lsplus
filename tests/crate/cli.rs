@@ -1,7 +1,7 @@
-use crate::IndicatorStyle;
 use crate::cli::{
     CompatMode, Flags, format_version_info, try_parse_from_mode, version_info,
 };
+use crate::{IndicatorStyle, structs::PermissionDisplay};
 use clap::error::ErrorKind;
 
 #[test]
@@ -22,6 +22,7 @@ fn test_default_flags() {
     assert!(!args.no_icons);
     assert!(!args.no_color);
     assert!(!args.no_permission_colors);
+    assert_eq!(args.permissions, None);
     assert!(!args.no_time_gradient);
     assert!(!args.no_size_colors);
     assert!(!args.gitignore);
@@ -54,6 +55,8 @@ fn test_all_flags() {
         "--no-icons",
         "--no-color",
         "--no-permission-colors",
+        "--permissions",
+        "both",
         "--no-time-gradient",
         "--no-size-colors",
         "--gitignore",
@@ -77,6 +80,7 @@ fn test_all_flags() {
     assert!(args.no_icons);
     assert!(args.no_color);
     assert!(args.no_permission_colors);
+    assert_eq!(args.permissions, Some(PermissionDisplay::Both));
     assert!(args.no_time_gradient);
     assert!(args.no_size_colors);
     assert!(args.gitignore);
@@ -263,6 +267,35 @@ fn test_parse_from_mode_accepts_long_format_accent_disable_flags() {
         assert!(args.no_permission_colors);
         assert!(args.no_time_gradient);
         assert!(args.no_size_colors);
+    }
+}
+
+#[test]
+fn test_parse_from_mode_accepts_permission_display_modes() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        for (value, expected) in [
+            ("symbolic", PermissionDisplay::Symbolic),
+            ("octal", PermissionDisplay::Octal),
+            ("both", PermissionDisplay::Both),
+            ("none", PermissionDisplay::None),
+        ] {
+            let args =
+                try_parse_from_mode(mode, ["lsplus", "--permissions", value])
+                    .unwrap();
+
+            assert_eq!(args.permissions, Some(expected));
+        }
+    }
+}
+
+#[test]
+fn test_parse_from_mode_rejects_invalid_permission_display_mode() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let err =
+            try_parse_from_mode(mode, ["lsplus", "--permissions", "wide"])
+                .unwrap_err();
+
+        assert_eq!(err.kind(), ErrorKind::InvalidValue);
     }
 }
 

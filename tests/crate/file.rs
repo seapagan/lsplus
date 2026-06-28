@@ -35,6 +35,7 @@ fn basic_info(display_name: &str, full_path: PathBuf) -> FileInfo {
     FileInfo {
         file_type: String::from("directory"),
         mode: String::from("drwxr-xr-x"),
+        mode_bits: 0o755,
         nlink: 1,
         user: String::from("user"),
         group: String::from("group"),

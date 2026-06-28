@@ -3,7 +3,7 @@ use crate::settings::{
     StartupConfig, config_path_from_home, load_config, load_config_from_path,
     load_startup_config_from,
 };
-use crate::{IndicatorStyle, Params};
+use crate::{IndicatorStyle, Params, structs::PermissionDisplay};
 use std::fs;
 use std::path::PathBuf;
 use tempfile::tempdir;
@@ -98,6 +98,7 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
                 no_icons: true,
                 no_color: true,
                 permission_colors: false,
+                permissions: PermissionDisplay::Symbolic,
                 time_gradient: false,
                 size_colors: false,
                 gitignore: true,
