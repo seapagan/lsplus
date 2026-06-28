@@ -10,7 +10,7 @@ use crate::utils::render::{
     size_style_spec_for_color_level, terminal_width_or_default,
 };
 use crate::{FileInfo, NameStyle, Params};
-use colored_text::ColorMode;
+use colored_text::{ColorMode, Colorize};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 use strip_ansi_escapes::strip_str;
@@ -866,7 +866,10 @@ fn test_render_short_format_lines_keep_plain_output_when_color_disabled() {
 #[test]
 fn test_directory_header_text_uses_bold_directory_color_when_enabled() {
     with_color_output_enabled(|| {
-        assert_eq!(directory_header_text("src"), "\u{1b}[1;34msrc\u{1b}[0m");
+        assert_eq!(
+            directory_header_text("src"),
+            "src".blue().bold().to_string()
+        );
     });
 }
 
