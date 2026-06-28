@@ -204,6 +204,12 @@ fn test_long_format_permission_display_modes() {
     fs::set_permissions(&file_path, fs::Permissions::from_mode(0o755))
         .unwrap();
 
+    let mut symbolic = command_with_home(home_dir.path());
+    symbolic.arg("-l").arg("--no-icons").arg(&file_path);
+    let (stdout, _stderr) = run_and_capture(&mut symbolic);
+    assert!(stdout.contains("-rwxr-xr-x"));
+    assert!(!stdout.contains("0755"));
+
     let mut octal = command_with_home(home_dir.path());
     octal
         .arg("-l")
@@ -214,6 +220,15 @@ fn test_long_format_permission_display_modes() {
     let (stdout, _stderr) = run_and_capture(&mut octal);
     assert!(stdout.contains("- 0755"));
     assert!(!stdout.contains("-rwxr-xr-x"));
+
+    let mut both = command_with_home(home_dir.path());
+    both.arg("-l")
+        .arg("--no-icons")
+        .arg("--permissions")
+        .arg("both")
+        .arg(&file_path);
+    let (stdout, _stderr) = run_and_capture(&mut both);
+    assert!(stdout.contains("-rwxr-xr-x 0755"));
 
     let mut none = command_with_home(home_dir.path());
     none.arg("-l")
