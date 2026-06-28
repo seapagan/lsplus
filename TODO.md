@@ -20,8 +20,11 @@
 - [ ] Consider GNU-style `total` lines or another consistent empty-directory
       marker for long and tree output, rather than special-casing single-root
       tree output.
-- [ ] Add inode, allocated block size, and optional column header support for
-      long-format output.
+- [ ] Add inode and allocated block size support for long-format output.
+- [ ] Add explicit long-format header modes, keeping plain `--header` as an
+      alias for per-section headers. Suggested modes: `section` for every
+      recursive section, `once` for the first long-format table only, and
+      `none` to disable config-enabled headers for one invocation.
 - [ ] Evaluate the Rust crate `uutils-term-grid` as a short-format layout
       alternative before expanding the current custom grid code.
 - [ ] Improve listing performance with focused architecture changes, in this
