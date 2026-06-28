@@ -294,6 +294,48 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
 }
 
 #[test]
+fn test_params_merge_header_prefers_true_from_either_source() {
+    let flags = Flags {
+        version: false,
+        paths: vec![],
+        show_all: false,
+        almost_all: false,
+        indicator_style: None,
+        dirs_first: false,
+        long: false,
+        header: false,
+        human_readable: false,
+        si: false,
+        recursive: false,
+        tree: false,
+        tree_level: None,
+        prune_noisy_dirs: false,
+        prune_dirs: Vec::new(),
+        no_icons: false,
+        no_color: false,
+        no_permission_colors: false,
+        permissions: None,
+        no_time_gradient: false,
+        no_size_colors: false,
+        gitignore: false,
+        fuzzy_time: false,
+    };
+    let config = Params {
+        header: true,
+        ..Params::default()
+    };
+
+    assert!(Params::merge(&flags, &config).header);
+
+    let flags = Flags {
+        header: true,
+        ..flags
+    };
+
+    assert!(Params::merge(&flags, &Params::default()).header);
+}
+
+#[test]
 fn test_params_merge_uses_config_permissions_until_cli_overrides() {
     let config = Params {
         permissions: PermissionDisplay::Octal,
