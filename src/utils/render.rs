@@ -229,44 +229,64 @@ fn size_cell(
     color_level: LongFormatColorLevel,
     base: &str,
 ) -> Cell {
-    let text = size_text(
-        text,
-        size_style_spec_for_color_level(size, params, color_level, base),
-    );
-    if base == "r" {
+    let style = size_style_for_color_level(size, params, color_level, base);
+    let text = style.format(text);
+    if style.align_right() {
         Cell::right(text)
     } else {
         Cell::new(text)
     }
 }
 
-/// Return the style spec for a size cell.
-pub(crate) fn size_style_spec_for_color_level(
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum SizeCellStyle {
+    Plain,
+    PlainRight,
+    Large,
+    LargeRight,
+    Huge,
+    HugeRight,
+}
+
+impl SizeCellStyle {
+    fn align_right(self) -> bool {
+        matches!(
+            self,
+            SizeCellStyle::PlainRight
+                | SizeCellStyle::LargeRight
+                | SizeCellStyle::HugeRight
+        )
+    }
+
+    fn format(self, text: &str) -> String {
+        match self {
+            SizeCellStyle::Huge | SizeCellStyle::HugeRight => {
+                text.red().bold().to_string()
+            }
+            SizeCellStyle::Large | SizeCellStyle::LargeRight => {
+                text.yellow().to_string()
+            }
+            SizeCellStyle::Plain | SizeCellStyle::PlainRight => {
+                text.to_string()
+            }
+        }
+    }
+}
+
+/// Return the color and alignment style for a size cell.
+pub(crate) fn size_style_for_color_level(
     size: u64,
     params: &Params,
     color_level: LongFormatColorLevel,
     base: &str,
-) -> &'static str {
+) -> SizeCellStyle {
     match (params.size_colors && color_level.is_enabled(), size, base) {
-        (true, HUGE_SIZE_BYTES.., "r") => "rFrb",
-        (true, HUGE_SIZE_BYTES.., _) => "Frb",
-        (true, LARGE_SIZE_BYTES.., "r") => "rFy",
-        (true, LARGE_SIZE_BYTES.., _) => "Fy",
-        (_, _, "r") => "r",
-        _ => "",
-    }
-}
-
-fn size_text(text: &str, style_spec: &str) -> String {
-    debug_assert!(
-        matches!(style_spec, "rFrb" | "Frb" | "rFy" | "Fy" | "r" | ""),
-        "unexpected size style spec: {style_spec:?}"
-    );
-
-    match style_spec {
-        "rFrb" | "Frb" => text.red().bold().to_string(),
-        "rFy" | "Fy" => text.yellow().to_string(),
-        _ => text.to_string(),
+        (true, HUGE_SIZE_BYTES.., "r") => SizeCellStyle::HugeRight,
+        (true, HUGE_SIZE_BYTES.., _) => SizeCellStyle::Huge,
+        (true, LARGE_SIZE_BYTES.., "r") => SizeCellStyle::LargeRight,
+        (true, LARGE_SIZE_BYTES.., _) => SizeCellStyle::Large,
+        (_, _, "r") => SizeCellStyle::PlainRight,
+        _ => SizeCellStyle::Plain,
     }
 }
 
@@ -454,7 +474,7 @@ fn short_render_items(file_info: &[FileInfo]) -> Vec<ShortRenderItem<'_>> {
 fn short_render_item(info: &FileInfo) -> ShortRenderItem<'_> {
     let display_name = check_display_name(info);
     let (prefix, name) = short_cell_parts(info, &display_name);
-    let plain_width = visible_text_width(&format!("{prefix}{name}"));
+    let plain_width = visible_width(&format!("{prefix}{name}"));
 
     ShortRenderItem {
         info,
@@ -552,11 +572,9 @@ fn style_short_segment(info: &FileInfo, text: String) -> String {
     }
 }
 
-fn visible_text_width(text: &str) -> usize {
-    visible_width(text)
-}
-
 fn print_table(table: &Table) -> io::Result<()> {
+    // Long-format colors are decided before cells reach the table renderer.
+    // Keep raw ANSI escapes gated by long_format_color_level().
     let mut stdout = io::stdout();
     table.write_to(&mut stdout)?;
     stdout.flush()

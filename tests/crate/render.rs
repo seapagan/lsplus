@@ -6,9 +6,10 @@ use crate::utils::color::LongFormatColorLevel;
 use crate::utils::format::mode_to_rwx;
 use crate::utils::icons::Icon;
 use crate::utils::render::{
-    build_long_format_table, build_long_format_table_with_name_prefixes,
-    directory_header_text, render_short_format_lines,
-    size_style_spec_for_color_level, terminal_width_or_default,
+    SizeCellStyle, build_long_format_table,
+    build_long_format_table_with_name_prefixes, directory_header_text,
+    render_short_format_lines, size_style_for_color_level,
+    terminal_width_or_default,
 };
 use crate::{FileInfo, NameStyle, Params, structs::PermissionDisplay};
 use colored_text::{ColorMode, Colorize};
@@ -555,63 +556,48 @@ fn test_build_long_format_table_omits_size_colors_when_disabled() {
 }
 
 #[test]
-fn test_size_style_spec_colors_size_boundaries() {
+fn test_size_style_for_color_level_colors_size_boundaries() {
     let params = Params::default();
     let color_level = LongFormatColorLevel::Named;
 
     assert_eq!(
-        size_style_spec_for_color_level(
-            1024 * 1024 - 1,
-            &params,
-            color_level,
-            "r"
-        ),
-        "r"
+        size_style_for_color_level(1024 * 1024 - 1, &params, color_level, "r"),
+        SizeCellStyle::PlainRight
     );
     assert_eq!(
-        size_style_spec_for_color_level(
-            1024 * 1024 - 1,
-            &params,
-            color_level,
-            ""
-        ),
-        ""
+        size_style_for_color_level(1024 * 1024 - 1, &params, color_level, ""),
+        SizeCellStyle::Plain
     );
     assert_eq!(
-        size_style_spec_for_color_level(
-            1024 * 1024,
-            &params,
-            color_level,
-            "r"
-        ),
-        "rFy"
+        size_style_for_color_level(1024 * 1024, &params, color_level, "r"),
+        SizeCellStyle::LargeRight
     );
     assert_eq!(
-        size_style_spec_for_color_level(1024 * 1024, &params, color_level, ""),
-        "Fy"
+        size_style_for_color_level(1024 * 1024, &params, color_level, ""),
+        SizeCellStyle::Large
     );
     assert_eq!(
-        size_style_spec_for_color_level(
+        size_style_for_color_level(
             1024 * 1024 * 1024,
             &params,
             color_level,
             "r"
         ),
-        "rFrb"
+        SizeCellStyle::HugeRight
     );
     assert_eq!(
-        size_style_spec_for_color_level(
+        size_style_for_color_level(
             1024 * 1024 * 1024,
             &params,
             color_level,
             ""
         ),
-        "Frb"
+        SizeCellStyle::Huge
     );
 }
 
 #[test]
-fn test_size_style_spec_omits_size_colors_when_disabled() {
+fn test_size_style_for_color_level_omits_size_colors_when_disabled() {
     let params = Params {
         size_colors: false,
         ..Params::default()
@@ -619,37 +605,28 @@ fn test_size_style_spec_omits_size_colors_when_disabled() {
     let color_level = LongFormatColorLevel::Named;
 
     assert_eq!(
-        size_style_spec_for_color_level(
-            1024 * 1024,
-            &params,
-            color_level,
-            "r"
-        ),
-        "r"
+        size_style_for_color_level(1024 * 1024, &params, color_level, "r"),
+        SizeCellStyle::PlainRight
     );
     assert_eq!(
-        size_style_spec_for_color_level(1024 * 1024, &params, color_level, ""),
-        ""
+        size_style_for_color_level(1024 * 1024, &params, color_level, ""),
+        SizeCellStyle::Plain
     );
 }
 
 #[test]
-fn test_size_style_spec_omits_size_colors_when_global_color_is_disabled() {
+fn test_size_style_for_color_level_omits_size_colors_when_global_color_is_disabled()
+ {
     let params = Params::default();
     let color_level = LongFormatColorLevel::None;
 
     assert_eq!(
-        size_style_spec_for_color_level(
-            1024 * 1024,
-            &params,
-            color_level,
-            "r"
-        ),
-        "r"
+        size_style_for_color_level(1024 * 1024, &params, color_level, "r"),
+        SizeCellStyle::PlainRight
     );
     assert_eq!(
-        size_style_spec_for_color_level(1024 * 1024, &params, color_level, ""),
-        ""
+        size_style_for_color_level(1024 * 1024, &params, color_level, ""),
+        SizeCellStyle::Plain
     );
 }
 
