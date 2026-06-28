@@ -58,6 +58,11 @@ fn visible_column_start(row: &str, needle: &str) -> usize {
     UnicodeWidthStr::width(strip_str(&row[..byte_start]).as_str())
 }
 
+fn visible_column_end(row: &str, needle: &str) -> usize {
+    visible_column_start(row, needle)
+        + UnicodeWidthStr::width(strip_str(needle).as_str())
+}
+
 #[test]
 fn test_build_long_format_table_shows_symbolic_permissions_by_default() {
     let mut info = test_file_info("plain.txt", None, 12, SystemTime::now());
@@ -374,6 +379,44 @@ fn test_build_long_format_table_header_aligns_with_colored_rows() {
                 );
             });
         },
+    );
+}
+
+#[test]
+fn test_build_long_format_table_header_uses_column_alignment() {
+    let info = test_file_info(
+        "plain.txt",
+        None,
+        12,
+        SystemTime::now()
+            .checked_sub(Duration::from_secs(2 * 60 * 60))
+            .unwrap(),
+    );
+    let params = Params {
+        fuzzy_time: true,
+        header: true,
+        no_icons: true,
+        ..plain_permission_params()
+    };
+
+    let rendered = normalized_table(build_long_format_table(&[info], &params));
+    let rows: Vec<_> = rendered.lines().collect();
+
+    assert_eq!(
+        visible_column_start(rows[0], "User"),
+        visible_column_start(rows[1], "user")
+    );
+    assert_eq!(
+        visible_column_start(rows[0], "Group"),
+        visible_column_start(rows[1], "group")
+    );
+    assert_eq!(
+        visible_column_start(rows[0], "Name"),
+        visible_column_start(rows[1], "plain.txt")
+    );
+    assert_eq!(
+        visible_column_end(rows[0], "Date Modified"),
+        visible_column_end(rows[1], "2 hours ago")
     );
 }
 

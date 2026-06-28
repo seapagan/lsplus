@@ -21,10 +21,49 @@ use crate::utils::time::{DAY, MONTH, WEEK, YEAR};
 use crate::{Params, structs::PermissionDisplay};
 
 const SHORT_CELL_PADDING: usize = 2;
+const LONG_TABLE_DEFAULT_GAP: usize = 2;
+const LONG_TABLE_RELATED_GAP: usize = 1;
 const LARGE_SIZE_BYTES: u64 = 1024 * 1024;
 const HUGE_SIZE_BYTES: u64 = 1024 * 1024 * 1024;
 const HEADER_SALMON_TRUECOLOR: (u8, u8, u8) = (250, 128, 114);
 const HEADER_SALMON_ANSI_256: u8 = 209;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum LongColumn {
+    Permissions,
+    Octal,
+    Links,
+    User,
+    Group,
+    Size,
+    Unit,
+    Date,
+    Icon,
+    Name,
+}
+
+impl LongColumn {
+    fn header(self) -> &'static str {
+        match self {
+            LongColumn::Permissions => "Permissions",
+            LongColumn::Octal => "Octal",
+            LongColumn::Links => "Links",
+            LongColumn::User => "User",
+            LongColumn::Group => "Group",
+            LongColumn::Size => "Size",
+            LongColumn::Unit | LongColumn::Icon => "",
+            LongColumn::Date => "Date Modified",
+            LongColumn::Name => "Name",
+        }
+    }
+
+    fn header_aligns_right(self) -> bool {
+        matches!(
+            self,
+            LongColumn::Links | LongColumn::Size | LongColumn::Date
+        )
+    }
+}
 
 /// Render long-format rows to stdout.
 pub fn display_long_format(
@@ -65,109 +104,145 @@ pub(crate) fn build_long_format_table_with_name_prefixes<'a>(
     params: &Params,
 ) -> Table {
     let mut table = Table::new();
+    table.set_default_gap(LONG_TABLE_DEFAULT_GAP);
     let color_level = long_format_color_level(params);
     let entries: Vec<_> = file_info.into_iter().collect();
+    let columns = long_format_columns(params);
+    apply_long_format_gaps(&mut table, &columns);
 
     if params.header && !entries.is_empty() {
-        table.add_row(long_format_header_row(params, color_level));
+        table.set_header(long_format_header_row(&columns, color_level));
     }
 
     for (info, name_prefix) in entries {
-        let display_time = if params.fuzzy_time {
-            utils::fuzzy_time(info.mtime).to_string()
-        } else {
-            let datetime: DateTime<Local> = DateTime::from(info.mtime);
-            datetime.format("%c").to_string()
-        };
-
-        let size_scale = params.size_scale();
-        let (display_size, units) =
-            utils::format::show_size(info.size, size_scale);
-
-        let mut row_cells = Vec::with_capacity(10);
-
-        append_permission_cells(&mut row_cells, info, params, color_level);
-        row_cells.push(Cell::new(info.nlink.to_string()));
-        row_cells.push(Cell::new(format!(" {}", info.user.cyan())));
-        row_cells.push(Cell::new(format!("{} ", info.group.green())));
-        row_cells.push(size_cell(
-            &display_size,
-            info.size,
+        table.add_row(long_format_row(
+            info,
+            name_prefix,
             params,
             color_level,
-            true,
+            &columns,
         ));
-
-        if size_scale.is_some() {
-            row_cells.push(size_cell(
-                units,
-                info.size,
-                params,
-                color_level,
-                false,
-            ));
-        }
-
-        row_cells.push(Cell::right(format!(
-            " {} ",
-            long_time_text(&display_time, info.mtime, params, color_level)
-        )));
-
-        if !params.no_icons {
-            if let Some(icon) = &info.item_icon {
-                row_cells.push(Cell::new(format!("{} ", icon)));
-            } else {
-                row_cells.push(Cell::new(""));
-            }
-        }
-
-        let display_name =
-            format!("{}{}", name_prefix, check_display_name(info));
-        row_cells.push(Cell::new(&display_name));
-        table.add_row(Row::new(row_cells));
     }
 
     table
 }
 
-fn long_format_header_row(
-    params: &Params,
-    color_level: LongFormatColorLevel,
-) -> Row {
-    let mut cells = Vec::with_capacity(10);
+fn long_format_columns(params: &Params) -> Vec<LongColumn> {
+    let mut columns = Vec::with_capacity(10);
 
     match params.permissions {
         PermissionDisplay::Symbolic | PermissionDisplay::Octal => {
-            cells.push(header_cell("Permissions", color_level));
+            columns.push(LongColumn::Permissions);
         }
         PermissionDisplay::Both => {
-            cells.push(header_cell("Permissions", color_level));
-            cells.push(header_cell("Octal", color_level));
+            columns.push(LongColumn::Permissions);
+            columns.push(LongColumn::Octal);
         }
         PermissionDisplay::None => {}
     }
 
-    cells.push(header_cell("Links", color_level));
-    cells.push(header_cell("User", color_level));
-    cells.push(header_cell("Group", color_level));
-    cells.push(header_cell("Size", color_level));
+    columns.push(LongColumn::Links);
+    columns.push(LongColumn::User);
+    columns.push(LongColumn::Group);
+    columns.push(LongColumn::Size);
 
     if params.size_scale().is_some() {
-        cells.push(header_cell("", color_level));
+        columns.push(LongColumn::Unit);
     }
 
-    cells.push(header_cell("Date Modified", color_level));
+    columns.push(LongColumn::Date);
 
     if !params.no_icons {
-        cells.push(header_cell("", color_level));
+        columns.push(LongColumn::Icon);
     }
 
-    cells.push(header_cell("Name", color_level));
+    columns.push(LongColumn::Name);
+    columns
+}
+
+fn apply_long_format_gaps(table: &mut Table, columns: &[LongColumn]) {
+    for (index, pair) in columns.windows(2).enumerate() {
+        if matches!(
+            pair,
+            [LongColumn::Permissions, LongColumn::Octal]
+                | [LongColumn::User, LongColumn::Group]
+                | [LongColumn::Size, LongColumn::Unit]
+                | [LongColumn::Icon, LongColumn::Name]
+        ) {
+            table.set_column_gap(index, LONG_TABLE_RELATED_GAP);
+        }
+    }
+}
+
+fn long_format_row(
+    info: &FileInfo,
+    name_prefix: &str,
+    params: &Params,
+    color_level: LongFormatColorLevel,
+    columns: &[LongColumn],
+) -> Row {
+    let display_time = if params.fuzzy_time {
+        utils::fuzzy_time(info.mtime).to_string()
+    } else {
+        let datetime: DateTime<Local> = DateTime::from(info.mtime);
+        datetime.format("%c").to_string()
+    };
+    let size_scale = params.size_scale();
+    let (display_size, units) =
+        utils::format::show_size(info.size, size_scale);
+    let display_name = format!("{}{}", name_prefix, check_display_name(info));
+    let mut cells = Vec::with_capacity(columns.len());
+
+    for column in columns {
+        cells.push(match column {
+            LongColumn::Permissions => {
+                permission_cell(info, params, color_level)
+            }
+            LongColumn::Octal => {
+                octal_permission_cell(info, params, color_level)
+            }
+            LongColumn::Links => Cell::right(info.nlink.to_string()),
+            LongColumn::User => Cell::new(info.user.cyan().to_string()),
+            LongColumn::Group => Cell::new(info.group.green().to_string()),
+            LongColumn::Size => {
+                size_cell(&display_size, info.size, params, color_level, true)
+            }
+            LongColumn::Unit => {
+                size_cell(units, info.size, params, color_level, false)
+            }
+            LongColumn::Date => Cell::right(long_time_text(
+                &display_time,
+                info.mtime,
+                params,
+                color_level,
+            )),
+            LongColumn::Icon => icon_cell(info),
+            LongColumn::Name => Cell::new(&display_name),
+        });
+    }
+
     Row::new(cells)
 }
 
-fn header_cell(text: &str, color_level: LongFormatColorLevel) -> Cell {
-    Cell::new(header_text(text, color_level))
+fn long_format_header_row(
+    columns: &[LongColumn],
+    color_level: LongFormatColorLevel,
+) -> Row {
+    Row::new(
+        columns
+            .iter()
+            .map(|column| header_cell(*column, color_level))
+            .collect(),
+    )
+}
+
+fn header_cell(column: LongColumn, color_level: LongFormatColorLevel) -> Cell {
+    let text = header_text(column.header(), color_level);
+    if column.header_aligns_right() {
+        Cell::right(text)
+    } else {
+        Cell::new(text)
+    }
 }
 
 fn header_text(text: &str, color_level: LongFormatColorLevel) -> String {
@@ -190,35 +265,36 @@ fn header_text(text: &str, color_level: LongFormatColorLevel) -> String {
     }
 }
 
-fn append_permission_cells(
-    row_cells: &mut Vec<Cell>,
+fn permission_cell(
     info: &FileInfo,
     params: &Params,
     color_level: LongFormatColorLevel,
-) {
+) -> Cell {
     match params.permissions {
-        PermissionDisplay::Symbolic => {
-            row_cells.push(Cell::new(format!(
-                "{} ",
-                long_permission_text(info, params)
-            )));
+        PermissionDisplay::Symbolic | PermissionDisplay::Both => {
+            Cell::new(long_permission_text(info, params))
         }
-        PermissionDisplay::Octal => {
-            row_cells.push(Cell::new(format!(
-                "{} {} ",
-                long_file_type_text(info, params),
-                long_octal_permission_text(info, params, color_level)
-            )));
-        }
-        PermissionDisplay::Both => {
-            row_cells.push(Cell::new(long_permission_text(info, params)));
-            row_cells.push(Cell::new(format!(
-                "{} ",
-                long_octal_permission_text(info, params, color_level)
-            )));
-        }
-        PermissionDisplay::None => {}
+        PermissionDisplay::Octal => Cell::new(format!(
+            "{} {}",
+            long_file_type_text(info, params),
+            long_octal_permission_text(info, params, color_level)
+        )),
+        PermissionDisplay::None => Cell::new(""),
     }
+}
+
+fn octal_permission_cell(
+    info: &FileInfo,
+    params: &Params,
+    color_level: LongFormatColorLevel,
+) -> Cell {
+    Cell::new(long_octal_permission_text(info, params, color_level))
+}
+
+fn icon_cell(info: &FileInfo) -> Cell {
+    info.item_icon
+        .as_ref()
+        .map_or_else(|| Cell::new(""), |icon| Cell::new(icon.to_string()))
 }
 
 fn long_file_type_text(info: &FileInfo, params: &Params) -> String {

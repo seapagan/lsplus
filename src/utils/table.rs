@@ -72,62 +72,111 @@ impl Row {
     }
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct Table {
+    header: Option<Row>,
     rows: Vec<Row>,
+    default_gap: usize,
+    column_gaps: Vec<usize>,
 }
 
 impl Table {
     pub(crate) fn new() -> Self {
-        Self::default()
+        Self {
+            header: None,
+            rows: Vec::new(),
+            default_gap: 1,
+            column_gaps: Vec::new(),
+        }
+    }
+
+    pub(crate) fn set_header(&mut self, header: Row) {
+        self.header = Some(header);
     }
 
     pub(crate) fn add_row(&mut self, row: Row) {
         self.rows.push(row);
     }
 
+    pub(crate) fn set_default_gap(&mut self, gap: usize) {
+        self.default_gap = gap;
+    }
+
+    pub(crate) fn set_column_gap(&mut self, column: usize, gap: usize) {
+        if self.column_gaps.len() <= column {
+            self.column_gaps.resize(column + 1, self.default_gap);
+        }
+        self.column_gaps[column] = gap;
+    }
+
     pub(crate) fn write_to(&self, output: &mut impl Write) -> io::Result<()> {
         let widths = self.column_widths();
-        for row in &self.rows {
-            write!(output, " ")?;
-            for column in 0..widths.len() {
-                if column > 0 {
-                    write!(output, " ")?;
-                }
+        if let Some(header) = &self.header {
+            self.write_row(output, header, &widths)?;
+        }
 
-                let skip_right_fill = column == widths.len() - 1;
-                if let Some(cell) = row.cells.get(column) {
-                    cell.write_padded(
-                        output,
-                        widths[column],
-                        skip_right_fill,
-                    )?;
-                } else if !skip_right_fill {
-                    write_spaces(output, widths[column])?;
-                }
-            }
-            writeln!(output)?;
+        for row in &self.rows {
+            self.write_row(output, row, &widths)?;
         }
 
         Ok(())
     }
 
+    fn write_row(
+        &self,
+        output: &mut impl Write,
+        row: &Row,
+        widths: &[usize],
+    ) -> io::Result<()> {
+        write!(output, " ")?;
+        for column in 0..widths.len() {
+            let skip_right_fill = column == widths.len() - 1;
+            if let Some(cell) = row.cells.get(column) {
+                cell.write_padded(output, widths[column], skip_right_fill)?;
+            } else if !skip_right_fill {
+                write_spaces(output, widths[column])?;
+            }
+
+            if !skip_right_fill {
+                write_spaces(output, self.gap_after(column))?;
+            }
+        }
+        writeln!(output)?;
+        Ok(())
+    }
+
+    fn gap_after(&self, column: usize) -> usize {
+        self.column_gaps
+            .get(column)
+            .copied()
+            .unwrap_or(self.default_gap)
+    }
+
     fn column_widths(&self) -> Vec<usize> {
         let column_count = self
-            .rows
-            .iter()
+            .rows_for_widths()
             .map(|row| row.cells.len())
             .max()
             .unwrap_or(0);
         let mut widths = vec![0; column_count];
 
-        for row in &self.rows {
+        for row in self.rows_for_widths() {
             for (index, cell) in row.cells.iter().enumerate() {
                 widths[index] = widths[index].max(cell.width);
             }
         }
 
         widths
+    }
+
+    fn rows_for_widths(&self) -> impl Iterator<Item = &Row> {
+        self.header.iter().chain(self.rows.iter())
+    }
+}
+
+impl Default for Table {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -153,4 +202,32 @@ fn write_spaces(output: &mut impl Write, count: usize) -> io::Result<()> {
         remaining -= chunk;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Cell, Row, Table};
+
+    #[test]
+    fn table_header_contributes_to_widths_and_uses_column_gaps() {
+        let mut table = Table::new();
+        table.set_default_gap(2);
+        table.set_column_gap(0, 1);
+        table.set_header(Row::new(vec![
+            Cell::new("Long Header"),
+            Cell::new("Next"),
+        ]));
+        table.add_row(Row::new(vec![Cell::new("x"), Cell::new("y")]));
+
+        assert_eq!(table.to_string(), " Long Header Next\n x           y\n");
+    }
+
+    #[test]
+    fn table_does_not_pad_final_left_aligned_column() {
+        let mut table = Table::new();
+        table.add_row(Row::new(vec![Cell::new("a"), Cell::new("short")]));
+        table.add_row(Row::new(vec![Cell::new("b"), Cell::new("longer")]));
+
+        assert_eq!(table.to_string(), " a short\n b longer\n");
+    }
 }
