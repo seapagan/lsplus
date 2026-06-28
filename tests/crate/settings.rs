@@ -3,7 +3,7 @@ use crate::settings::{
     StartupConfig, config_path_from_home, load_config, load_config_from_path,
     load_startup_config_from,
 };
-use crate::{IndicatorStyle, Params, PermissionDisplay};
+use crate::{IndicatorStyle, Params, structs::PermissionDisplay};
 use std::fs;
 use std::path::PathBuf;
 use tempfile::tempdir;

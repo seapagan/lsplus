@@ -9,7 +9,7 @@ use crate::utils::render::{
     build_long_format_table, directory_header_text, render_short_format_lines,
     size_style_spec_for_color_level, terminal_width_or_default,
 };
-use crate::{FileInfo, NameStyle, Params, PermissionDisplay};
+use crate::{FileInfo, NameStyle, Params, structs::PermissionDisplay};
 use colored_text::{ColorMode, Colorize};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};

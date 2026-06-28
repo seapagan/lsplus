@@ -20,7 +20,7 @@ use crate::utils;
 use crate::utils::color::{LongFormatColorLevel, long_format_color_level};
 use crate::utils::file::check_display_name;
 use crate::utils::time::{DAY, MONTH, WEEK, YEAR};
-use crate::{Params, PermissionDisplay};
+use crate::{Params, structs::PermissionDisplay};
 
 const SHORT_CELL_PADDING: usize = 2;
 const LARGE_SIZE_BYTES: u64 = 1024 * 1024;

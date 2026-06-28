@@ -1,7 +1,7 @@
 use crate::cli::{
     CompatMode, Flags, format_version_info, try_parse_from_mode, version_info,
 };
-use crate::{IndicatorStyle, PermissionDisplay};
+use crate::{IndicatorStyle, structs::PermissionDisplay};
 use clap::error::ErrorKind;
 
 #[test]

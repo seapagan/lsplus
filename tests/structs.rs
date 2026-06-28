@@ -1,7 +1,7 @@
 use config::Config;
 use lsplus::cli::Flags;
 use lsplus::utils::format::SizeScale;
-use lsplus::{IndicatorStyle, Params, PermissionDisplay};
+use lsplus::{IndicatorStyle, Params, structs::PermissionDisplay};
 use std::fs;
 use tempfile::tempdir;
 

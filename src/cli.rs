@@ -9,7 +9,7 @@ use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::env;
 use std::ffi::OsString;
 
-use crate::{IndicatorStyle, PermissionDisplay};
+use crate::{IndicatorStyle, structs::PermissionDisplay};
 
 const ARG_SHOW_ALL: &str = "show_all";
 const ARG_ALMOST_ALL: &str = "almost_all";
