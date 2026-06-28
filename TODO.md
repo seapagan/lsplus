@@ -53,5 +53,9 @@
 - [ ] Review `src/lib.rs` and crate/module visibility. Keep the current
       out-of-source unit test layout, but reduce the accidental public library
       API for this app crate where modules/items do not need to be exported.
+- [ ] Improve rustdoc/docstring coverage in a dedicated docs PR. Start by
+      running `RUSTDOCFLAGS='-D missing-docs' cargo doc --no-deps`; current
+      known gaps include the public `structs` module export and public
+      `Icon` enum variants.
 - [ ] Continue shifting tests toward behavior-focused checks at module seams
       (`app`, `settings`, `render`) instead of broad smoke-style coverage.
