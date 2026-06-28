@@ -29,6 +29,21 @@ pub enum IndicatorStyle {
     Classify,
 }
 
+/// Long-format permission column display modes.
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum PermissionDisplay {
+    /// Show the existing file-type character plus symbolic permissions.
+    #[default]
+    Symbolic,
+    /// Show the file-type character plus octal permission bits.
+    Octal,
+    /// Show symbolic permissions and a separate octal permission cell.
+    Both,
+    /// Hide permission cells entirely.
+    None,
+}
+
 /// Runtime options after CLI flags and config defaults have been merged.
 #[derive(Debug, PartialEq)]
 pub struct Params {
@@ -62,6 +77,8 @@ pub struct Params {
     pub no_color: bool,
     /// Color file type and permission bits in long-format output.
     pub permission_colors: bool,
+    /// Select which permission fields to show in long-format output.
+    pub permissions: PermissionDisplay,
     /// Color timestamps by age in long-format output.
     pub time_gradient: bool,
     /// Color large sizes in long-format output.
@@ -90,6 +107,7 @@ impl Default for Params {
             no_icons: false,
             no_color: false,
             permission_colors: true,
+            permissions: PermissionDisplay::Symbolic,
             time_gradient: true,
             size_colors: true,
             gitignore: false,
@@ -116,6 +134,7 @@ pub(crate) struct RawParams {
     no_icons: bool,
     no_color: bool,
     permission_colors: Option<bool>,
+    permissions: PermissionDisplay,
     time_gradient: Option<bool>,
     size_colors: Option<bool>,
     gitignore: bool,
@@ -182,6 +201,7 @@ impl From<RawParams> for Params {
             no_icons: raw.no_icons,
             no_color: raw.no_color,
             permission_colors: raw.permission_colors.unwrap_or(true),
+            permissions: raw.permissions,
             time_gradient: raw.time_gradient.unwrap_or(true),
             size_colors: raw.size_colors.unwrap_or(true),
             gitignore: raw.gitignore,
@@ -223,6 +243,7 @@ impl Params {
             no_color: flags.no_color || config.no_color,
             permission_colors: config.permission_colors
                 && !flags.no_permission_colors,
+            permissions: flags.permissions.unwrap_or(config.permissions),
             time_gradient: config.time_gradient && !flags.no_time_gradient,
             size_colors: config.size_colors && !flags.no_size_colors,
             gitignore: flags.gitignore || config.gitignore,
@@ -294,6 +315,9 @@ pub struct FileInfo {
     /// Unix-style permission string, possibly including `s`, `S`, `t`, or
     /// `T` special-bit overlays.
     pub mode: String,
+    /// Unix permission bits masked to the displayable permission and special
+    /// bit range.
+    pub mode_bits: u32,
     /// Link count from filesystem metadata.
     pub nlink: u64,
     /// Owner name, or numeric user ID when lookup fails.

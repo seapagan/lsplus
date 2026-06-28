@@ -19,6 +19,11 @@ pub fn mode_to_rwx(mode: u32) -> String {
     rwx
 }
 
+/// Format Unix permission and special bits as four octal digits.
+pub fn mode_to_octal(mode: u32) -> String {
+    format!("{:04o}", mode & 0o7777)
+}
+
 fn permission_char(mode: u32, bit: u32, value: char) -> char {
     if mode & bit != 0 { value } else { '-' }
 }

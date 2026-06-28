@@ -28,6 +28,7 @@ use std::os::unix::ffi::OsStrExt;
 struct FileDetails {
     file_type: String,
     mode: String,
+    mode_bits: u32,
     nlink: u64,
     size: u64,
     mtime: SystemTime,
@@ -112,6 +113,7 @@ fn get_file_details(metadata: &fs::Metadata) -> FileDetails {
     FileDetails {
         file_type,
         mode: rwx_mode,
+        mode_bits: mode & 0o7777,
         nlink,
         size,
         mtime,
@@ -377,6 +379,7 @@ pub(crate) fn create_file_info_from_metadata_with_gitignore(
     FileInfo {
         file_type: details.file_type,
         mode: details.mode,
+        mode_bits: details.mode_bits,
         nlink: details.nlink,
         user: details.user,
         group: details.group,

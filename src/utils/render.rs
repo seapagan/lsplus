@@ -15,12 +15,12 @@ use strip_ansi_escapes::strip_str;
 use terminal_size::{Height, Width, terminal_size};
 use unicode_width::UnicodeWidthStr;
 
-use crate::Params;
 use crate::structs::{FileInfo, NameStyle};
 use crate::utils;
 use crate::utils::color::{LongFormatColorLevel, long_format_color_level};
 use crate::utils::file::check_display_name;
 use crate::utils::time::{DAY, MONTH, WEEK, YEAR};
+use crate::{Params, PermissionDisplay};
 
 const SHORT_CELL_PADDING: usize = 2;
 const LARGE_SIZE_BYTES: u64 = 1024 * 1024;
@@ -79,12 +79,9 @@ fn build_long_format_table_with_name_prefixes<'a>(
         let (display_size, units) =
             utils::format::show_size(info.size, size_scale);
 
-        let mut row_cells = Vec::with_capacity(9);
+        let mut row_cells = Vec::with_capacity(10);
 
-        row_cells.push(Cell::new(&format!(
-            "{} ",
-            long_permission_text(info, params)
-        )));
+        append_permission_cells(&mut row_cells, info, params, color_level);
         row_cells.push(Cell::new(&info.nlink.to_string()));
         row_cells.push(Cell::new(&format!(" {}", info.user.cyan())));
         row_cells.push(Cell::new(&format!("{} ", info.group.green())));
@@ -125,6 +122,69 @@ fn build_long_format_table_with_name_prefixes<'a>(
     }
 
     table
+}
+
+fn append_permission_cells(
+    row_cells: &mut Vec<Cell>,
+    info: &FileInfo,
+    params: &Params,
+    color_level: LongFormatColorLevel,
+) {
+    match params.permissions {
+        PermissionDisplay::Symbolic => {
+            row_cells.push(Cell::new(&format!(
+                "{} ",
+                long_permission_text(info, params)
+            )));
+        }
+        PermissionDisplay::Octal => {
+            row_cells.push(Cell::new(&format!(
+                "{} {} ",
+                long_file_type_text(info, params),
+                long_octal_permission_text(info, params, color_level)
+            )));
+        }
+        PermissionDisplay::Both => {
+            row_cells.push(Cell::new(&long_permission_text(info, params)));
+            row_cells.push(Cell::new(&format!(
+                "{} ",
+                long_octal_permission_text(info, params, color_level)
+            )));
+        }
+        PermissionDisplay::None => {}
+    }
+}
+
+fn long_file_type_text(info: &FileInfo, params: &Params) -> String {
+    if !params.permission_colors {
+        return info.file_type.clone();
+    }
+
+    let mut output = String::with_capacity(info.file_type.len());
+    for value in info.file_type.chars() {
+        write_file_type_char(&mut output, value);
+    }
+    output
+}
+
+fn long_octal_permission_text(
+    info: &FileInfo,
+    params: &Params,
+    color_level: LongFormatColorLevel,
+) -> String {
+    let text = utils::format::mode_to_octal(info.mode_bits);
+    if !params.permission_colors {
+        return text;
+    }
+
+    match color_level {
+        LongFormatColorLevel::Truecolor => text.rgb(238, 204, 92).to_string(),
+        LongFormatColorLevel::Ansi256 => {
+            format!("\x1b[38;5;221m{text}\x1b[0m")
+        }
+        LongFormatColorLevel::Named => text.yellow().dim().to_string(),
+        LongFormatColorLevel::None => text,
+    }
 }
 
 fn long_permission_text(info: &FileInfo, params: &Params) -> String {

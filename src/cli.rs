@@ -9,7 +9,7 @@ use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::env;
 use std::ffi::OsString;
 
-use crate::IndicatorStyle;
+use crate::{IndicatorStyle, PermissionDisplay};
 
 const ARG_SHOW_ALL: &str = "show_all";
 const ARG_ALMOST_ALL: &str = "almost_all";
@@ -31,6 +31,7 @@ const ARG_DIRS_FIRST: &str = "dirs_first";
 const ARG_NO_ICONS: &str = "no_icons";
 const ARG_NO_COLOR: &str = "no_color";
 const ARG_NO_PERMISSION_COLORS: &str = "no_permission_colors";
+const ARG_PERMISSIONS: &str = "permissions";
 const ARG_NO_TIME_GRADIENT: &str = "no_time_gradient";
 const ARG_NO_SIZE_COLORS: &str = "no_size_colors";
 const ARG_GITIGNORE: &str = "gitignore";
@@ -100,6 +101,8 @@ pub struct Flags {
     pub no_color: bool,
     /// Disable permission and file-type colors in long-format output.
     pub no_permission_colors: bool,
+    /// Override long-format permission display mode.
+    pub permissions: Option<PermissionDisplay>,
     /// Use the fixed timestamp color instead of age-based colors.
     pub no_time_gradient: bool,
     /// Disable large-size colors in long-format output.
@@ -186,6 +189,7 @@ fn build_command(mode: CompatMode) -> Command {
         .arg(no_icons_arg())
         .arg(no_color_arg(mode))
         .arg(no_permission_colors_arg())
+        .arg(permissions_arg())
         .arg(no_time_gradient_arg())
         .arg(no_size_colors_arg())
         .arg(gitignore_arg(mode))
@@ -418,6 +422,15 @@ fn no_permission_colors_arg() -> Arg {
         )
 }
 
+fn permissions_arg() -> Arg {
+    Arg::new(ARG_PERMISSIONS)
+        .long("permissions")
+        .action(ArgAction::Set)
+        .value_name("MODE")
+        .value_parser(["symbolic", "octal", "both", "none"])
+        .help("Select long-format permission display: symbolic, octal, both, or none")
+}
+
 fn no_time_gradient_arg() -> Arg {
     Arg::new(ARG_NO_TIME_GRADIENT)
         .long("no-time-gradient")
@@ -493,6 +506,15 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
         no_icons: matches.get_flag(ARG_NO_ICONS),
         no_color: matches.get_flag(ARG_NO_COLOR),
         no_permission_colors: matches.get_flag(ARG_NO_PERMISSION_COLORS),
+        permissions: matches.get_one::<String>(ARG_PERMISSIONS).and_then(
+            |value| match value.as_str() {
+                "symbolic" => Some(PermissionDisplay::Symbolic),
+                "octal" => Some(PermissionDisplay::Octal),
+                "both" => Some(PermissionDisplay::Both),
+                "none" => Some(PermissionDisplay::None),
+                _ => None,
+            },
+        ),
         no_time_gradient: matches.get_flag(ARG_NO_TIME_GRADIENT),
         no_size_colors: matches.get_flag(ARG_NO_SIZE_COLORS),
         gitignore: matches.get_flag(ARG_GITIGNORE),
