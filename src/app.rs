@@ -16,7 +16,8 @@ use crate::utils;
 use crate::utils::file::{
     collect_file_info, create_file_info,
     create_file_info_from_metadata_with_gitignore,
-    create_file_info_with_gitignore, sanitize_for_terminal,
+    create_file_info_with_gitignore, format_path_error, sanitize_for_terminal,
+    sanitize_path_for_terminal as display_path,
 };
 use crate::utils::gitignore::GitignoreCache;
 
@@ -602,10 +603,6 @@ fn should_prune_directory(path: &Path, params: &Params) -> bool {
         })
 }
 
-fn display_path(path: &Path) -> String {
-    sanitize_for_terminal(&path.to_string_lossy())
-}
-
 fn recursive_section_header(
     path: &Path,
     visible_entry_depth: usize,
@@ -619,5 +616,5 @@ fn recursive_section_header(
 }
 
 fn report_path_error(path: &Path, err: &io::Error) {
-    eprintln!("lsplus: {}: {}", display_path(path), err);
+    eprintln!("{}", format_path_error(path, err));
 }

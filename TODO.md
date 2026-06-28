@@ -12,6 +12,11 @@
 - [ ] When adding recursion or tree-style output, revisit whether directory
       traversal should move over to the `ignore` crate instead of the current
       custom walker.
+- [ ] Unify recursive and tree traversal policy behind a shared walker so
+      depth limits, symlink handling, pruning, and error handling cannot drift
+      between output modes.
+- [ ] Add configurable tree rendering styles, including the current compact
+      root display, classic root branch graphics, and an ASCII fallback.
 - [ ] Add inode, allocated block size, and optional column header support for
       long-format output.
 - [ ] Evaluate the Rust crate `uutils-term-grid` as a short-format layout
@@ -27,7 +32,9 @@
       4. Carry cheap `DirEntry::file_type()` data through directory filtering
          and sorting so short mode can avoid extra metadata calls where
          possible.
-      5. Revisit `prettytable` for long recursive output; a custom row
+      5. Reuse a single `GitignoreCache` across recursive and tree traversal
+         so ancestor ignore files are not rediscovered for every directory.
+      6. Revisit `prettytable` for long recursive output; a custom row
          formatter may be leaner for hot paths.
 - [ ] better handle dotfiles?
 - [ ] option to list dotfiles (and folders) before non-dotfiles

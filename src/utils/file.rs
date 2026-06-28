@@ -458,7 +458,7 @@ pub(crate) fn sanitize_for_terminal(text: &str) -> String {
     sanitized
 }
 
-fn sanitize_path_for_terminal(path: &Path) -> String {
+pub(crate) fn sanitize_path_for_terminal(path: &Path) -> String {
     sanitize_for_terminal(&path.to_string_lossy())
 }
 
