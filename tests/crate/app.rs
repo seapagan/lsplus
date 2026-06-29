@@ -211,6 +211,102 @@ fn test_collect_listing_sections_recurses_with_headers() {
 }
 
 #[test]
+fn test_collect_listing_sections_recursive_filters_glob_matches() {
+    let temp_dir = tempdir().unwrap();
+    let nested = temp_dir.path().join("nested");
+    fs::create_dir(&nested).unwrap();
+    fs::write(temp_dir.path().join("root.rs"), "root").unwrap();
+    fs::write(temp_dir.path().join("root.txt"), "root").unwrap();
+    fs::write(nested.join("deep.rs"), "deep").unwrap();
+    fs::write(nested.join("deep.txt"), "deep").unwrap();
+    let params = Params {
+        recursive: true,
+        ..Params::default()
+    };
+    let pattern = format!("{}/*.rs", temp_dir.path().display());
+
+    let sections = collect_listing_sections(&[pattern], &params).unwrap();
+
+    assert_eq!(sections.len(), 2);
+    assert_eq!(
+        sections[0].header,
+        Some(temp_dir.path().display().to_string())
+    );
+    assert!(
+        sections[0]
+            .entries
+            .iter()
+            .any(|info| info.short_name == "root.rs")
+    );
+    assert!(
+        !sections[0]
+            .entries
+            .iter()
+            .any(|info| info.short_name == "root.txt")
+    );
+    assert_eq!(sections[1].header, Some(nested.display().to_string()));
+    assert!(
+        sections[1]
+            .entries
+            .iter()
+            .any(|info| info.short_name == "deep.rs")
+    );
+    assert!(
+        !sections[1]
+            .entries
+            .iter()
+            .any(|info| info.short_name == "deep.txt")
+    );
+}
+
+#[test]
+fn test_collect_listing_sections_recursive_roots_prefixed_glob() {
+    let temp_dir = tempdir().unwrap();
+    let src = temp_dir.path().join("src");
+    let utils = src.join("utils");
+    fs::create_dir_all(&utils).unwrap();
+    fs::write(temp_dir.path().join("outside.rs"), "outside").unwrap();
+    fs::write(src.join("lib.rs"), "lib").unwrap();
+    fs::write(src.join("lib.txt"), "lib").unwrap();
+    fs::write(utils.join("file.rs"), "file").unwrap();
+    let params = Params {
+        recursive: true,
+        ..Params::default()
+    };
+    let pattern = format!("{}/*.rs", src.display());
+
+    let sections = collect_listing_sections(&[pattern], &params).unwrap();
+
+    assert_eq!(sections.len(), 2);
+    assert_eq!(sections[0].header, Some(src.display().to_string()));
+    assert!(
+        sections[0]
+            .entries
+            .iter()
+            .any(|info| info.short_name == "lib.rs")
+    );
+    assert!(
+        !sections[0]
+            .entries
+            .iter()
+            .any(|info| info.short_name == "lib.txt")
+    );
+    assert_eq!(sections[1].header, Some(utils.display().to_string()));
+    assert!(
+        sections[1]
+            .entries
+            .iter()
+            .any(|info| info.short_name == "file.rs")
+    );
+    assert!(
+        !sections
+            .iter()
+            .flat_map(|section| section.entries.iter())
+            .any(|info| info.short_name == "outside.rs")
+    );
+}
+
+#[test]
 fn test_collect_listing_sections_recursive_respects_level_limit() {
     let temp_dir = tempdir().unwrap();
     let child = temp_dir.path().join("child");

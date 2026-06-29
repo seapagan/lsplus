@@ -387,6 +387,55 @@ fn test_recursive_current_directory_omits_root_header_and_cleans_child_headers()
 }
 
 #[test]
+fn test_recursive_quoted_glob_filters_nested_matches() {
+    let temp_dir = tempdir().unwrap();
+    let src = temp_dir.path().join("src");
+    let utils = src.join("utils");
+    fs::create_dir_all(&utils).unwrap();
+    fs::write(temp_dir.path().join("root.rs"), "root").unwrap();
+    fs::write(temp_dir.path().join("root.txt"), "root").unwrap();
+    fs::write(src.join("lib.rs"), "lib").unwrap();
+    fs::write(src.join("lib.txt"), "lib").unwrap();
+    fs::write(utils.join("file.rs"), "file").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg("*.rs");
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(!stdout.lines().any(|line| line == ".:"));
+    assert!(stdout.lines().any(|line| line == "src:"));
+    assert!(stdout.lines().any(|line| line == "src/utils:"));
+    assert!(stdout.contains("root.rs"));
+    assert!(stdout.contains("lib.rs"));
+    assert!(stdout.contains("file.rs"));
+    assert!(!stdout.contains("root.txt"));
+    assert!(!stdout.contains("lib.txt"));
+}
+
+#[test]
+fn test_recursive_bare_filename_finds_nested_matches() {
+    let temp_dir = tempdir().unwrap();
+    let src = temp_dir.path().join("src");
+    fs::create_dir(&src).unwrap();
+    fs::write(src.join("main.rs"), "main").unwrap();
+    fs::write(src.join("lib.rs"), "lib").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg("main.rs");
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.lines().any(|line| line == "src:"));
+    assert!(stdout.contains("main.rs"));
+    assert!(!stdout.contains("lib.rs"));
+}
+
+#[test]
 fn test_recursive_level_limits_nested_directory_headers() {
     let temp_dir = tempdir().unwrap();
     let child = temp_dir.path().join("child");

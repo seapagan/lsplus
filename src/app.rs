@@ -3,7 +3,7 @@
 //! This module bridges parsed CLI flags, config parameters, glob expansion,
 //! filesystem metadata collection, and the selected output renderer.
 
-use glob::glob;
+use glob::{Pattern, glob};
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -42,6 +42,21 @@ pub(crate) struct TreeEntry {
 struct RecursiveDirectory {
     section: ListingSection,
     children: Vec<PathBuf>,
+}
+
+struct RecursiveFilter {
+    root: PathBuf,
+    pattern: Pattern,
+}
+
+enum RecursiveTarget {
+    Path(PathBuf),
+    Filter(RecursiveFilter),
+}
+
+struct RecursiveListing {
+    file_entries: Vec<FileInfo>,
+    recursive_targets: Vec<RecursiveTarget>,
 }
 
 /// Run `lsplus` using parsed CLI flags and config loaded from disk.
@@ -158,25 +173,36 @@ fn render_recursive_listing(
     patterns: &[String],
     params: &Params,
 ) -> io::Result<()> {
-    let operands = collect_operands(patterns, params)?;
-    let (file_entries, directory_operands) =
-        split_file_and_directory_operands(&operands, params)?;
+    let listing = prepare_recursive_listing(patterns, params)?;
     let mut rendered_section = false;
 
-    if !file_entries.is_empty() {
+    if !listing.file_entries.is_empty() {
         render_listing_section(
             &mut rendered_section,
             &ListingSection {
                 header: None,
-                entries: file_entries,
+                entries: listing.file_entries,
             },
             params,
         )?;
     }
 
-    walk_recursive_operands(directory_operands, params, &mut |section| {
-        render_listing_section(&mut rendered_section, &section, params)
-    })?;
+    let mut first_error = None;
+    for target in listing.recursive_targets {
+        let result = walk_recursive_target(target, params, &mut |section| {
+            render_listing_section(&mut rendered_section, &section, params)
+        });
+
+        if let Err(err) = result
+            && first_error.is_none()
+        {
+            first_error = Some(err);
+        }
+    }
+
+    if let Some(err) = first_error {
+        return Err(err);
+    }
 
     Ok(())
 }
@@ -281,6 +307,10 @@ pub(crate) fn collect_listing_sections(
     patterns: &[String],
     params: &Params,
 ) -> io::Result<Vec<ListingSection>> {
+    if params.recursive {
+        return collect_recursive_listing_sections(patterns, params);
+    }
+
     let operands = collect_operands(patterns, params)?;
     build_listing_sections(&operands, params)
 }
@@ -308,6 +338,156 @@ fn collect_operands(
     }
 
     Ok(operands)
+}
+
+fn collect_recursive_listing_sections(
+    patterns: &[String],
+    params: &Params,
+) -> io::Result<Vec<ListingSection>> {
+    let listing = prepare_recursive_listing(patterns, params)?;
+    let mut sections = Vec::new();
+    if !listing.file_entries.is_empty() {
+        sections.push(ListingSection {
+            header: None,
+            entries: listing.file_entries,
+        });
+    }
+
+    let mut first_error = None;
+    for target in listing.recursive_targets {
+        let result = walk_recursive_target(target, params, &mut |section| {
+            sections.push(section);
+            Ok(())
+        });
+
+        if let Err(err) = result
+            && first_error.is_none()
+        {
+            first_error = Some(err);
+        }
+    }
+
+    if let Some(err) = first_error {
+        return Err(err);
+    }
+
+    Ok(sections)
+}
+
+fn prepare_recursive_listing(
+    patterns: &[String],
+    params: &Params,
+) -> io::Result<RecursiveListing> {
+    let targets = collect_recursive_targets(patterns)?;
+    let mut file_entries = Vec::new();
+    let mut recursive_targets = Vec::new();
+
+    for target in targets {
+        match target {
+            RecursiveTarget::Path(path) if is_display_directory(&path) => {
+                recursive_targets.push(RecursiveTarget::Path(path));
+            }
+            RecursiveTarget::Path(path) => {
+                file_entries.push(create_file_info(&path, params)?);
+            }
+            RecursiveTarget::Filter(filter) => {
+                recursive_targets.push(RecursiveTarget::Filter(filter));
+            }
+        }
+    }
+
+    Ok(RecursiveListing {
+        file_entries,
+        recursive_targets,
+    })
+}
+
+fn walk_recursive_target(
+    target: RecursiveTarget,
+    params: &Params,
+    sink: &mut impl FnMut(ListingSection) -> io::Result<()>,
+) -> io::Result<()> {
+    match target {
+        RecursiveTarget::Path(path) => {
+            walk_recursive_directory(&path, params, true, 1, sink)
+                .inspect_err(|err| report_path_error(&path, err))
+        }
+        RecursiveTarget::Filter(filter) => {
+            walk_recursive_filter(&filter, params, sink)
+        }
+    }
+}
+
+fn collect_recursive_targets(
+    patterns: &[String],
+) -> io::Result<Vec<RecursiveTarget>> {
+    let mut targets = Vec::new();
+
+    for pattern in patterns {
+        if let Some(filter) = recursive_filter_from_pattern(pattern) {
+            match filter {
+                Ok(filter) => targets.push(RecursiveTarget::Filter(filter)),
+                Err(err) => {
+                    eprintln!("lsplus: failed to read glob pattern: {}", err);
+                }
+            }
+            continue;
+        }
+
+        let mut operands = Vec::new();
+        append_pattern_operands(&mut operands, pattern, &Params::default())?;
+        targets.extend(operands.into_iter().map(RecursiveTarget::Path));
+    }
+
+    Ok(targets)
+}
+
+fn recursive_filter_from_pattern(
+    pattern: &str,
+) -> Option<Result<RecursiveFilter, glob::PatternError>> {
+    let path = Path::new(pattern);
+
+    if pattern_has_glob_chars(pattern) {
+        let parent = path.parent().unwrap_or_else(|| Path::new(""));
+        if pattern_has_glob_chars(&parent.to_string_lossy()) {
+            return None;
+        }
+
+        let file_name = path.file_name()?.to_string_lossy();
+        return Some(Pattern::new(&file_name).map(|pattern| {
+            RecursiveFilter {
+                root: filter_root(parent),
+                pattern,
+            }
+        }));
+    }
+
+    if path.exists() {
+        return None;
+    }
+
+    let parent = path.parent().unwrap_or_else(|| Path::new(""));
+    if !parent.as_os_str().is_empty() {
+        return None;
+    }
+
+    let file_name = path.file_name()?.to_string_lossy();
+    Some(Pattern::new(&file_name).map(|pattern| RecursiveFilter {
+        root: PathBuf::from("."),
+        pattern,
+    }))
+}
+
+fn filter_root(parent: &Path) -> PathBuf {
+    if parent.as_os_str().is_empty() {
+        PathBuf::from(".")
+    } else {
+        parent.to_path_buf()
+    }
+}
+
+fn pattern_has_glob_chars(pattern: &str) -> bool {
+    pattern.contains('*') || pattern.contains('?') || pattern.contains('[')
 }
 
 fn append_pattern_operands(
@@ -408,6 +588,15 @@ fn collect_recursive_directory(
     params: &Params,
     hide_dot_entries: bool,
 ) -> io::Result<RecursiveDirectory> {
+    collect_recursive_directory_entries(path, params, hide_dot_entries, None)
+}
+
+fn collect_recursive_directory_entries(
+    path: &Path,
+    params: &Params,
+    hide_dot_entries: bool,
+    name_filter: Option<&Pattern>,
+) -> io::Result<RecursiveDirectory> {
     let child_names = utils::file::collect_file_names(path, params)?;
     let mut entries = Vec::new();
     let mut children = Vec::new();
@@ -429,12 +618,14 @@ fn collect_recursive_directory(
             }
         };
 
-        entries.push(create_file_info_from_metadata_with_gitignore(
-            &child_path,
-            &metadata,
-            params,
-            &mut gitignore_cache,
-        ));
+        if name_filter.is_none_or(|pattern| pattern.matches(&child_name)) {
+            entries.push(create_file_info_from_metadata_with_gitignore(
+                &child_path,
+                &metadata,
+                params,
+                &mut gitignore_cache,
+            ));
+        }
 
         if is_traversable_child_name(&child_name)
             && metadata.is_dir()
@@ -452,6 +643,84 @@ fn collect_recursive_directory(
         },
         children,
     })
+}
+
+fn walk_recursive_filter(
+    filter: &RecursiveFilter,
+    params: &Params,
+    sink: &mut impl FnMut(ListingSection) -> io::Result<()>,
+) -> io::Result<()> {
+    if !is_display_directory(&filter.root) {
+        eprintln!(
+            "lsplus: {}: No such file or directory",
+            sanitize_for_terminal(&filter.root.to_string_lossy())
+        );
+        return Ok(());
+    }
+
+    walk_recursive_filtered_directory(&filter.root, filter, params, 1, sink)
+}
+
+fn walk_recursive_filtered_directory(
+    path: &Path,
+    filter: &RecursiveFilter,
+    params: &Params,
+    visible_entry_depth: usize,
+    sink: &mut impl FnMut(ListingSection) -> io::Result<()>,
+) -> io::Result<()> {
+    let directory = match collect_recursive_filtered_directory(
+        path,
+        filter,
+        params,
+        visible_entry_depth > 1,
+    ) {
+        Ok(directory) => directory,
+        Err(err) if visible_entry_depth == 1 => return Err(err),
+        Err(err) => {
+            report_path_error(path, &err);
+            return Ok(());
+        }
+    };
+
+    if !directory.section.entries.is_empty() {
+        sink(ListingSection {
+            header: recursive_section_header(path, visible_entry_depth),
+            entries: directory.section.entries,
+        })?;
+    }
+
+    if params
+        .recursive_level
+        .is_some_and(|limit| visible_entry_depth >= limit)
+    {
+        return Ok(());
+    }
+
+    for child in directory.children {
+        walk_recursive_filtered_directory(
+            &child,
+            filter,
+            params,
+            visible_entry_depth + 1,
+            sink,
+        )?;
+    }
+
+    Ok(())
+}
+
+fn collect_recursive_filtered_directory(
+    path: &Path,
+    filter: &RecursiveFilter,
+    params: &Params,
+    hide_dot_entries: bool,
+) -> io::Result<RecursiveDirectory> {
+    collect_recursive_directory_entries(
+        path,
+        params,
+        hide_dot_entries,
+        Some(&filter.pattern),
+    )
 }
 
 fn build_tree_sections(
