@@ -5,17 +5,23 @@ project since the first release.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/seapagan/lsplus/tree/HEAD)
+## [0.10.0](https://github.com/seapagan/lsplus/releases/tag/0.10.0) (2026-06-29)
 
 **New Features**
 
+- Add long-format header option ([#140](https://github.com/seapagan/lsplus/pull/140)) by [seapagan](https://github.com/seapagan)
+- Add permission display modes ([#138](https://github.com/seapagan/lsplus/pull/138)) by [seapagan](https://github.com/seapagan)
 - Add recursive and tree listing modes ([#137](https://github.com/seapagan/lsplus/pull/137)) by [seapagan](https://github.com/seapagan)
+
+**Refactoring**
+
+- Replace long-format table renderer ([#139](https://github.com/seapagan/lsplus/pull/139)) by [seapagan](https://github.com/seapagan)
 
 **Documentation**
 
 - Update README and screenshots ([#136](https://github.com/seapagan/lsplus/pull/136)) by [seapagan](https://github.com/seapagan)
 
-[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.9.0...HEAD) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.9.0...HEAD.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.9.0...HEAD.patch)
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.9.0...0.10.0) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.9.0...0.10.0.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.9.0...0.10.0.patch)
 
 ## [0.9.0](https://github.com/seapagan/lsplus/releases/tag/0.9.0) (2026-06-27)
 
