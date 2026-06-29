@@ -21,6 +21,7 @@ fn test_default_params() {
     assert_eq!(params.recursive_level, None);
     assert!(params.prune_dirs.is_empty());
     assert_eq!(params.size_scale(), None);
+    assert!(!params.header);
     assert!(!params.no_icons);
     assert!(!params.no_color);
     assert!(params.permission_colors);
@@ -44,6 +45,7 @@ fn test_config_conversion() {
             dirs_first = true
             almost_all = true
             long_format = true
+            header = true
             human_readable = true
             si = true
             recursive = true
@@ -78,6 +80,7 @@ fn test_config_conversion() {
             dirs_first: true,
             almost_all: true,
             long_format: true,
+            header: true,
             human_readable: true,
             si: true,
             recursive: true,
@@ -169,6 +172,7 @@ fn test_params_merge_prefers_true_from_either_source() {
         dirs_first: false,
         almost_all: false,
         long_format: true,
+        header: true,
         human_readable: true,
         si: false,
         recursive: true,
@@ -201,6 +205,7 @@ fn test_params_merge_prefers_true_from_either_source() {
         indicator_style: Some(IndicatorStyle::Classify),
         dirs_first: true,
         long: false,
+        header: true,
         human_readable: false,
         si: false,
         recursive: false,
@@ -225,6 +230,7 @@ fn test_params_merge_prefers_true_from_either_source() {
     assert!(params.dirs_first);
     assert!(params.almost_all);
     assert!(params.long_format);
+    assert!(params.header);
     assert!(params.human_readable);
     assert!(!params.si);
     assert!(params.recursive);
@@ -264,6 +270,7 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
         indicator_style: None,
         dirs_first: false,
         long: false,
+        header: false,
         human_readable: false,
         si: false,
         recursive: false,
@@ -287,6 +294,48 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
 }
 
 #[test]
+fn test_params_merge_header_prefers_true_from_either_source() {
+    let flags = Flags {
+        version: false,
+        paths: vec![],
+        show_all: false,
+        almost_all: false,
+        indicator_style: None,
+        dirs_first: false,
+        long: false,
+        header: false,
+        human_readable: false,
+        si: false,
+        recursive: false,
+        tree: false,
+        tree_level: None,
+        prune_noisy_dirs: false,
+        prune_dirs: Vec::new(),
+        no_icons: false,
+        no_color: false,
+        no_permission_colors: false,
+        permissions: None,
+        no_time_gradient: false,
+        no_size_colors: false,
+        gitignore: false,
+        fuzzy_time: false,
+    };
+    let config = Params {
+        header: true,
+        ..Params::default()
+    };
+
+    assert!(Params::merge(&flags, &config).header);
+
+    let flags = Flags {
+        header: true,
+        ..flags
+    };
+
+    assert!(Params::merge(&flags, &Params::default()).header);
+}
+
+#[test]
 fn test_params_merge_uses_config_permissions_until_cli_overrides() {
     let config = Params {
         permissions: PermissionDisplay::Octal,
@@ -300,6 +349,7 @@ fn test_params_merge_uses_config_permissions_until_cli_overrides() {
         indicator_style: None,
         dirs_first: false,
         long: false,
+        header: false,
         human_readable: false,
         si: false,
         recursive: false,
@@ -340,6 +390,7 @@ fn test_params_merge_si_enables_decimal_human_readable_output() {
         indicator_style: None,
         dirs_first: false,
         long: false,
+        header: false,
         human_readable: false,
         si: true,
         recursive: false,
@@ -379,6 +430,7 @@ fn test_params_merge_config_si_overrides_config_human_readable() {
         indicator_style: None,
         dirs_first: false,
         long: false,
+        header: false,
         human_readable: false,
         si: false,
         recursive: false,
@@ -417,6 +469,7 @@ fn test_params_merge_cli_prune_dirs_append_config_prune_dirs() {
         indicator_style: None,
         dirs_first: false,
         long: false,
+        header: false,
         human_readable: false,
         si: false,
         recursive: false,
@@ -462,6 +515,7 @@ fn test_params_merge_deduplicates_prune_preset() {
         indicator_style: None,
         dirs_first: false,
         long: false,
+        header: false,
         human_readable: false,
         si: false,
         recursive: false,

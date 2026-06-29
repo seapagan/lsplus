@@ -87,6 +87,15 @@ equivalent long option is `--group-directories-first` (replacing the original
 This option corresponds to `--long` and displays output in long format when set
 to `true`.
 
+### header
+
+- Permitted values: `true` or `false`
+- Default value: `false`
+
+This option corresponds to `--header` and adds a title row to long-format
+output when set to `true`. It only affects long-format output, so use it with
+`long_format = true` or `tree = true`.
+
 ### human_readable
 
 - Permitted values: `true` or `false`
@@ -247,6 +256,8 @@ This example sets several options. Omitted options use default values:
 show_all = true
 indicator_style = "classify"
 dirs_first = true
+long_format = true
+# header = true
 human_readable = true
 # si = true
 # recursive = true

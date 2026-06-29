@@ -58,6 +58,11 @@ fn visible_column_start(row: &str, needle: &str) -> usize {
     UnicodeWidthStr::width(strip_str(&row[..byte_start]).as_str())
 }
 
+fn visible_column_end(row: &str, needle: &str) -> usize {
+    visible_column_start(row, needle)
+        + UnicodeWidthStr::width(strip_str(needle).as_str())
+}
+
 #[test]
 fn test_build_long_format_table_shows_symbolic_permissions_by_default() {
     let mut info = test_file_info("plain.txt", None, 12, SystemTime::now());
@@ -225,6 +230,290 @@ fn test_build_long_format_table_omits_optional_units_and_icons() {
 }
 
 #[test]
+fn test_build_long_format_table_omits_header_by_default() {
+    let info = test_file_info("plain.txt", None, 12, SystemTime::now());
+
+    let rendered =
+        normalized_table(build_long_format_table(&[info], &Params::default()));
+
+    assert!(!rendered.contains("Permissions"));
+    assert!(!rendered.contains("Date Modified"));
+}
+
+#[test]
+fn test_build_long_format_table_preserves_left_aligned_links_without_header() {
+    let mut first = test_file_info("one.txt", None, 12, SystemTime::now());
+    first.nlink = 1;
+    let mut second = test_file_info("many.txt", None, 12, SystemTime::now());
+    second.nlink = 123_456;
+    let params = Params {
+        no_icons: true,
+        ..plain_permission_params()
+    };
+
+    let rendered =
+        normalized_table(build_long_format_table(&[first, second], &params));
+    let rows: Vec<_> = rendered.lines().collect();
+
+    assert_eq!(
+        visible_column_start(rows[0], "1"),
+        visible_column_start(rows[1], "123456")
+    );
+}
+
+#[test]
+fn test_build_long_format_table_adds_header_before_rows() {
+    let info = test_file_info("plain.txt", None, 12, SystemTime::now());
+    let params = Params {
+        header: true,
+        no_icons: true,
+        ..Params::default()
+    };
+
+    let rendered = normalized_table(build_long_format_table(&[info], &params));
+    let stripped = strip_str(&rendered);
+    let rows: Vec<_> = stripped.lines().collect();
+
+    assert!(rows[0].contains("Permissions"));
+    assert!(rows[0].contains("Links"));
+    assert!(rows[0].contains("Date Modified"));
+    assert!(rows[0].contains("Name"));
+    assert!(rows[1].contains("plain.txt"));
+}
+
+#[test]
+fn test_build_long_format_table_header_matches_optional_columns() {
+    let info = test_file_info(
+        "example.rs",
+        Some(Icon::RustFile),
+        2 * 1024,
+        SystemTime::now(),
+    );
+    let params = Params {
+        header: true,
+        human_readable: true,
+        permissions: PermissionDisplay::Both,
+        ..Params::default()
+    };
+
+    let rendered = normalized_table(build_long_format_table(&[info], &params));
+    let header = strip_str(&rendered).lines().next().unwrap().to_string();
+
+    assert!(header.contains("Permissions"));
+    assert!(header.contains("Octal"));
+    assert!(header.contains("Links"));
+    assert!(header.contains("User"));
+    assert!(header.contains("Group"));
+    assert!(header.contains("Size"));
+    assert!(header.contains("Date Modified"));
+    assert!(header.contains("Name"));
+    assert!(!header.contains("Unit"));
+}
+
+#[test]
+fn test_build_long_format_table_header_omits_disabled_columns() {
+    let info = test_file_info("plain.txt", None, 12, SystemTime::now());
+    let params = Params {
+        header: true,
+        no_icons: true,
+        permissions: PermissionDisplay::None,
+        ..Params::default()
+    };
+
+    let rendered = normalized_table(build_long_format_table(&[info], &params));
+    let header = strip_str(&rendered).lines().next().unwrap().to_string();
+
+    assert!(!header.contains("Permissions"));
+    assert!(!header.contains("Octal"));
+    assert!(!header.contains("Unit"));
+    assert!(header.contains("Links"));
+    assert!(header.contains("Name"));
+}
+
+#[test]
+fn test_build_long_format_table_omits_header_for_empty_rows() {
+    let params = Params {
+        header: true,
+        ..Params::default()
+    };
+
+    let rendered = normalized_table(build_long_format_table(&[], &params));
+
+    assert!(!rendered.contains("Permissions"));
+    assert!(!rendered.contains("Name"));
+}
+
+#[test]
+fn test_build_long_format_table_header_aligns_with_colored_rows() {
+    temp_env::with_vars(
+        [("COLORTERM", Some("truecolor")), ("TERM", None::<&str>)],
+        || {
+            with_color_output_enabled(|| {
+                let mut first =
+                    test_file_info("first.txt", None, 12, SystemTime::now());
+                first.file_type = String::from("d");
+                first.mode = String::from("rwsr-tS-T");
+                first.nlink = 1;
+
+                let mut second = test_file_info(
+                    "second.txt",
+                    Some(Icon::RustFile),
+                    12,
+                    SystemTime::now(),
+                );
+                second.file_type = String::from("-");
+                second.mode = String::from("rwxrwxrwx");
+                second.nlink = 123_456;
+
+                let params = Params {
+                    header: true,
+                    human_readable: true,
+                    ..fixed_time_params()
+                };
+                let rendered = normalized_table(build_long_format_table(
+                    &[first, second],
+                    &params,
+                ));
+                let rows: Vec<_> = rendered.lines().collect();
+
+                assert!(rows[0].contains("Permissions"));
+                assert!(rows[1].contains("\u{1b}["));
+                assert!(
+                    visible_column_start(rows[0], "User")
+                        < visible_column_start(rows[0], "Group")
+                );
+                assert!(
+                    visible_column_start(rows[0], "Group")
+                        < visible_column_start(rows[0], "Name")
+                );
+                assert_eq!(
+                    visible_column_start(rows[1], "user"),
+                    visible_column_start(rows[2], "user")
+                );
+                assert_eq!(
+                    visible_column_start(rows[1], "group"),
+                    visible_column_start(rows[2], "group")
+                );
+                assert_eq!(
+                    visible_column_start(rows[1], "first.txt"),
+                    visible_column_start(rows[2], "second.txt")
+                );
+            });
+        },
+    );
+}
+
+#[test]
+fn test_build_long_format_table_header_uses_column_alignment() {
+    let mut info = test_file_info(
+        "plain.txt",
+        None,
+        12,
+        SystemTime::now()
+            .checked_sub(Duration::from_secs(2 * 60 * 60))
+            .unwrap(),
+    );
+    info.nlink = 123_456;
+    let params = Params {
+        fuzzy_time: true,
+        header: true,
+        human_readable: true,
+        no_icons: true,
+        ..plain_permission_params()
+    };
+
+    let rendered = normalized_table(build_long_format_table(&[info], &params));
+    let rows: Vec<_> = rendered.lines().collect();
+
+    assert_eq!(
+        visible_column_start(rows[0], "Links"),
+        visible_column_start(rows[1], "123456")
+    );
+    assert_eq!(
+        visible_column_start(rows[0], "User"),
+        visible_column_start(rows[1], "user")
+    );
+    assert_eq!(
+        visible_column_start(rows[0], "Group"),
+        visible_column_start(rows[1], "group")
+    );
+    assert_eq!(
+        visible_column_start(rows[0], "Name"),
+        visible_column_start(rows[1], "plain.txt")
+    );
+    assert_eq!(
+        visible_column_end(rows[0], "Size"),
+        visible_column_end(rows[1], "12 B")
+    );
+    assert_eq!(
+        visible_column_end(rows[0], "Date Modified"),
+        visible_column_end(rows[1], "2 hours ago")
+    );
+}
+
+#[test]
+fn test_build_long_format_table_colors_header_when_enabled() {
+    for (env, expected) in [
+        (
+            [("COLORTERM", Some("truecolor")), ("TERM", None::<&str>)],
+            "\u{1b}[4;38;2;250;128;114mPermissions\u{1b}[0m",
+        ),
+        (
+            [
+                ("COLORTERM", None::<&str>),
+                ("TERM", Some("xterm-256color")),
+            ],
+            "\u{1b}[4;38;5;209mPermissions\u{1b}[0m",
+        ),
+        (
+            [("COLORTERM", None::<&str>), ("TERM", Some("xterm"))],
+            "\u{1b}[4;31mPermissions\u{1b}[0m",
+        ),
+    ] {
+        temp_env::with_vars(env, || {
+            with_color_output_enabled(|| {
+                let info =
+                    test_file_info("plain.txt", None, 12, SystemTime::now());
+                let params = Params {
+                    header: true,
+                    no_icons: true,
+                    ..fixed_time_params()
+                };
+
+                let rendered = normalized_table(build_long_format_table(
+                    &[info],
+                    &params,
+                ));
+
+                assert!(rendered.contains(expected));
+            });
+        });
+    }
+}
+
+#[test]
+fn test_build_long_format_table_keeps_header_plain_when_color_disabled() {
+    with_color_output_enabled(|| {
+        let info = test_file_info("plain.txt", None, 12, SystemTime::now());
+        let params = Params {
+            header: true,
+            no_color: true,
+            no_icons: true,
+            ..Params::default()
+        };
+
+        let rendered =
+            normalized_table(build_long_format_table(&[info], &params));
+        let header = rendered
+            .lines()
+            .find(|line| line.contains("Permissions"))
+            .unwrap();
+
+        assert_eq!(strip_str(header), header);
+    });
+}
+
+#[test]
 fn test_build_long_format_table_aligns_after_colored_symbolic_permissions() {
     with_color_output_enabled(|| {
         let mut first =
@@ -283,10 +572,15 @@ fn test_build_long_format_table_aligns_names_with_blank_icon_cells() {
         .lines()
         .find(|line| line.contains("example.rs"))
         .unwrap();
+    let icon = Icon::RustFile.to_string();
 
     assert_eq!(
         visible_column_start(plain_row, "plain.txt"),
         visible_column_start(icon_row, "example.rs")
+    );
+    assert_eq!(
+        visible_column_start(icon_row, "example.rs"),
+        visible_column_end(icon_row, &icon) + 2
     );
 }
 

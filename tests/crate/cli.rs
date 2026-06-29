@@ -10,6 +10,7 @@ fn test_default_flags() {
     assert!(!args.show_all);
     assert!(!args.almost_all);
     assert!(!args.long);
+    assert!(!args.header);
     assert!(!args.human_readable);
     assert!(!args.si);
     assert!(!args.recursive);
@@ -47,6 +48,7 @@ fn test_all_flags() {
         "-a",
         "-A",
         "-l",
+        "--header",
         "-h",
         "--si",
         "-R",
@@ -70,6 +72,7 @@ fn test_all_flags() {
     assert!(args.show_all);
     assert!(args.almost_all);
     assert!(args.long);
+    assert!(args.header);
     assert!(args.human_readable);
     assert!(args.si);
     assert!(args.recursive);
@@ -98,6 +101,13 @@ fn test_tree_flags() {
 
     assert!(args.tree);
     assert_eq!(args.tree_level, Some(3));
+}
+
+#[test]
+fn test_header_flag() {
+    let args = Flags::parse_from(["lsplus", "--header"]);
+
+    assert!(args.header);
 }
 
 #[test]
@@ -223,6 +233,15 @@ fn test_parse_from_mode_accepts_recursive_and_tree_options() {
                 .unwrap();
         assert!(tree.tree);
         assert_eq!(tree.tree_level, Some(3));
+    }
+}
+
+#[test]
+fn test_parse_from_mode_accepts_header_option() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let args = try_parse_from_mode(mode, ["lsplus", "--header"]).unwrap();
+
+        assert!(args.header);
     }
 }
 

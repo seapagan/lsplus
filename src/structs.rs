@@ -61,6 +61,8 @@ pub struct Params {
     pub almost_all: bool,
     /// Render long-format output.
     pub long_format: bool,
+    /// Show a title row in long-format output.
+    pub header: bool,
     /// Render human-readable file sizes in long format.
     pub human_readable: bool,
     /// Use decimal powers for human-readable file sizes.
@@ -101,6 +103,7 @@ impl Default for Params {
             dirs_first: false,
             almost_all: false,
             long_format: false,
+            header: false,
             human_readable: false,
             si: false,
             recursive: false,
@@ -128,6 +131,7 @@ pub(crate) struct RawParams {
     dirs_first: bool,
     almost_all: bool,
     long_format: bool,
+    header: bool,
     human_readable: bool,
     si: bool,
     recursive: bool,
@@ -192,6 +196,7 @@ impl From<RawParams> for Params {
             dirs_first: raw.dirs_first,
             almost_all: raw.almost_all,
             long_format: raw.long_format,
+            header: raw.header,
             human_readable: raw.human_readable,
             si: raw.si,
             recursive: raw.recursive,
@@ -233,6 +238,7 @@ impl Params {
                 || flags.tree
                 || config.long_format
                 || config.tree,
+            header: flags.header || config.header,
             human_readable: flags.si
                 || flags.human_readable
                 || config.si
