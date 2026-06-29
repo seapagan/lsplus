@@ -307,6 +307,88 @@ fn test_collect_listing_sections_recursive_roots_prefixed_glob() {
 }
 
 #[test]
+fn test_collect_listing_sections_recursive_mixes_files_filters_and_directories()
+ {
+    let temp_dir = tempdir().unwrap();
+    let top_file = temp_dir.path().join("top.txt");
+    let src = temp_dir.path().join("src");
+    let utils = src.join("utils");
+    let docs = temp_dir.path().join("docs");
+    fs::create_dir_all(&utils).unwrap();
+    fs::create_dir(&docs).unwrap();
+    fs::write(&top_file, "top").unwrap();
+    fs::write(src.join("lib.rs"), "lib").unwrap();
+    fs::write(src.join("lib.txt"), "lib").unwrap();
+    fs::write(utils.join("file.rs"), "file").unwrap();
+    fs::write(docs.join("guide.md"), "guide").unwrap();
+    let params = Params {
+        recursive: true,
+        ..Params::default()
+    };
+    let pattern = format!("{}/*.rs", src.display());
+
+    let sections = collect_listing_sections(
+        &[
+            pattern,
+            top_file.display().to_string(),
+            docs.display().to_string(),
+        ],
+        &params,
+    )
+    .unwrap();
+
+    assert_eq!(sections.len(), 4);
+    assert_eq!(sections[0].header, None);
+    assert!(
+        sections[0]
+            .entries
+            .iter()
+            .any(|info| info.short_name == "top.txt")
+    );
+    assert_eq!(sections[1].header, Some(src.display().to_string()));
+    assert!(
+        sections[1]
+            .entries
+            .iter()
+            .any(|info| info.short_name == "lib.rs")
+    );
+    assert!(
+        !sections[1]
+            .entries
+            .iter()
+            .any(|info| info.short_name == "lib.txt")
+    );
+    assert_eq!(sections[2].header, Some(utils.display().to_string()));
+    assert!(
+        sections[2]
+            .entries
+            .iter()
+            .any(|info| info.short_name == "file.rs")
+    );
+    assert_eq!(sections[3].header, Some(docs.display().to_string()));
+    assert!(
+        sections[3]
+            .entries
+            .iter()
+            .any(|info| info.short_name == "guide.md")
+    );
+}
+
+#[test]
+fn test_collect_listing_sections_recursive_missing_filter_root_is_empty() {
+    let temp_dir = tempdir().unwrap();
+    let params = Params {
+        recursive: true,
+        ..Params::default()
+    };
+    let pattern = format!("{}/missing/*.rs", temp_dir.path().display());
+
+    let sections = collect_listing_sections(&[pattern], &params).unwrap();
+
+    assert!(sections.is_empty());
+}
+
+#[test]
 fn test_collect_listing_sections_recursive_respects_level_limit() {
     let temp_dir = tempdir().unwrap();
     let child = temp_dir.path().join("child");

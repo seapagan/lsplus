@@ -416,6 +416,32 @@ fn test_recursive_quoted_glob_filters_nested_matches() {
 }
 
 #[test]
+fn test_recursive_prefixed_glob_filters_from_parent_directory() {
+    let temp_dir = tempdir().unwrap();
+    let src = temp_dir.path().join("src");
+    let utils = src.join("utils");
+    fs::create_dir_all(&utils).unwrap();
+    fs::write(temp_dir.path().join("outside.rs"), "outside").unwrap();
+    fs::write(src.join("lib.rs"), "lib").unwrap();
+    fs::write(src.join("lib.txt"), "lib").unwrap();
+    fs::write(utils.join("file.rs"), "file").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg("src/*.rs");
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.lines().any(|line| line == "src:"));
+    assert!(stdout.lines().any(|line| line == "src/utils:"));
+    assert!(stdout.contains("lib.rs"));
+    assert!(stdout.contains("file.rs"));
+    assert!(!stdout.contains("outside.rs"));
+    assert!(!stdout.contains("lib.txt"));
+}
+
+#[test]
 fn test_recursive_bare_filename_finds_nested_matches() {
     let temp_dir = tempdir().unwrap();
     let src = temp_dir.path().join("src");
