@@ -44,9 +44,16 @@ struct RecursiveDirectory {
     children: Vec<PathBuf>,
 }
 
+#[derive(Clone, Copy)]
+enum RecursiveMode<'a> {
+    Normal,
+    Filter(&'a Pattern),
+}
+
 struct RecursiveFilter {
     root: PathBuf,
     pattern: Pattern,
+    operand: String,
 }
 
 enum RecursiveTarget {
@@ -173,38 +180,10 @@ fn render_recursive_listing(
     patterns: &[String],
     params: &Params,
 ) -> io::Result<()> {
-    let listing = prepare_recursive_listing(patterns, params)?;
     let mut rendered_section = false;
-
-    if !listing.file_entries.is_empty() {
-        render_listing_section(
-            &mut rendered_section,
-            &ListingSection {
-                header: None,
-                entries: listing.file_entries,
-            },
-            params,
-        )?;
-    }
-
-    let mut first_error = None;
-    for target in listing.recursive_targets {
-        let result = walk_recursive_target(target, params, &mut |section| {
-            render_listing_section(&mut rendered_section, &section, params)
-        });
-
-        if let Err(err) = result
-            && first_error.is_none()
-        {
-            first_error = Some(err);
-        }
-    }
-
-    if let Some(err) = first_error {
-        return Err(err);
-    }
-
-    Ok(())
+    for_each_recursive_listing_section(patterns, params, &mut |section| {
+        render_listing_section(&mut rendered_section, &section, params)
+    })
 }
 
 fn walk_recursive_directory(
@@ -212,27 +191,27 @@ fn walk_recursive_directory(
     params: &Params,
     fail_on_error: bool,
     visible_entry_depth: usize,
-    name_filter: Option<&Pattern>,
-    emit_empty_sections: bool,
+    mode: RecursiveMode<'_>,
     sink: &mut impl FnMut(ListingSection) -> io::Result<()>,
-) -> io::Result<()> {
+) -> io::Result<bool> {
     let mut directory = match collect_recursive_directory(
         path,
         params,
         visible_entry_depth > 1,
-        name_filter,
+        mode.name_filter(),
     ) {
         Ok(directory) => directory,
         Err(err) if fail_on_error => return Err(err),
         Err(err) => {
             report_path_error(path, &err);
-            return Ok(());
+            return Ok(false);
         }
     };
 
     directory.section.header =
         recursive_section_header(path, visible_entry_depth);
-    if emit_empty_sections || !directory.section.entries.is_empty() {
+    let mut found_match = !directory.section.entries.is_empty();
+    if mode.emit_empty_sections() || found_match {
         sink(directory.section)?;
     }
 
@@ -240,22 +219,23 @@ fn walk_recursive_directory(
         .recursive_level
         .is_some_and(|limit| visible_entry_depth >= limit)
     {
-        return Ok(());
+        return Ok(found_match);
     }
 
     for child in directory.children {
-        walk_recursive_directory(
+        if walk_recursive_directory(
             &child,
             params,
             false,
             visible_entry_depth + 1,
-            name_filter,
-            emit_empty_sections,
+            mode,
             sink,
-        )?;
+        )? {
+            found_match = true;
+        }
     }
 
-    Ok(())
+    Ok(found_match)
 }
 
 fn render_listing_section(
@@ -327,21 +307,31 @@ fn collect_recursive_listing_sections(
     patterns: &[String],
     params: &Params,
 ) -> io::Result<Vec<ListingSection>> {
-    let listing = prepare_recursive_listing(patterns, params)?;
     let mut sections = Vec::new();
+    for_each_recursive_listing_section(patterns, params, &mut |section| {
+        sections.push(section);
+        Ok(())
+    })?;
+
+    Ok(sections)
+}
+
+fn for_each_recursive_listing_section(
+    patterns: &[String],
+    params: &Params,
+    sink: &mut impl FnMut(ListingSection) -> io::Result<()>,
+) -> io::Result<()> {
+    let listing = prepare_recursive_listing(patterns, params)?;
     if !listing.file_entries.is_empty() {
-        sections.push(ListingSection {
+        sink(ListingSection {
             header: None,
             entries: listing.file_entries,
-        });
+        })?;
     }
 
     let mut first_error = None;
     for target in listing.recursive_targets {
-        let result = walk_recursive_target(target, params, &mut |section| {
-            sections.push(section);
-            Ok(())
-        });
+        let result = walk_recursive_target(target, params, sink);
 
         if let Err(err) = result
             && first_error.is_none()
@@ -354,14 +344,14 @@ fn collect_recursive_listing_sections(
         return Err(err);
     }
 
-    Ok(sections)
+    Ok(())
 }
 
 fn prepare_recursive_listing(
     patterns: &[String],
     params: &Params,
 ) -> io::Result<RecursiveListing> {
-    let targets = collect_recursive_targets(patterns)?;
+    let targets = collect_recursive_targets(patterns, params)?;
     let mut file_entries = Vec::new();
     let mut recursive_targets = Vec::new();
 
@@ -391,10 +381,16 @@ fn walk_recursive_target(
     sink: &mut impl FnMut(ListingSection) -> io::Result<()>,
 ) -> io::Result<()> {
     match target {
-        RecursiveTarget::Path(path) => {
-            walk_recursive_directory(&path, params, true, 1, None, true, sink)
-                .inspect_err(|err| report_path_error(&path, err))
-        }
+        RecursiveTarget::Path(path) => walk_recursive_directory(
+            &path,
+            params,
+            true,
+            1,
+            RecursiveMode::Normal,
+            sink,
+        )
+        .map(|_| ())
+        .inspect_err(|err| report_path_error(&path, err)),
         RecursiveTarget::Filter(filter) => {
             if !is_display_directory(&filter.root) {
                 eprintln!(
@@ -409,10 +405,17 @@ fn walk_recursive_target(
                 params,
                 true,
                 1,
-                Some(&filter.pattern),
-                false,
+                RecursiveMode::Filter(&filter.pattern),
                 sink,
             )
+            .map(|found_match| {
+                if !found_match {
+                    eprintln!(
+                        "lsplus: {}: No such file or directory",
+                        sanitize_for_terminal(&filter.operand)
+                    );
+                }
+            })
             .inspect_err(|err| report_path_error(&filter.root, err))
         }
     }
@@ -420,6 +423,7 @@ fn walk_recursive_target(
 
 fn collect_recursive_targets(
     patterns: &[String],
+    params: &Params,
 ) -> io::Result<Vec<RecursiveTarget>> {
     let mut targets = Vec::new();
 
@@ -435,7 +439,7 @@ fn collect_recursive_targets(
         }
 
         let mut operands = Vec::new();
-        append_pattern_operands(&mut operands, pattern, &Params::default())?;
+        append_pattern_operands(&mut operands, pattern, params)?;
         targets.extend(operands.into_iter().map(RecursiveTarget::Path));
     }
 
@@ -454,10 +458,12 @@ fn recursive_filter_from_pattern(
         }
 
         let file_name = path.file_name()?.to_string_lossy();
-        return Some(Pattern::new(&file_name).map(|pattern| {
+        let operand = pattern.to_owned();
+        return Some(Pattern::new(&file_name).map(|compiled_pattern| {
             RecursiveFilter {
                 root: filter_root(parent),
-                pattern,
+                pattern: compiled_pattern,
+                operand,
             }
         }));
     }
@@ -472,10 +478,27 @@ fn recursive_filter_from_pattern(
     }
 
     let file_name = path.file_name()?.to_string_lossy();
-    Some(Pattern::new(&file_name).map(|pattern| RecursiveFilter {
-        root: PathBuf::from("."),
-        pattern,
-    }))
+    let operand = pattern.to_owned();
+    Some(
+        Pattern::new(&file_name).map(|compiled_pattern| RecursiveFilter {
+            root: filter_root(parent),
+            pattern: compiled_pattern,
+            operand,
+        }),
+    )
+}
+
+impl<'a> RecursiveMode<'a> {
+    fn name_filter(self) -> Option<&'a Pattern> {
+        match self {
+            Self::Normal => None,
+            Self::Filter(pattern) => Some(pattern),
+        }
+    }
+
+    fn emit_empty_sections(self) -> bool {
+        matches!(self, Self::Normal)
+    }
 }
 
 fn filter_root(parent: &Path) -> PathBuf {

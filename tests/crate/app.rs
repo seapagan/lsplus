@@ -307,6 +307,21 @@ fn test_collect_listing_sections_recursive_roots_prefixed_glob() {
 }
 
 #[test]
+fn test_collect_listing_sections_recursive_filter_no_matches_is_empty() {
+    let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join("root.txt"), "root").unwrap();
+    let params = Params {
+        recursive: true,
+        ..Params::default()
+    };
+    let pattern = format!("{}/*.rs", temp_dir.path().display());
+
+    let sections = collect_listing_sections(&[pattern], &params).unwrap();
+
+    assert!(sections.is_empty());
+}
+
+#[test]
 fn test_collect_listing_sections_recursive_mixes_files_filters_and_directories()
  {
     let temp_dir = tempdir().unwrap();

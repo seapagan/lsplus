@@ -462,6 +462,40 @@ fn test_recursive_bare_filename_finds_nested_matches() {
 }
 
 #[test]
+fn test_recursive_quoted_glob_no_matches_reports_diagnostic() {
+    let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join("root.txt"), "root").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg("*.rs");
+    let (stdout, stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.is_empty());
+    assert!(stderr.contains("lsplus: *.rs: No such file or directory"));
+}
+
+#[test]
+fn test_recursive_bare_filename_no_matches_reports_diagnostic() {
+    let temp_dir = tempdir().unwrap();
+    let src = temp_dir.path().join("src");
+    fs::create_dir(&src).unwrap();
+    fs::write(src.join("lib.rs"), "lib").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg("main.rs");
+    let (stdout, stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.is_empty());
+    assert!(stderr.contains("lsplus: main.rs: No such file or directory"));
+}
+
+#[test]
 fn test_recursive_level_limits_nested_directory_headers() {
     let temp_dir = tempdir().unwrap();
     let child = temp_dir.path().join("child");
