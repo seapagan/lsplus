@@ -601,6 +601,50 @@ fn test_recursive_continues_after_unreadable_directory_operand() {
     assert!(stderr.contains(blocked_dir.to_string_lossy().as_ref()));
 }
 
+#[cfg(unix)]
+#[test]
+fn test_recursive_filter_reports_unreadable_root() {
+    struct PermissionGuard {
+        path: std::path::PathBuf,
+    }
+
+    impl Drop for PermissionGuard {
+        fn drop(&mut self) {
+            let _ = fs::set_permissions(
+                &self.path,
+                fs::Permissions::from_mode(0o700),
+            );
+        }
+    }
+
+    if Uid::effective().is_root() {
+        return;
+    }
+
+    let temp_dir = tempdir().unwrap();
+    let blocked_dir = temp_dir.path().join("blocked");
+    fs::create_dir(&blocked_dir).unwrap();
+    fs::set_permissions(&blocked_dir, fs::Permissions::from_mode(0o000))
+        .unwrap();
+    let _guard = PermissionGuard {
+        path: blocked_dir.clone(),
+    };
+    let pattern = format!("{}/*.rs", blocked_dir.display());
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    let output = cmd
+        .arg("-R")
+        .arg("--no-icons")
+        .arg(pattern)
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stderr = strip_str(String::from_utf8_lossy(&output.stderr));
+    assert!(stderr.contains("lsplus:"));
+    assert!(stderr.contains(blocked_dir.to_string_lossy().as_ref()));
+}
+
 #[test]
 fn test_tree_level_limits_nested_descendants() {
     let temp_dir = tempdir().unwrap();

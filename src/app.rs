@@ -413,6 +413,7 @@ fn walk_recursive_target(
                 false,
                 sink,
             )
+            .inspect_err(|err| report_path_error(&filter.root, err))
         }
     }
 }
