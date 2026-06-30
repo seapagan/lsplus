@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-745e07e1.js";
+            window.path_to_searchindex_js = "searchindex-f1c8cac1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-024fe58e.js"></script>
@@ -247,6 +247,14 @@ equivalent long option is <code>--group-directories-first</code> (replacing the 
 </ul>
 <p>This option corresponds to <code>--long</code> and displays output in long format when set
 to <code>true</code>.</p>
+<h3 id="header"><a class="header" href="#header">header</a></h3>
+<ul>
+<li>Permitted values: <code>true</code> or <code>false</code></li>
+<li>Default value: <code>false</code></li>
+</ul>
+<p>This option corresponds to <code>--header</code> and adds a title row to long-format
+output when set to <code>true</code>. It only affects long-format output, so use it with
+<code>long_format = true</code> or <code>tree = true</code>.</p>
 <h3 id="human_readable"><a class="header" href="#human_readable">human_readable</a></h3>
 <ul>
 <li>Permitted values: <code>true</code> or <code>false</code></li>
@@ -261,6 +269,58 @@ human-readable file sizes using powers of 1024 when set to <code>true</code>.</p
 </ul>
 <p>This option corresponds to <code>--si</code> and displays human-readable file sizes using
 powers of 1000 when set to <code>true</code>. It also enables human-readable size output.</p>
+<h3 id="recursive"><a class="header" href="#recursive">recursive</a></h3>
+<ul>
+<li>Permitted values: <code>true</code> or <code>false</code></li>
+<li>Default value: <code>false</code></li>
+</ul>
+<p>This option corresponds to <code>-R</code> or <code>--recursive</code> and lists subdirectories in
+separate <code>path:</code> sections.</p>
+<h3 id="tree"><a class="header" href="#tree">tree</a></h3>
+<ul>
+<li>Permitted values: <code>true</code> or <code>false</code></li>
+<li>Default value: <code>false</code></li>
+</ul>
+<p>This option corresponds to <code>--tree</code> and displays long-format tree output. Tree
+output implies long format.</p>
+<h3 id="tree_level"><a class="header" href="#tree_level">tree_level</a></h3>
+<ul>
+<li>Permitted values: integers greater than or equal to <code>1</code></li>
+<li>Default value: <code>2</code></li>
+</ul>
+<p>This option corresponds to <code>--level</code> and limits recursive or tree output to
+visible entry levels below each operand. A value of <code>1</code> shows only entries
+directly under the requested directory; a value of <code>2</code> also shows
+grandchildren. Without this option, recursive output is unlimited.</p>
+<h3 id="prune_noisy_dirs"><a class="header" href="#prune_noisy_dirs">prune_noisy_dirs</a></h3>
+<ul>
+<li>Permitted values: <code>true</code> or <code>false</code></li>
+<li>Default value: <code>false</code></li>
+</ul>
+<p>This option enables the built-in traversal prune preset for recursive and tree
+output. Matching directories still appear in their parent listing, but <code>lsp</code>
+does not descend into them. The preset matches these exact basenames:</p>
+<ul>
+<li><code>.git</code></li>
+<li><code>.hg</code></li>
+<li><code>.svn</code></li>
+<li><code>node_modules</code></li>
+<li><code>__pycache__</code></li>
+</ul>
+<p>Pruning only applies while traversing children for <code>recursive = true</code> or
+<code>tree = true</code>. It does not hide matching entries, does not apply to explicit
+directory operands, and is not disabled by <code>show_all = true</code>.</p>
+<h3 id="prune_dirs"><a class="header" href="#prune_dirs">prune_dirs</a></h3>
+<ul>
+<li>Permitted values: an array of strings</li>
+<li>Default value: <code>[]</code></li>
+</ul>
+<p>This option adds custom exact directory basenames to skip while traversing
+recursive and tree output. Custom prune names apply even when
+<code>prune_noisy_dirs = false</code>.</p>
+<p>For example:</p>
+<pre><code class="language-toml">prune_dirs = ["target", "dist"]
+</code></pre>
 <h3 id="no_icons"><a class="header" href="#no_icons">no_icons</a></h3>
 <ul>
 <li>Permitted values: <code>true</code> or <code>false</code></li>
@@ -282,6 +342,16 @@ output when set to <code>true</code>.</p>
 <p>This option controls long-format colors for the file type character and
 permission bits. Set it to <code>false</code>, or pass <code>--no-permission-colors</code>, to render
 those fields without accent colors.</p>
+<h3 id="permissions"><a class="header" href="#permissions">permissions</a></h3>
+<ul>
+<li>Permitted values: <code>symbolic</code>, <code>octal</code>, <code>both</code>, or <code>none</code></li>
+<li>Default value: <code>symbolic</code></li>
+</ul>
+<p>This option corresponds to <code>--permissions</code> and controls long-format permission
+fields. <code>symbolic</code> shows the default file type character and symbolic
+permissions, <code>octal</code> replaces that field with the file type character and
+four-digit octal permission bits, <code>both</code> adds an octal permission cell after
+the symbolic field, and <code>none</code> omits permission fields.</p>
 <h3 id="time_gradient"><a class="header" href="#time_gradient">time_gradient</a></h3>
 <ul>
 <li>Permitted values: <code>true</code> or <code>false</code></li>
@@ -323,10 +393,18 @@ fuzzy format when set to <code>true</code>.</p>
 show_all = true
 indicator_style = "classify"
 dirs_first = true
+long_format = true
+# header = true
 human_readable = true
 # si = true
+# recursive = true
+# tree = true
+# tree_level = 2
+# prune_noisy_dirs = true
+# prune_dirs = ["target", "dist"]
 no_color = true
 permission_colors = false
+permissions = "symbolic"
 time_gradient = false
 size_colors = false
 fuzzy_time = true

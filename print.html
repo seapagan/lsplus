@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-745e07e1.js";
+            window.path_to_searchindex_js = "searchindex-f1c8cac1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-024fe58e.js"></script>
@@ -225,8 +225,16 @@ directory. With no options, it uses defaults similar to <code>ls</code>.</p>
 <li><code>-F</code> / <code>--classify</code> - Append type indicators, including <code>*</code> for executables</li>
 <li><code>--no-indicators</code> - Disable file type indicators</li>
 <li><code>-l</code> / <code>--long</code> - Show long format listing</li>
+<li><code>--header</code> - Show a title row in long-format output</li>
+<li><code>--permissions &lt;MODE&gt;</code> - Select long-format permission display:
+<code>symbolic</code>, <code>octal</code>, <code>both</code>, or <code>none</code></li>
 <li><code>-h</code> / <code>--human-readable</code> - Human readable file sizes using powers of 1024</li>
 <li><code>--si</code> - Human readable file sizes using powers of 1000</li>
+<li><code>-R</code> / <code>--recursive</code> - List subdirectories recursively</li>
+<li><code>--tree</code> - Show a long-format directory tree</li>
+<li><code>--level &lt;N&gt;</code> - Limit recursive or tree output to visible entry depth</li>
+<li><code>--prune-noisy-dirs</code> - Skip descending into common noisy directories</li>
+<li><code>--prune-dir &lt;NAME&gt;</code> - Skip descending into matching directory basenames</li>
 <li><code>-D</code> / <code>--sort-dirs</code> - Sort directories first</li>
 <li><code>-I</code> / <code>--gitignore</code> - Dim entries matched by Git ignore rules</li>
 <li><code>-N</code> / <code>--no-color</code> - Disable colored and styled output</li>
@@ -242,6 +250,32 @@ permission colors</li>
 listing with hidden files, append a ‘/’ to directories, and show human-readable
 file sizes.</p>
 <p>Use the <code>--help</code> option to see the full list of options.</p>
+<p>When listing multiple directory operands, or a mix of files and directories,
+<code>lsp</code> prints file operands first and labels each directory section with a
+<code>path:</code> header. A single non-recursive directory keeps the compact output shape
+without a header.</p>
+<p>Use <code>-R</code> or <code>--recursive</code> to print GNU-style recursive directory sections.
+Recursive output is unlimited unless you pass <code>--level &lt;N&gt;</code>. Use <code>--tree</code> for
+long-format tree output. Tree output implies <code>--long</code>, uses a default depth of
+<code>2</code>, and can be limited with <code>--level &lt;N&gt;</code>. <code>--tree</code> and <code>--recursive</code> are
+mutually exclusive.</p>
+<p>In both recursive and tree output, <code>--level &lt;N&gt;</code> counts visible entry levels
+below each operand. For example, <code>--level 1</code> shows only entries directly under
+the requested directory, while <code>--level 2</code> also shows grandchildren.</p>
+<p>Use <code>--prune-noisy-dirs</code> with recursive or tree output to list common noisy
+directories in their parent but skip their descendants. The built-in preset
+matches <code>.git</code>, <code>.hg</code>, <code>.svn</code>, <code>node_modules</code>, and <code>__pycache__</code> by exact
+basename:</p>
+<pre><code class="language-sh">lsp -R --prune-noisy-dirs project
+lsp --tree --prune-noisy-dirs project
+</code></pre>
+<p>Use <code>--prune-dir &lt;NAME&gt;</code> for custom basenames. Repeat the option to add more
+names. Custom names also work without the built-in preset:</p>
+<pre><code class="language-sh">lsp --tree --prune-dir target --prune-dir dist project
+</code></pre>
+<p>Pruning only controls recursive descent. It does not hide matching directories
+from their parent listing, and it does not apply to explicit directory
+operands.</p>
 <p>The indicator characters are:</p>
 <ul>
 <li><code>/</code> for directories</li>
@@ -256,6 +290,13 @@ GNU <code>ls</code>, which does not append <code>@</code> to symlink names in lo
 piped, and redirected output is plain by default. You can also disable styled
 output explicitly with <code>--no-color</code>, <code>no_color = true</code> in the config file, or
 the <code>NO_COLOR</code> environment variable.</p>
+<p>Long-format output shows symbolic permissions by default. Use
+<code>--permissions octal</code> to replace them with octal permission bits,
+<code>--permissions both</code> to add octal bits after the symbolic field, or
+<code>--permissions none</code> to omit permission fields.</p>
+<p>Use <code>--header</code> with long-format output to add a title row for the active
+columns. It has no effect on short output. In the config file, set
+<code>header = true</code> alongside <code>long_format = true</code> or <code>tree = true</code>.</p>
 <p>Long-format output colors permission bits, timestamp freshness, and large file
 sizes by default. You can adjust those accents independently with
 <code>--no-permission-colors</code>, <code>--no-time-gradient</code>, <code>--no-size-colors</code>, or the
@@ -398,6 +439,14 @@ equivalent long option is <code>--group-directories-first</code> (replacing the 
 </ul>
 <p>This option corresponds to <code>--long</code> and displays output in long format when set
 to <code>true</code>.</p>
+<h3 id="header"><a class="header" href="#header">header</a></h3>
+<ul>
+<li>Permitted values: <code>true</code> or <code>false</code></li>
+<li>Default value: <code>false</code></li>
+</ul>
+<p>This option corresponds to <code>--header</code> and adds a title row to long-format
+output when set to <code>true</code>. It only affects long-format output, so use it with
+<code>long_format = true</code> or <code>tree = true</code>.</p>
 <h3 id="human_readable"><a class="header" href="#human_readable">human_readable</a></h3>
 <ul>
 <li>Permitted values: <code>true</code> or <code>false</code></li>
@@ -412,6 +461,58 @@ human-readable file sizes using powers of 1024 when set to <code>true</code>.</p
 </ul>
 <p>This option corresponds to <code>--si</code> and displays human-readable file sizes using
 powers of 1000 when set to <code>true</code>. It also enables human-readable size output.</p>
+<h3 id="recursive"><a class="header" href="#recursive">recursive</a></h3>
+<ul>
+<li>Permitted values: <code>true</code> or <code>false</code></li>
+<li>Default value: <code>false</code></li>
+</ul>
+<p>This option corresponds to <code>-R</code> or <code>--recursive</code> and lists subdirectories in
+separate <code>path:</code> sections.</p>
+<h3 id="tree"><a class="header" href="#tree">tree</a></h3>
+<ul>
+<li>Permitted values: <code>true</code> or <code>false</code></li>
+<li>Default value: <code>false</code></li>
+</ul>
+<p>This option corresponds to <code>--tree</code> and displays long-format tree output. Tree
+output implies long format.</p>
+<h3 id="tree_level"><a class="header" href="#tree_level">tree_level</a></h3>
+<ul>
+<li>Permitted values: integers greater than or equal to <code>1</code></li>
+<li>Default value: <code>2</code></li>
+</ul>
+<p>This option corresponds to <code>--level</code> and limits recursive or tree output to
+visible entry levels below each operand. A value of <code>1</code> shows only entries
+directly under the requested directory; a value of <code>2</code> also shows
+grandchildren. Without this option, recursive output is unlimited.</p>
+<h3 id="prune_noisy_dirs"><a class="header" href="#prune_noisy_dirs">prune_noisy_dirs</a></h3>
+<ul>
+<li>Permitted values: <code>true</code> or <code>false</code></li>
+<li>Default value: <code>false</code></li>
+</ul>
+<p>This option enables the built-in traversal prune preset for recursive and tree
+output. Matching directories still appear in their parent listing, but <code>lsp</code>
+does not descend into them. The preset matches these exact basenames:</p>
+<ul>
+<li><code>.git</code></li>
+<li><code>.hg</code></li>
+<li><code>.svn</code></li>
+<li><code>node_modules</code></li>
+<li><code>__pycache__</code></li>
+</ul>
+<p>Pruning only applies while traversing children for <code>recursive = true</code> or
+<code>tree = true</code>. It does not hide matching entries, does not apply to explicit
+directory operands, and is not disabled by <code>show_all = true</code>.</p>
+<h3 id="prune_dirs"><a class="header" href="#prune_dirs">prune_dirs</a></h3>
+<ul>
+<li>Permitted values: an array of strings</li>
+<li>Default value: <code>[]</code></li>
+</ul>
+<p>This option adds custom exact directory basenames to skip while traversing
+recursive and tree output. Custom prune names apply even when
+<code>prune_noisy_dirs = false</code>.</p>
+<p>For example:</p>
+<pre><code class="language-toml">prune_dirs = ["target", "dist"]
+</code></pre>
 <h3 id="no_icons"><a class="header" href="#no_icons">no_icons</a></h3>
 <ul>
 <li>Permitted values: <code>true</code> or <code>false</code></li>
@@ -433,6 +534,16 @@ output when set to <code>true</code>.</p>
 <p>This option controls long-format colors for the file type character and
 permission bits. Set it to <code>false</code>, or pass <code>--no-permission-colors</code>, to render
 those fields without accent colors.</p>
+<h3 id="permissions"><a class="header" href="#permissions">permissions</a></h3>
+<ul>
+<li>Permitted values: <code>symbolic</code>, <code>octal</code>, <code>both</code>, or <code>none</code></li>
+<li>Default value: <code>symbolic</code></li>
+</ul>
+<p>This option corresponds to <code>--permissions</code> and controls long-format permission
+fields. <code>symbolic</code> shows the default file type character and symbolic
+permissions, <code>octal</code> replaces that field with the file type character and
+four-digit octal permission bits, <code>both</code> adds an octal permission cell after
+the symbolic field, and <code>none</code> omits permission fields.</p>
 <h3 id="time_gradient"><a class="header" href="#time_gradient">time_gradient</a></h3>
 <ul>
 <li>Permitted values: <code>true</code> or <code>false</code></li>
@@ -474,10 +585,18 @@ fuzzy format when set to <code>true</code>.</p>
 show_all = true
 indicator_style = "classify"
 dirs_first = true
+long_format = true
+# header = true
 human_readable = true
 # si = true
+# recursive = true
+# tree = true
+# tree_level = 2
+# prune_noisy_dirs = true
+# prune_dirs = ["target", "dist"]
 no_color = true
 permission_colors = false
+permissions = "symbolic"
 time_gradient = false
 size_colors = false
 fuzzy_time = true
@@ -501,6 +620,36 @@ mapping, or deleting specific maps.</li>
 <li><input disabled="" type="checkbox"> When adding recursion or tree-style output, revisit whether directory
 traversal should move over to the <code>ignore</code> crate instead of the current
 custom walker.</li>
+<li><input disabled="" type="checkbox"> Unify recursive and tree traversal policy behind a shared walker so
+depth limits, symlink handling, pruning, and error handling cannot drift
+between output modes.</li>
+<li><input disabled="" type="checkbox"> Add configurable tree rendering styles, including the current compact
+root display, classic root branch graphics, and an ASCII fallback.</li>
+<li><input disabled="" type="checkbox"> Consider GNU-style <code>total</code> lines or another consistent empty-directory
+marker for long and tree output, rather than special-casing single-root
+tree output.</li>
+<li><input disabled="" type="checkbox"> Add inode and allocated block size support for long-format output.</li>
+<li><input disabled="" type="checkbox"> Add explicit long-format header modes, keeping plain <code>--header</code> as an
+alias for per-section headers. Suggested modes: <code>section</code> for every
+recursive section, <code>once</code> for the first long-format table only, and
+<code>none</code> to disable config-enabled headers for one invocation.</li>
+<li><input disabled="" type="checkbox"> Evaluate the Rust crate <code>uutils-term-grid</code> as a short-format layout
+alternative before expanding the current custom grid code.</li>
+<li><input disabled="" type="checkbox"> Improve listing performance with focused architecture changes, in this
+order:
+1. Add a short-format entry model so short output does not build full
+long-format <code>FileInfo</code> data such as owner/group names, permissions,
+size, mtime, and long symlink target text.
+2. Pass a shared buffered stdout writer through render paths so recursive
+streaming does not pay for many small stdout writes.
+3. Cache UID-to-user and GID-to-group lookups during long-format runs.
+4. Carry cheap <code>DirEntry::file_type()</code> data through directory filtering
+and sorting so short mode can avoid extra metadata calls where
+possible.
+5. Reuse a single <code>GitignoreCache</code> across recursive and tree traversal
+so ancestor ignore files are not rediscovered for every directory.
+6. Revisit <code>prettytable</code> for long recursive output; a custom row
+formatter may be leaner for hot paths.</li>
 <li><input disabled="" type="checkbox"> better handle dotfiles?</li>
 <li><input disabled="" type="checkbox"> option to list dotfiles (and folders) before non-dotfiles</li>
 <li><input disabled="" type="checkbox"> Investigate an optional name-shortening mode for very long filenames
@@ -512,6 +661,10 @@ render as <code>E</code> instead of large <code>P</code> multiples.</li>
 <li><input disabled="" type="checkbox"> Review <code>src/lib.rs</code> and crate/module visibility. Keep the current
 out-of-source unit test layout, but reduce the accidental public library
 API for this app crate where modules/items do not need to be exported.</li>
+<li><input disabled="" type="checkbox"> Improve rustdoc/docstring coverage in a dedicated docs PR. Start by
+running <code>RUSTDOCFLAGS='-D missing-docs' cargo doc --no-deps</code>; current
+known gaps include the public <code>structs</code> module export and public
+<code>Icon</code> enum variants.</li>
 <li><input disabled="" type="checkbox"> Continue shifting tests toward behavior-focused checks at module seams
 (<code>app</code>, <code>settings</code>, <code>render</code>) instead of broad smoke-style coverage.</li>
 </ul>

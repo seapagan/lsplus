@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-745e07e1.js";
+            window.path_to_searchindex_js = "searchindex-f1c8cac1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-024fe58e.js"></script>
@@ -191,6 +191,36 @@ mapping, or deleting specific maps.</li>
 <li><input disabled="" type="checkbox"> When adding recursion or tree-style output, revisit whether directory
 traversal should move over to the <code>ignore</code> crate instead of the current
 custom walker.</li>
+<li><input disabled="" type="checkbox"> Unify recursive and tree traversal policy behind a shared walker so
+depth limits, symlink handling, pruning, and error handling cannot drift
+between output modes.</li>
+<li><input disabled="" type="checkbox"> Add configurable tree rendering styles, including the current compact
+root display, classic root branch graphics, and an ASCII fallback.</li>
+<li><input disabled="" type="checkbox"> Consider GNU-style <code>total</code> lines or another consistent empty-directory
+marker for long and tree output, rather than special-casing single-root
+tree output.</li>
+<li><input disabled="" type="checkbox"> Add inode and allocated block size support for long-format output.</li>
+<li><input disabled="" type="checkbox"> Add explicit long-format header modes, keeping plain <code>--header</code> as an
+alias for per-section headers. Suggested modes: <code>section</code> for every
+recursive section, <code>once</code> for the first long-format table only, and
+<code>none</code> to disable config-enabled headers for one invocation.</li>
+<li><input disabled="" type="checkbox"> Evaluate the Rust crate <code>uutils-term-grid</code> as a short-format layout
+alternative before expanding the current custom grid code.</li>
+<li><input disabled="" type="checkbox"> Improve listing performance with focused architecture changes, in this
+order:
+1. Add a short-format entry model so short output does not build full
+long-format <code>FileInfo</code> data such as owner/group names, permissions,
+size, mtime, and long symlink target text.
+2. Pass a shared buffered stdout writer through render paths so recursive
+streaming does not pay for many small stdout writes.
+3. Cache UID-to-user and GID-to-group lookups during long-format runs.
+4. Carry cheap <code>DirEntry::file_type()</code> data through directory filtering
+and sorting so short mode can avoid extra metadata calls where
+possible.
+5. Reuse a single <code>GitignoreCache</code> across recursive and tree traversal
+so ancestor ignore files are not rediscovered for every directory.
+6. Revisit <code>prettytable</code> for long recursive output; a custom row
+formatter may be leaner for hot paths.</li>
 <li><input disabled="" type="checkbox"> better handle dotfiles?</li>
 <li><input disabled="" type="checkbox"> option to list dotfiles (and folders) before non-dotfiles</li>
 <li><input disabled="" type="checkbox"> Investigate an optional name-shortening mode for very long filenames
@@ -202,6 +232,10 @@ render as <code>E</code> instead of large <code>P</code> multiples.</li>
 <li><input disabled="" type="checkbox"> Review <code>src/lib.rs</code> and crate/module visibility. Keep the current
 out-of-source unit test layout, but reduce the accidental public library
 API for this app crate where modules/items do not need to be exported.</li>
+<li><input disabled="" type="checkbox"> Improve rustdoc/docstring coverage in a dedicated docs PR. Start by
+running <code>RUSTDOCFLAGS='-D missing-docs' cargo doc --no-deps</code>; current
+known gaps include the public <code>structs</code> module export and public
+<code>Icon</code> enum variants.</li>
 <li><input disabled="" type="checkbox"> Continue shifting tests toward behavior-focused checks at module seams
 (<code>app</code>, <code>settings</code>, <code>render</code>) instead of broad smoke-style coverage.</li>
 </ul>
