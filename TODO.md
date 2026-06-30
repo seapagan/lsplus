@@ -15,6 +15,10 @@
 - [ ] Unify recursive and tree traversal policy behind a shared walker so
       depth limits, symlink handling, pruning, and error handling cannot drift
       between output modes.
+- [ ] Revisit recursive operand error semantics so explicit file-operand stat
+      errors can be reported without aborting later directory walks.
+- [ ] Avoid duplicate stderr for already-reported recursive traversal errors
+      while still returning a non-zero exit status.
 - [ ] Add configurable tree rendering styles, including the current compact
       root display, classic root branch graphics, and an ASCII fallback.
 - [ ] Consider GNU-style `total` lines or another consistent empty-directory
