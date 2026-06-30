@@ -146,6 +146,11 @@ lsp -R '*.rs'
 lsp -R 'src/*.rs'
 ```
 
+Bare filename operands such as `main.rs` search for that basename below the
+current directory. Prefixed literal paths such as `src/main.rs` remain exact
+path operands. When `--level` is used with a recursive filter, no-match
+diagnostics apply to matches visible within that depth limit.
+
 Quote or escape wildcard patterns in shells such as zsh. Otherwise the shell
 may expand or reject the pattern before `lsp` starts, which is the same
 limitation GNU `ls` has for unquoted wildcards.
