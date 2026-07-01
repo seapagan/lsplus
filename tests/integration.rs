@@ -387,6 +387,29 @@ fn test_recursive_current_directory_omits_root_header_and_cleans_child_headers()
 }
 
 #[test]
+fn test_recursive_bare_directory_lists_contents() {
+    let temp_dir = tempdir().unwrap();
+    let src = temp_dir.path().join("src");
+    let utils = src.join("utils");
+    fs::create_dir_all(&utils).unwrap();
+    fs::write(src.join("lib.rs"), "lib").unwrap();
+    fs::write(utils.join("file.rs"), "file").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg("src");
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.lines().any(|line| line == "src:"));
+    assert!(stdout.lines().any(|line| line == "src/utils:"));
+    assert!(stdout.contains("lib.rs"));
+    assert!(stdout.contains("file.rs"));
+    assert!(!stdout.trim().eq("src/"));
+}
+
+#[test]
 fn test_recursive_quoted_glob_filters_nested_matches() {
     let temp_dir = tempdir().unwrap();
     let src = temp_dir.path().join("src");
@@ -458,6 +481,29 @@ fn test_recursive_bare_filename_finds_nested_matches() {
 
     assert!(stdout.lines().any(|line| line == "src:"));
     assert!(stdout.contains("main.rs"));
+    assert!(!stdout.contains("lib.rs"));
+}
+
+#[test]
+fn test_recursive_bare_filename_in_current_directory_still_filters_recursively()
+ {
+    let temp_dir = tempdir().unwrap();
+    let src = temp_dir.path().join("src");
+    fs::create_dir(&src).unwrap();
+    fs::write(temp_dir.path().join("main.rs"), "root").unwrap();
+    fs::write(src.join("main.rs"), "nested").unwrap();
+    fs::write(src.join("lib.rs"), "lib").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg("main.rs");
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(!stdout.lines().any(|line| line == ".:"));
+    assert!(stdout.lines().any(|line| line == "src:"));
+    assert_eq!(stdout.matches("main.rs").count(), 2);
     assert!(!stdout.contains("lib.rs"));
 }
 

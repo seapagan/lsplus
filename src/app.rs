@@ -468,7 +468,7 @@ fn recursive_filter_from_pattern(
         }));
     }
 
-    if path.exists() {
+    if is_display_directory(path) {
         return None;
     }
 
