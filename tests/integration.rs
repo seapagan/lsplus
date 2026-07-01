@@ -12,6 +12,19 @@ use nix::unistd::Uid;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
+#[cfg(unix)]
+struct PermissionGuard {
+    path: std::path::PathBuf,
+}
+
+#[cfg(unix)]
+impl Drop for PermissionGuard {
+    fn drop(&mut self) {
+        let _ =
+            fs::set_permissions(&self.path, fs::Permissions::from_mode(0o700));
+    }
+}
+
 fn run_and_capture(cmd: &mut Command) -> (String, String) {
     let output = cmd.output().unwrap();
     assert!(
@@ -98,19 +111,6 @@ fn test_invalid_glob_pattern_reports_lsplus_prefix() {
 #[cfg(unix)]
 #[test]
 fn test_glob_entry_error_reports_stderr_and_lists_matches() {
-    struct PermissionGuard {
-        path: std::path::PathBuf,
-    }
-
-    impl Drop for PermissionGuard {
-        fn drop(&mut self) {
-            let _ = fs::set_permissions(
-                &self.path,
-                fs::Permissions::from_mode(0o700),
-            );
-        }
-    }
-
     if Uid::effective().is_root() {
         return;
     }
@@ -628,19 +628,6 @@ fn test_recursive_prune_noisy_dirs_honors_explicit_operand() {
 #[cfg(unix)]
 #[test]
 fn test_recursive_continues_after_unreadable_directory_operand() {
-    struct PermissionGuard {
-        path: std::path::PathBuf,
-    }
-
-    impl Drop for PermissionGuard {
-        fn drop(&mut self) {
-            let _ = fs::set_permissions(
-                &self.path,
-                fs::Permissions::from_mode(0o700),
-            );
-        }
-    }
-
     if Uid::effective().is_root() {
         return;
     }
@@ -684,19 +671,6 @@ fn test_recursive_continues_after_unreadable_directory_operand() {
 #[cfg(unix)]
 #[test]
 fn test_recursive_filter_reports_unreadable_root() {
-    struct PermissionGuard {
-        path: std::path::PathBuf,
-    }
-
-    impl Drop for PermissionGuard {
-        fn drop(&mut self) {
-            let _ = fs::set_permissions(
-                &self.path,
-                fs::Permissions::from_mode(0o700),
-            );
-        }
-    }
-
     if Uid::effective().is_root() {
         return;
     }
