@@ -56,6 +56,23 @@ long-format tree output. Tree output implies `--long`, uses a default depth of
 `2`, and can be limited with `--level <N>`. `--tree` and `--recursive` are
 mutually exclusive.
 
+Quoted wildcard or filename operands filter matching entries while still
+walking subdirectories:
+
+```sh
+lsp -R '*.rs'
+lsp -R 'src/*.rs'
+```
+
+Bare filename operands such as `main.rs` search for that basename below the
+current directory. Prefixed literal paths such as `src/main.rs` remain exact
+path operands. When `--level` is used with a recursive filter, no-match
+diagnostics apply to matches visible within that depth limit.
+
+Quote or escape wildcard patterns in shells such as zsh. Otherwise the shell
+may expand or reject the pattern before `lsp` starts, which is the same
+limitation GNU `ls` has for unquoted wildcards.
+
 In both recursive and tree output, `--level <N>` counts visible entry levels
 below each operand. For example, `--level 1` shows only entries directly under
 the requested directory, while `--level 2` also shows grandchildren.

@@ -12,6 +12,19 @@ use nix::unistd::Uid;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
+#[cfg(unix)]
+struct PermissionGuard {
+    path: std::path::PathBuf,
+}
+
+#[cfg(unix)]
+impl Drop for PermissionGuard {
+    fn drop(&mut self) {
+        let _ =
+            fs::set_permissions(&self.path, fs::Permissions::from_mode(0o700));
+    }
+}
+
 fn run_and_capture(cmd: &mut Command) -> (String, String) {
     let output = cmd.output().unwrap();
     assert!(
@@ -98,19 +111,6 @@ fn test_invalid_glob_pattern_reports_lsplus_prefix() {
 #[cfg(unix)]
 #[test]
 fn test_glob_entry_error_reports_stderr_and_lists_matches() {
-    struct PermissionGuard {
-        path: std::path::PathBuf,
-    }
-
-    impl Drop for PermissionGuard {
-        fn drop(&mut self) {
-            let _ = fs::set_permissions(
-                &self.path,
-                fs::Permissions::from_mode(0o700),
-            );
-        }
-    }
-
     if Uid::effective().is_root() {
         return;
     }
@@ -387,6 +387,161 @@ fn test_recursive_current_directory_omits_root_header_and_cleans_child_headers()
 }
 
 #[test]
+fn test_recursive_bare_directory_lists_contents() {
+    let temp_dir = tempdir().unwrap();
+    let src = temp_dir.path().join("src");
+    let utils = src.join("utils");
+    fs::create_dir_all(&utils).unwrap();
+    fs::write(src.join("lib.rs"), "lib").unwrap();
+    fs::write(utils.join("file.rs"), "file").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg("src");
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.lines().any(|line| line == "src:"));
+    assert!(stdout.lines().any(|line| line == "src/utils:"));
+    assert!(stdout.contains("lib.rs"));
+    assert!(stdout.contains("file.rs"));
+    assert!(!stdout.trim().eq("src/"));
+}
+
+#[test]
+fn test_recursive_quoted_glob_filters_nested_matches() {
+    let temp_dir = tempdir().unwrap();
+    let src = temp_dir.path().join("src");
+    let utils = src.join("utils");
+    fs::create_dir_all(&utils).unwrap();
+    fs::write(temp_dir.path().join("root.rs"), "root").unwrap();
+    fs::write(temp_dir.path().join("root.txt"), "root").unwrap();
+    fs::write(src.join("lib.rs"), "lib").unwrap();
+    fs::write(src.join("lib.txt"), "lib").unwrap();
+    fs::write(utils.join("file.rs"), "file").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg("*.rs");
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(!stdout.lines().any(|line| line == ".:"));
+    assert!(stdout.lines().any(|line| line == "src:"));
+    assert!(stdout.lines().any(|line| line == "src/utils:"));
+    assert!(stdout.contains("root.rs"));
+    assert!(stdout.contains("lib.rs"));
+    assert!(stdout.contains("file.rs"));
+    assert!(!stdout.contains("root.txt"));
+    assert!(!stdout.contains("lib.txt"));
+}
+
+#[test]
+fn test_recursive_prefixed_glob_filters_from_parent_directory() {
+    let temp_dir = tempdir().unwrap();
+    let src = temp_dir.path().join("src");
+    let utils = src.join("utils");
+    fs::create_dir_all(&utils).unwrap();
+    fs::write(temp_dir.path().join("outside.rs"), "outside").unwrap();
+    fs::write(src.join("lib.rs"), "lib").unwrap();
+    fs::write(src.join("lib.txt"), "lib").unwrap();
+    fs::write(utils.join("file.rs"), "file").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg("src/*.rs");
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.lines().any(|line| line == "src:"));
+    assert!(stdout.lines().any(|line| line == "src/utils:"));
+    assert!(stdout.contains("lib.rs"));
+    assert!(stdout.contains("file.rs"));
+    assert!(!stdout.contains("outside.rs"));
+    assert!(!stdout.contains("lib.txt"));
+}
+
+#[test]
+fn test_recursive_bare_filename_finds_nested_matches() {
+    let temp_dir = tempdir().unwrap();
+    let src = temp_dir.path().join("src");
+    fs::create_dir(&src).unwrap();
+    fs::write(src.join("main.rs"), "main").unwrap();
+    fs::write(src.join("lib.rs"), "lib").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg("main.rs");
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.lines().any(|line| line == "src:"));
+    assert!(stdout.contains("main.rs"));
+    assert!(!stdout.contains("lib.rs"));
+}
+
+#[test]
+fn test_recursive_bare_filename_in_current_directory_still_filters_recursively()
+ {
+    let temp_dir = tempdir().unwrap();
+    let src = temp_dir.path().join("src");
+    fs::create_dir(&src).unwrap();
+    fs::write(temp_dir.path().join("main.rs"), "root").unwrap();
+    fs::write(src.join("main.rs"), "nested").unwrap();
+    fs::write(src.join("lib.rs"), "lib").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg("main.rs");
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(!stdout.lines().any(|line| line == ".:"));
+    assert!(stdout.lines().any(|line| line == "src:"));
+    assert_eq!(stdout.matches("main.rs").count(), 2);
+    assert!(!stdout.contains("lib.rs"));
+}
+
+#[test]
+fn test_recursive_quoted_glob_no_matches_reports_diagnostic() {
+    let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join("root.txt"), "root").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg("*.rs");
+    let (stdout, stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.is_empty());
+    assert!(stderr.contains("lsplus: *.rs: No such file or directory"));
+}
+
+#[test]
+fn test_recursive_bare_filename_no_matches_reports_diagnostic() {
+    let temp_dir = tempdir().unwrap();
+    let src = temp_dir.path().join("src");
+    fs::create_dir(&src).unwrap();
+    fs::write(src.join("lib.rs"), "lib").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.current_dir(temp_dir.path())
+        .arg("-R")
+        .arg("--no-icons")
+        .arg("main.rs");
+    let (stdout, stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.is_empty());
+    assert!(stderr.contains("lsplus: main.rs: No such file or directory"));
+}
+
+#[test]
 fn test_recursive_level_limits_nested_directory_headers() {
     let temp_dir = tempdir().unwrap();
     let child = temp_dir.path().join("child");
@@ -473,19 +628,6 @@ fn test_recursive_prune_noisy_dirs_honors_explicit_operand() {
 #[cfg(unix)]
 #[test]
 fn test_recursive_continues_after_unreadable_directory_operand() {
-    struct PermissionGuard {
-        path: std::path::PathBuf,
-    }
-
-    impl Drop for PermissionGuard {
-        fn drop(&mut self) {
-            let _ = fs::set_permissions(
-                &self.path,
-                fs::Permissions::from_mode(0o700),
-            );
-        }
-    }
-
     if Uid::effective().is_root() {
         return;
     }
@@ -522,6 +664,37 @@ fn test_recursive_continues_after_unreadable_directory_operand() {
     assert!(stdout.contains("ok.txt"));
     assert!(stdout.contains(&format!("{}:", later_dir.display())));
     assert!(stdout.contains("later.txt"));
+    assert!(stderr.contains("lsplus:"));
+    assert!(stderr.contains(blocked_dir.to_string_lossy().as_ref()));
+}
+
+#[cfg(unix)]
+#[test]
+fn test_recursive_filter_reports_unreadable_root() {
+    if Uid::effective().is_root() {
+        return;
+    }
+
+    let temp_dir = tempdir().unwrap();
+    let blocked_dir = temp_dir.path().join("blocked");
+    fs::create_dir(&blocked_dir).unwrap();
+    fs::set_permissions(&blocked_dir, fs::Permissions::from_mode(0o000))
+        .unwrap();
+    let _guard = PermissionGuard {
+        path: blocked_dir.clone(),
+    };
+    let pattern = format!("{}/*.rs", blocked_dir.display());
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    let output = cmd
+        .arg("-R")
+        .arg("--no-icons")
+        .arg(pattern)
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stderr = strip_str(String::from_utf8_lossy(&output.stderr));
     assert!(stderr.contains("lsplus:"));
     assert!(stderr.contains(blocked_dir.to_string_lossy().as_ref()));
 }

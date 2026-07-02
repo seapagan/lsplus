@@ -119,6 +119,7 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
   `symbolic`, `octal`, `both`, or `none`
 - `-h` / `--human-readable` - Human readable file sizes using powers of 1024
 - `--si` - Human readable file sizes using powers of 1000
+- `-R` / `--recursive` - List subdirectories recursively
 - `-D` / `--sort-dirs` - Sort directories first
 - `-I` / `--gitignore` - Dim entries matched by Git ignore rules
 - `-N` / `--no-color` - Disable colored and styled output
@@ -135,6 +136,24 @@ listing with hidden files, append a '/' to directories, and show human-readable
 file sizes.
 
 Use the `--help` option to see the full list of options.
+
+Use `-R` or `--recursive` to print GNU-style recursive directory sections.
+Quoted wildcard or filename operands filter matching entries while still
+walking subdirectories:
+
+```sh
+lsp -R '*.rs'
+lsp -R 'src/*.rs'
+```
+
+Bare filename operands such as `main.rs` search for that basename below the
+current directory. Prefixed literal paths such as `src/main.rs` remain exact
+path operands. When `--level` is used with a recursive filter, no-match
+diagnostics apply to matches visible within that depth limit.
+
+Quote or escape wildcard patterns in shells such as zsh. Otherwise the shell
+may expand or reject the pattern before `lsp` starts, which is the same
+limitation GNU `ls` has for unquoted wildcards.
 
 The indicator characters are:
 
