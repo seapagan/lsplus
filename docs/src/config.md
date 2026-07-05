@@ -219,8 +219,9 @@ age-based timestamp colors.
 Timestamp colors adapt to terminal color capability: truecolor terminals use a
 smooth age gradient and 256-color terminals use a stepped fallback to
 distinguish day, week, month, and year bands. Basic ANSI terminals use named
-yellow styling. Future-dated timestamps stay red, even with `time_gradient`
-disabled, to make clock-skewed files stand out.
+yellow styling. Terminals without color support render timestamps plainly.
+Future-dated timestamps stay red, even with `time_gradient` disabled, to make
+clock-skewed files stand out.
 
 ### size_colors
 

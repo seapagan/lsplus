@@ -5,10 +5,8 @@ use crate::app::{
 };
 use crate::cli::Flags;
 use crate::common_tests::ColorModeGuard;
-use crate::utils::color::{
-    LongFormatColorLevel, color_mode_for, long_format_color_level,
-};
-use colored_text::ColorMode;
+use crate::utils::color::{color_mode_for, long_format_color_level};
+use colored_text::{ColorLevel, ColorMode};
 use std::fs;
 use tempfile::tempdir;
 
@@ -956,10 +954,7 @@ fn test_long_format_color_level_uses_none_when_color_is_disabled() {
             ..Params::default()
         };
 
-        assert_eq!(
-            long_format_color_level(&params),
-            LongFormatColorLevel::None
-        );
+        assert_eq!(long_format_color_level(&params), ColorLevel::NoColor);
     });
 
     temp_env::with_var("NO_COLOR", None::<&str>, || {
@@ -967,7 +962,7 @@ fn test_long_format_color_level_uses_none_when_color_is_disabled() {
 
         assert_eq!(
             long_format_color_level(&Params::default()),
-            LongFormatColorLevel::None
+            ColorLevel::NoColor
         );
     });
 
@@ -976,13 +971,29 @@ fn test_long_format_color_level_uses_none_when_color_is_disabled() {
 
         assert_eq!(
             long_format_color_level(&Params::default()),
-            LongFormatColorLevel::None
+            ColorLevel::NoColor
         );
     });
 }
 
 #[test]
 fn test_long_format_color_level_detects_terminal_capability() {
+    temp_env::with_vars(
+        [
+            ("COLORTERM", None::<&str>),
+            ("NO_COLOR", None::<&str>),
+            ("TERM", Some("dumb")),
+        ],
+        || {
+            let _guard = ColorModeGuard::set(ColorMode::Always);
+
+            assert_eq!(
+                long_format_color_level(&Params::default()),
+                ColorLevel::NoColor
+            );
+        },
+    );
+
     temp_env::with_vars(
         [
             ("COLORTERM", Some("truecolor")),
@@ -994,7 +1005,7 @@ fn test_long_format_color_level_detects_terminal_capability() {
 
             assert_eq!(
                 long_format_color_level(&Params::default()),
-                LongFormatColorLevel::Truecolor
+                ColorLevel::TrueColor
             );
         },
     );
@@ -1010,7 +1021,7 @@ fn test_long_format_color_level_detects_terminal_capability() {
 
             assert_eq!(
                 long_format_color_level(&Params::default()),
-                LongFormatColorLevel::Ansi256
+                ColorLevel::Ansi256
             );
         },
     );
@@ -1026,7 +1037,23 @@ fn test_long_format_color_level_detects_terminal_capability() {
 
             assert_eq!(
                 long_format_color_level(&Params::default()),
-                LongFormatColorLevel::Named
+                ColorLevel::Ansi16
+            );
+        },
+    );
+
+    temp_env::with_vars(
+        [
+            ("COLORTERM", None::<&str>),
+            ("NO_COLOR", None::<&str>),
+            ("TERM", None::<&str>),
+        ],
+        || {
+            let _guard = ColorModeGuard::set(ColorMode::Always);
+
+            assert_eq!(
+                long_format_color_level(&Params::default()),
+                ColorLevel::Ansi16
             );
         },
     );

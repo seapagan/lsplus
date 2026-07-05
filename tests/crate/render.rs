@@ -2,7 +2,6 @@ use crate::common_tests::{
     ColorModeGuard, accentless_params, fixed_time_params, has_ansi,
     plain_permission_params, time_only_params, with_color_output_enabled,
 };
-use crate::utils::color::LongFormatColorLevel;
 use crate::utils::format::mode_to_rwx;
 use crate::utils::icons::Icon;
 use crate::utils::render::{
@@ -12,7 +11,7 @@ use crate::utils::render::{
     terminal_width_or_default,
 };
 use crate::{FileInfo, NameStyle, Params, structs::PermissionDisplay};
-use colored_text::{ColorMode, Colorize};
+use colored_text::{ColorLevel, ColorMode, Colorize};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 use strip_ansi_escapes::strip_str;
@@ -852,7 +851,7 @@ fn test_build_long_format_table_omits_size_colors_when_disabled() {
 #[test]
 fn test_size_style_for_color_level_colors_size_boundaries() {
     let params = Params::default();
-    let color_level = LongFormatColorLevel::Named;
+    let color_level = ColorLevel::Ansi16;
 
     assert_eq!(
         size_style_for_color_level(
@@ -906,7 +905,7 @@ fn test_size_style_for_color_level_omits_size_colors_when_disabled() {
         size_colors: false,
         ..Params::default()
     };
-    let color_level = LongFormatColorLevel::Named;
+    let color_level = ColorLevel::Ansi16;
 
     assert_eq!(
         size_style_for_color_level(1024 * 1024, &params, color_level, true),
@@ -922,7 +921,7 @@ fn test_size_style_for_color_level_omits_size_colors_when_disabled() {
 fn test_size_style_for_color_level_omits_size_colors_when_global_color_is_disabled()
  {
     let params = Params::default();
-    let color_level = LongFormatColorLevel::None;
+    let color_level = ColorLevel::NoColor;
 
     assert_eq!(
         size_style_for_color_level(1024 * 1024, &params, color_level, true),

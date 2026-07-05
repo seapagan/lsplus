@@ -4,7 +4,7 @@
 //! Unicode width so ANSI styling and wide glyphs do not distort layout.
 
 use chrono::{DateTime, Local};
-use colored_text::{Colorize, StyledText};
+use colored_text::{ColorLevel, Colorize, StyledText};
 use std::fmt::Write as FmtWrite;
 use std::io::{self, Write as IoWrite};
 use std::time::{Duration, SystemTime};
@@ -14,7 +14,7 @@ use terminal_size::{Height, Width, terminal_size};
 
 use crate::structs::{FileInfo, NameStyle};
 use crate::utils;
-use crate::utils::color::{LongFormatColorLevel, long_format_color_level};
+use crate::utils::color::long_format_color_level;
 use crate::utils::file::check_display_name;
 use crate::utils::table::{
     Cell, HeaderCell, HeaderRow, Row, Table, visible_width,
@@ -187,7 +187,7 @@ fn long_format_row(
     info: &FileInfo,
     name_prefix: &str,
     params: &Params,
-    color_level: LongFormatColorLevel,
+    color_level: ColorLevel,
     columns: &[LongColumn],
 ) -> Row {
     let display_time = if params.fuzzy_time {
@@ -235,7 +235,7 @@ fn long_format_row(
 
 fn long_format_header_row(
     columns: &[LongColumn],
-    color_level: LongFormatColorLevel,
+    color_level: ColorLevel,
 ) -> HeaderRow {
     let mut cells = Vec::with_capacity(columns.len());
     let mut index = 0;
@@ -256,10 +256,7 @@ fn long_format_header_row(
     HeaderRow::new(cells)
 }
 
-fn header_cell(
-    column: LongColumn,
-    color_level: LongFormatColorLevel,
-) -> HeaderCell {
+fn header_cell(column: LongColumn, color_level: ColorLevel) -> HeaderCell {
     let text = header_text(column.header(), color_level);
     if column.header_aligns_right() {
         HeaderCell::right(text)
@@ -268,23 +265,25 @@ fn header_cell(
     }
 }
 
-fn header_text(text: &str, color_level: LongFormatColorLevel) -> String {
+fn header_text(text: &str, color_level: ColorLevel) -> String {
     if text.is_empty() {
         return String::new();
     }
 
     match color_level {
-        LongFormatColorLevel::Truecolor => format!(
-            "\x1b[4;38;2;{};{};{}m{text}\x1b[0m",
-            HEADER_SALMON_TRUECOLOR.0,
-            HEADER_SALMON_TRUECOLOR.1,
-            HEADER_SALMON_TRUECOLOR.2
-        ),
-        LongFormatColorLevel::Ansi256 => {
-            format!("\x1b[4;38;5;{HEADER_SALMON_ANSI_256}m{text}\x1b[0m")
+        ColorLevel::TrueColor => text
+            .rgb(
+                HEADER_SALMON_TRUECOLOR.0,
+                HEADER_SALMON_TRUECOLOR.1,
+                HEADER_SALMON_TRUECOLOR.2,
+            )
+            .underline()
+            .to_string(),
+        ColorLevel::Ansi256 => {
+            text.ansi256(HEADER_SALMON_ANSI_256).underline().to_string()
         }
-        LongFormatColorLevel::Named => text.red().underline().to_string(),
-        LongFormatColorLevel::None => text.to_string(),
+        ColorLevel::Ansi16 => text.red().underline().to_string(),
+        ColorLevel::NoColor => text.to_string(),
     }
 }
 
@@ -292,15 +291,15 @@ fn permission_cell(
     info: &FileInfo,
     column: PermissionColumn,
     params: &Params,
-    color_level: LongFormatColorLevel,
+    color_level: ColorLevel,
 ) -> Cell {
     match column {
         PermissionColumn::Symbolic => {
-            Cell::new(long_permission_text(info, params))
+            Cell::new(long_permission_text(info, params, color_level))
         }
         PermissionColumn::OctalWithType => Cell::new(format!(
             "{} {}",
-            long_file_type_text(info, params),
+            long_file_type_text(info, params, color_level),
             long_octal_permission_text(info, params, color_level)
         )),
     }
@@ -309,7 +308,7 @@ fn permission_cell(
 fn octal_permission_cell(
     info: &FileInfo,
     params: &Params,
-    color_level: LongFormatColorLevel,
+    color_level: ColorLevel,
 ) -> Cell {
     Cell::new(long_octal_permission_text(info, params, color_level))
 }
@@ -320,8 +319,12 @@ fn icon_cell(info: &FileInfo) -> Cell {
         .map_or_else(|| Cell::new(""), |icon| Cell::new(icon.to_string()))
 }
 
-fn long_file_type_text(info: &FileInfo, params: &Params) -> String {
-    if !params.permission_colors {
+fn long_file_type_text(
+    info: &FileInfo,
+    params: &Params,
+    color_level: ColorLevel,
+) -> String {
+    if !params.permission_colors || color_level == ColorLevel::NoColor {
         return info.file_type.clone();
     }
 
@@ -335,29 +338,32 @@ fn long_file_type_text(info: &FileInfo, params: &Params) -> String {
 fn long_octal_permission_text(
     info: &FileInfo,
     params: &Params,
-    color_level: LongFormatColorLevel,
+    color_level: ColorLevel,
 ) -> String {
     let text = utils::format::mode_to_octal(info.mode_bits);
-    if !params.permission_colors {
+    if !params.permission_colors || color_level == ColorLevel::NoColor {
         return text;
     }
 
-    match color_level {
-        LongFormatColorLevel::Truecolor => text.rgb(238, 204, 92).to_string(),
-        LongFormatColorLevel::Ansi256 => {
-            format!("\x1b[38;5;221m{text}\x1b[0m")
-        }
-        LongFormatColorLevel::Named => text.yellow().dim().to_string(),
-        LongFormatColorLevel::None => text,
+    if color_level == ColorLevel::TrueColor {
+        text.rgb(238, 204, 92).to_string()
+    } else if color_level == ColorLevel::Ansi256 {
+        text.ansi256(221).to_string()
+    } else {
+        text.yellow().dim().to_string()
     }
 }
 
-fn long_permission_text(info: &FileInfo, params: &Params) -> String {
-    if !params.permission_colors {
+fn long_permission_text(
+    info: &FileInfo,
+    params: &Params,
+    color_level: ColorLevel,
+) -> String {
+    if !params.permission_colors || color_level == ColorLevel::NoColor {
         return format!("{}{}", info.file_type, info.mode);
     }
 
-    let mut output = long_file_type_text(info, params);
+    let mut output = long_file_type_text(info, params, color_level);
     output.reserve(info.mode.len());
     for value in info.mode.chars() {
         write_permission_char(&mut output, value);
@@ -392,7 +398,7 @@ fn size_cell(
     text: &str,
     size: u64,
     params: &Params,
-    color_level: LongFormatColorLevel,
+    color_level: ColorLevel,
     align_right: bool,
 ) -> Cell {
     let style =
@@ -444,11 +450,11 @@ impl SizeCellStyle {
 pub(crate) fn size_style_for_color_level(
     size: u64,
     params: &Params,
-    color_level: LongFormatColorLevel,
+    color_level: ColorLevel,
     align_right: bool,
 ) -> SizeCellStyle {
     match (
-        params.size_colors && color_level.is_enabled(),
+        params.size_colors && color_level != ColorLevel::NoColor,
         size,
         align_right,
     ) {
@@ -466,14 +472,14 @@ fn long_time_text(
     text: &str,
     mtime: SystemTime,
     params: &Params,
-    color_level: LongFormatColorLevel,
+    color_level: ColorLevel,
 ) -> String {
     let age = match SystemTime::now().duration_since(mtime) {
         Ok(age) => age,
         Err(_) => return future_time_text(text, color_level),
     };
 
-    if color_level == LongFormatColorLevel::None {
+    if color_level == ColorLevel::NoColor {
         return text.to_string();
     }
 
@@ -481,24 +487,22 @@ fn long_time_text(
         return text.yellow().to_string();
     }
 
-    if color_level == LongFormatColorLevel::Truecolor {
+    if color_level == ColorLevel::TrueColor {
         return truecolor_time_text(text, age);
     }
-    if color_level == LongFormatColorLevel::Ansi256 {
+    if color_level == ColorLevel::Ansi256 {
         return ansi_256_time_text(text, age);
     }
 
     named_time_text(text, age)
 }
 
-fn future_time_text(text: &str, color_level: LongFormatColorLevel) -> String {
+fn future_time_text(text: &str, color_level: ColorLevel) -> String {
     match color_level {
-        LongFormatColorLevel::Truecolor => text.rgb(220, 80, 70).to_string(),
-        LongFormatColorLevel::Ansi256 => {
-            format!("\x1b[1;38;5;203m{text}\x1b[0m")
-        }
-        LongFormatColorLevel::Named => text.red().bold().to_string(),
-        LongFormatColorLevel::None => text.to_string(),
+        ColorLevel::TrueColor => text.rgb(220, 80, 70).to_string(),
+        ColorLevel::Ansi256 => text.ansi256(203).bold().to_string(),
+        ColorLevel::Ansi16 => text.red().bold().to_string(),
+        ColorLevel::NoColor => text.to_string(),
     }
 }
 
@@ -533,9 +537,9 @@ fn ansi_256_time_text(text: &str, age: Duration) -> String {
     };
 
     if bold {
-        format!("\x1b[1;38;5;{color}m{text}\x1b[0m")
+        text.ansi256(color).bold().to_string()
     } else {
-        format!("\x1b[38;5;{color}m{text}\x1b[0m")
+        text.ansi256(color).to_string()
     }
 }
 
