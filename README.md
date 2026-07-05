@@ -7,8 +7,30 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/73f67c2ab44548298e0660ca73308729)](https://app.codacy.com/gh/seapagan/lsplus/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Build Docs](https://github.com/seapagan/lsplus/actions/workflows/gh-pages.yml/badge.svg)](https://github.com/seapagan/lsplus/actions/workflows/gh-pages.yml)
 
-LSPlus is a functional Unix `ls` clone written in Rust. I built it as a Rust
-learning project, so some code may still show beginner decisions.
+LSPlus is a functional Unix `ls` clone written in Rust. It was originally built
+as a Rust learning project, but has become a full-featured clone that i use on
+all my machines as standard, replacing GNU ls.
+
+> [!NOTE]
+>
+> Currently much of the development of this tool is now done using AI coding
+> tools - primarily `GPT-5.5` running in [Codex](https://openai.com/codex/) for
+> implementation, with `DeepSeek` (Running in [Oh-My-Pi](https://omp.sh/)) and
+> `GLM 5.2` (Running in [Claude Code](https://claude.com/product/claude-code))
+> performing independent local reviews for each PR. All of the above run side by
+> side in tabs using [Zellij](https://zellij.dev/) for multiplexing and session
+> persistence - i can shut down my pc and come back to the same session later
+> which is a huge performance boost.
+>
+> The original work-spec for non-trivial features is first iteratively planned
+> with `ChatGPT` at `Pro` level thinking, which then generates a comprehensive
+> spec file or prompt to feed to `Codex` in plan mode for it to generate a
+> working plan and implement. At all stages of this process I am in the loop
+> steering and correcting the AI.
+>
+> This is an experiment in how effective **properly planned** agentic coding can
+> be when combined with strong guardrails, peer-review and the explicit human
+> overview of an experienced coder.
 
 ![lsp output](./docs/src/images/screenshot.png)
 

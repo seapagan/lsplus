@@ -5,6 +5,22 @@ project since the first release.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0](https://github.com/seapagan/lsplus/releases/tag/0.11.0) (2026-07-05)
+
+**New Features**
+
+- Use colored_text terminal color detection ([#145](https://github.com/seapagan/lsplus/pull/145)) by [seapagan](https://github.com/seapagan)
+
+**Bug Fixes**
+
+- Fix: support recursive pattern operands ([#142](https://github.com/seapagan/lsplus/pull/142)) by [seapagan](https://github.com/seapagan)
+
+**Dependency Updates**
+
+- Chore(deps): update rust crate ignore to v0.4.27 ([#143](https://github.com/seapagan/lsplus/pull/143)) by [renovate[bot]](https://github.com/apps/renovate)
+
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.10.0...0.11.0) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.10.0...0.11.0.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.10.0...0.11.0.patch)
+
 ## [0.10.0](https://github.com/seapagan/lsplus/releases/tag/0.10.0) (2026-06-29)
 
 **New Features**
