@@ -16,8 +16,11 @@ const NOISY_DIR_PRESET: [&str; 5] =
 ///
 /// These map to GNU-style indicator modes and the native `--slash-dirs`,
 /// `--file-type`, `--classify`, and `--no-indicators` options.
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Default)]
+#[derive(
+    Debug, Clone, Copy, Deserialize, PartialEq, Eq, Default, ValueEnum,
+)]
 #[serde(rename_all = "kebab-case")]
+#[value(rename_all = "kebab-case")]
 pub enum IndicatorStyle {
     /// Do not append an indicator suffix.
     #[default]
