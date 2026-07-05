@@ -341,15 +341,16 @@ fn long_octal_permission_text(
     color_level: ColorLevel,
 ) -> String {
     let text = utils::format::mode_to_octal(info.mode_bits);
-    if !params.permission_colors {
+    if !params.permission_colors || color_level == ColorLevel::NoColor {
         return text;
     }
 
-    match color_level {
-        ColorLevel::TrueColor => text.rgb(238, 204, 92).to_string(),
-        ColorLevel::Ansi256 => text.ansi256(221).to_string(),
-        ColorLevel::Ansi16 => text.yellow().dim().to_string(),
-        ColorLevel::NoColor => text,
+    if color_level == ColorLevel::TrueColor {
+        text.rgb(238, 204, 92).to_string()
+    } else if color_level == ColorLevel::Ansi256 {
+        text.ansi256(221).to_string()
+    } else {
+        text.yellow().dim().to_string()
     }
 }
 
