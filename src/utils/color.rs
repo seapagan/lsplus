@@ -30,5 +30,5 @@ pub(crate) fn long_format_color_level(params: &Params) -> ColorLevel {
         return ColorLevel::NoColor;
     }
 
-    ColorizeConfig::terminal_capabilities(RenderTarget::Stdout).color_level
+    ColorizeConfig::color_level(RenderTarget::Stdout)
 }
