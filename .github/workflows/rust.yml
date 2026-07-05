@@ -24,11 +24,6 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Install cargo tools
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-make,cargo-nextest,cargo-llvm-cov
-
       - name: Check formatting
         run: cargo fmt --check
 
