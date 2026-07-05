@@ -1,5 +1,10 @@
 # TODO
 
+- [ ] migrate docs from `mdbook` to `zensical`
+- [ ] complete code coverage - 83 lines uncovered at last run
+- [ ] add `zizmor` linting to the GitHub actions - both local and as an action
+      itself. Use `https://github.com/GitHubSecurityLab/actions-permission` to
+      help.
 - [ ] add colorization for different file types, folders and symlinks. Make it
       customizable and theme-able. Make it default but allow an option to
       disable it (or vice-versa). Files that have a known extension should all
@@ -8,7 +13,6 @@
   claude, codex, vscode and more where the nerdfont exists
 - [ ] using the config file, allow extending the existing file and folder
       mapping, or deleting specific maps.
-- [ ] add a -R flag to recursively list files in a directory.
 - [ ] When adding recursion or tree-style output, revisit whether directory
       traversal should move over to the `ignore` crate instead of the current
       custom walker.
