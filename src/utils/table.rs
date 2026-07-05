@@ -431,4 +431,35 @@ mod tests {
 
         assert_eq!(table.to_string(), " Name Size\n");
     }
+
+    #[test]
+    fn table_default_matches_new_table() {
+        assert_eq!(Table::default(), Table::new());
+    }
+
+    #[test]
+    fn table_pads_missing_header_columns_before_final_column() {
+        let mut table = Table::new();
+        table.set_header(HeaderRow::new(vec![HeaderCell::new("Name")]));
+        table.add_row(Row::new(vec![
+            Cell::new("a"),
+            Cell::new("middle"),
+            Cell::new("end"),
+        ]));
+
+        assert_eq!(table.to_string(), " Name        \n a    middle end\n");
+    }
+
+    #[test]
+    fn table_pads_missing_row_cells_before_final_column() {
+        let mut table = Table::new();
+        table.add_row(Row::new(vec![
+            Cell::new("a"),
+            Cell::new("wide"),
+            Cell::new("end"),
+        ]));
+        table.add_row(Row::new(vec![Cell::new("b")]));
+
+        assert_eq!(table.to_string(), " a wide end\n b      \n");
+    }
 }

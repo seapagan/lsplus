@@ -26,6 +26,8 @@ use tempfile::tempdir;
 #[cfg(unix)]
 use std::os::unix::ffi::OsStringExt;
 #[cfg(unix)]
+use std::os::unix::fs::FileTypeExt;
+#[cfg(unix)]
 use std::os::unix::net::UnixListener;
 
 const BLUE_DOT: &str = "\u{1b}[34m.\u{1b}[0m";
@@ -475,6 +477,26 @@ fn test_create_file_info_colors_special_file_names() {
         assert!(!fifo_info.display_name.contains("\u{1b}[1;32m"));
         assert!(socket_info.display_name.contains("\u{1b}[1;35m"));
         assert!(!socket_info.display_name.contains("\u{1b}[1;32m"));
+    });
+}
+
+#[cfg(unix)]
+#[test]
+fn test_create_file_info_colors_char_device_names() {
+    let metadata = fs::symlink_metadata("/dev/null").unwrap();
+    if !metadata.file_type().is_char_device() {
+        return;
+    }
+
+    with_color_output_enabled(|| {
+        let info =
+            create_file_info(Path::new("/dev/null"), &Params::default())
+                .unwrap();
+
+        assert_eq!(info.file_type, "c");
+        assert_eq!(info.name_style, NameStyle::CharDevice);
+        assert_eq!(info.item_icon, Some(Icon::CharDeviceFile));
+        assert!(info.display_name.contains("\u{1b}[1;33m"));
     });
 }
 

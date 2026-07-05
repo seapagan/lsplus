@@ -721,6 +721,27 @@ fn test_build_long_format_table_colors_special_file_types() {
 }
 
 #[test]
+fn test_build_long_format_table_colors_symlink_and_fallback_mode_chars() {
+    with_color_output_enabled(|| {
+        let mut symlink = test_file_info("link", None, 0, SystemTime::now());
+        symlink.file_type = String::from("l");
+
+        let mut fallback =
+            test_file_info("fallback", None, 0, SystemTime::now());
+        fallback.file_type = String::from("z");
+        fallback.mode = String::from("q--------");
+
+        let rendered = normalized_table(build_long_format_table(
+            &[symlink, fallback],
+            &fixed_time_params(),
+        ));
+
+        assert!(rendered.contains("\u{1b}[36ml\u{1b}[0m"));
+        assert!(rendered.contains("zq"));
+    });
+}
+
+#[test]
 fn test_build_long_format_table_omits_permission_colors_when_disabled() {
     with_color_output_enabled(|| {
         let mut info =
@@ -915,6 +936,97 @@ fn test_size_style_for_color_level_omits_size_colors_when_disabled() {
         size_style_for_color_level(1024 * 1024, &params, color_level, false),
         SizeCellStyle::Plain
     );
+}
+
+#[test]
+fn test_build_long_format_table_keeps_future_time_plain_without_color() {
+    let info = test_file_info(
+        "future.txt",
+        None,
+        12,
+        SystemTime::now()
+            .checked_add(Duration::from_secs(60 * 60))
+            .unwrap(),
+    );
+    let params = Params {
+        no_color: true,
+        ..Params::default()
+    };
+
+    let rendered = normalized_table(build_long_format_table(&[info], &params));
+
+    assert!(rendered.contains("future.txt"));
+    assert_eq!(strip_str(&rendered), rendered);
+}
+
+#[test]
+fn test_build_long_format_table_colors_time_gradient_segments() {
+    let now = SystemTime::now();
+    let files = [
+        test_file_info(
+            "days.txt",
+            None,
+            12,
+            now.checked_sub(Duration::from_secs(2 * 24 * 60 * 60))
+                .unwrap(),
+        ),
+        test_file_info(
+            "weeks.txt",
+            None,
+            12,
+            now.checked_sub(Duration::from_secs(14 * 24 * 60 * 60))
+                .unwrap(),
+        ),
+        test_file_info(
+            "months.txt",
+            None,
+            12,
+            now.checked_sub(Duration::from_secs(60 * 24 * 60 * 60))
+                .unwrap(),
+        ),
+    ];
+
+    temp_env::with_vars(
+        [("COLORTERM", Some("truecolor")), ("TERM", None::<&str>)],
+        || {
+            with_color_output_enabled(|| {
+                let rendered = normalized_table(build_long_format_table(
+                    &files,
+                    &time_only_params(),
+                ));
+
+                for name in ["days.txt", "weeks.txt", "months.txt"] {
+                    let row = rendered
+                        .lines()
+                        .find(|line| line.contains(name))
+                        .unwrap();
+                    assert!(has_ansi(row));
+                }
+            });
+        },
+    );
+}
+
+#[test]
+fn test_render_short_format_styles_special_name_types() {
+    let styles = [
+        (NameStyle::Socket, "socket", "\u{1b}[1;35msocket"),
+        (NameStyle::Fifo, "pipe", "\u{1b}[33mpipe"),
+        (NameStyle::CharDevice, "char", "\u{1b}[1;33mchar"),
+        (NameStyle::BlockDevice, "block", "\u{1b}[1;33mblock"),
+    ];
+
+    with_color_output_enabled(|| {
+        for (name_style, name, expected) in styles {
+            let mut info = test_file_info(name, None, 0, SystemTime::now());
+            info.name_style = name_style;
+
+            let rendered =
+                normalized_lines(render_short_format_lines(&[info], 80));
+
+            assert!(rendered.contains(expected));
+        }
+    });
 }
 
 #[test]

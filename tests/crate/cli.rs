@@ -134,6 +134,15 @@ fn test_level_zero_is_rejected() {
 }
 
 #[test]
+fn test_level_rejects_non_numeric_value() {
+    let err = Flags::try_parse_from(["lsplus", "--tree", "--level", "nope"])
+        .unwrap_err();
+
+    assert_eq!(err.kind(), ErrorKind::ValueValidation);
+    assert!(err.to_string().contains("invalid digit"));
+}
+
+#[test]
 fn test_level_help_mentions_recursive_and_tree_output() {
     let err = Flags::try_parse_from(["lsplus", "--help"]).unwrap_err();
     let help = err.to_string();

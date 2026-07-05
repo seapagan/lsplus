@@ -88,6 +88,18 @@ fn test_special_file_type_icons() {
 }
 
 #[test]
+fn test_special_file_type_icon_short_circuits_item_icon_selection() {
+    for (file_type, expected) in [
+        (LongFormatFileType::Socket, Icon::SocketFile),
+        (LongFormatFileType::Fifo, Icon::PipeFile),
+        (LongFormatFileType::CharDevice, Icon::CharDeviceFile),
+        (LongFormatFileType::BlockDevice, Icon::BlockDeviceFile),
+    ] {
+        assert_eq!(special_file_type_icon(file_type), Some(expected));
+    }
+}
+
+#[test]
 fn test_has_extension_rejects_empty_extension_and_dot_entries() {
     assert!(!has_extension("file.txt", ""));
     assert!(!has_extension(".", "txt"));
