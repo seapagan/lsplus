@@ -271,12 +271,14 @@ fn header_text(text: &str, color_level: ColorLevel) -> String {
     }
 
     match color_level {
-        ColorLevel::TrueColor => format!(
-            "\x1b[4;38;2;{};{};{}m{text}\x1b[0m",
-            HEADER_SALMON_TRUECOLOR.0,
-            HEADER_SALMON_TRUECOLOR.1,
-            HEADER_SALMON_TRUECOLOR.2
-        ),
+        ColorLevel::TrueColor => text
+            .rgb(
+                HEADER_SALMON_TRUECOLOR.0,
+                HEADER_SALMON_TRUECOLOR.1,
+                HEADER_SALMON_TRUECOLOR.2,
+            )
+            .underline()
+            .to_string(),
         ColorLevel::Ansi256 => {
             text.ansi256(HEADER_SALMON_ANSI_256).underline().to_string()
         }
