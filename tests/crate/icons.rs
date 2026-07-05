@@ -1,4 +1,7 @@
-use crate::utils::icons::{Icon, get_item_icon, has_extension};
+use crate::utils::file::LongFormatFileType;
+use crate::utils::icons::{
+    Icon, get_item_icon, has_extension, icon_for_file_type,
+};
 use std::fs;
 use std::path::Path;
 use tempfile::tempdir;
@@ -45,6 +48,50 @@ fn test_get_item_icon_uses_known_directory_names() {
 
     assert_eq!(get_item_icon(&git_metadata, &git_dir), Icon::GitFile);
     assert_eq!(get_item_icon(&other_metadata, &other_dir), Icon::Folder);
+}
+
+#[test]
+fn test_icon_for_file_type_maps_special_file_types() {
+    assert_eq!(
+        icon_for_file_type(LongFormatFileType::Socket, "sock"),
+        Icon::SocketFile
+    );
+    assert_eq!(
+        icon_for_file_type(LongFormatFileType::Fifo, "pipe"),
+        Icon::PipeFile
+    );
+    assert_eq!(
+        icon_for_file_type(LongFormatFileType::CharDevice, "tty"),
+        Icon::CharDeviceFile
+    );
+    assert_eq!(
+        icon_for_file_type(LongFormatFileType::BlockDevice, "sda"),
+        Icon::BlockDeviceFile
+    );
+    assert_eq!(
+        icon_for_file_type(LongFormatFileType::Symlink, "link"),
+        Icon::Symlink
+    );
+}
+
+#[test]
+fn test_icon_for_file_type_maps_names_for_file_like_types() {
+    assert_eq!(
+        icon_for_file_type(LongFormatFileType::Directory, ".git"),
+        Icon::GitFile
+    );
+    assert_eq!(
+        icon_for_file_type(LongFormatFileType::Regular, ".gitignore"),
+        Icon::GitFile
+    );
+    assert_eq!(
+        icon_for_file_type(LongFormatFileType::Regular, "main.rs"),
+        Icon::RustFile
+    );
+    assert_eq!(
+        icon_for_file_type(LongFormatFileType::Unknown, "unknown.ext"),
+        Icon::GenericFile
+    );
 }
 
 #[cfg(unix)]

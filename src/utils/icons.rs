@@ -287,12 +287,19 @@ pub fn get_item_icon(metadata: &fs::Metadata, file_path: &Path) -> Icon {
         .map(|name| name.to_string_lossy())
         .unwrap_or_default();
 
-    match long_format_file_type(metadata) {
-        LongFormatFileType::Directory => get_folder_icon(file_name.as_ref()),
+    icon_for_file_type(long_format_file_type(metadata), file_name.as_ref())
+}
+
+pub(crate) fn icon_for_file_type(
+    file_type: LongFormatFileType,
+    file_name: &str,
+) -> Icon {
+    match file_type {
+        LongFormatFileType::Directory => get_folder_icon(file_name),
         LongFormatFileType::Symlink => Icon::Symlink,
         LongFormatFileType::Regular | LongFormatFileType::Unknown => {
-            get_filename_icon(file_name.as_ref())
-                .unwrap_or_else(|| get_file_icon(file_name.as_ref()))
+            get_filename_icon(file_name)
+                .unwrap_or_else(|| get_file_icon(file_name))
         }
         LongFormatFileType::Socket => Icon::SocketFile,
         LongFormatFileType::Fifo => Icon::PipeFile,
