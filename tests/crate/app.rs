@@ -974,7 +974,10 @@ fn test_long_format_color_level_uses_none_when_color_is_disabled() {
             ColorLevel::NoColor
         );
     });
+}
 
+#[test]
+fn test_long_format_color_level_detects_terminal_capability() {
     temp_env::with_vars(
         [
             ("COLORTERM", None::<&str>),
@@ -990,10 +993,7 @@ fn test_long_format_color_level_uses_none_when_color_is_disabled() {
             );
         },
     );
-}
 
-#[test]
-fn test_long_format_color_level_detects_terminal_capability() {
     temp_env::with_vars(
         [
             ("COLORTERM", Some("truecolor")),
