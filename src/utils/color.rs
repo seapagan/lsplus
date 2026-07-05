@@ -1,13 +1,13 @@
-//! Terminal color-mode detection and global color configuration.
+//! Terminal color-mode detection and thread-local color configuration.
 //!
-//! Short-format names use the `colored_text` global color mode. Long-format
-//! accent colors use the same terminal capability detection.
+//! Short-format names use the `colored_text` thread-local color mode.
+//! Long-format accent colors use the same terminal capability detection.
 
 use colored_text::{ColorLevel, ColorMode, ColorizeConfig, RenderTarget};
 
 use crate::Params;
 
-/// Return the global color mode implied by runtime parameters.
+/// Return the color mode implied by runtime parameters.
 pub(crate) fn color_mode_for(params: &Params) -> ColorMode {
     if params.no_color {
         ColorMode::Never
@@ -16,7 +16,7 @@ pub(crate) fn color_mode_for(params: &Params) -> ColorMode {
     }
 }
 
-/// Apply the runtime color setting to the process-wide coloring backend.
+/// Apply the runtime color setting to the current thread.
 pub(crate) fn configure_color_output(params: &Params) {
     ColorizeConfig::set_color_mode(color_mode_for(params));
 }
@@ -24,7 +24,8 @@ pub(crate) fn configure_color_output(params: &Params) {
 /// Detect the color capability for long-format accents.
 ///
 /// `params.no_color` is kept as an explicit guard so direct calls remain safe
-/// even before the process-wide color configuration has been applied.
+/// even before the thread-local color configuration has been applied on the
+/// calling thread.
 pub(crate) fn long_format_color_level(params: &Params) -> ColorLevel {
     if params.no_color {
         return ColorLevel::NoColor;
