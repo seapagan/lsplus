@@ -192,10 +192,6 @@ impl Table {
 
         let mut column = 0;
         for header_cell in &header.cells {
-            if column >= widths.len() {
-                break;
-            }
-
             let span = self.column_span(column, header_cell.span, widths);
             let target_width = self.spanned_width(widths, span);
             let skip_right_fill =
@@ -299,10 +295,6 @@ impl Table {
         if let Some(header) = &self.header {
             let mut column = 0;
             for header_cell in &header.cells {
-                if column >= widths.len() {
-                    break;
-                }
-
                 let span = self.column_span(column, header_cell.span, &widths);
                 let target_width = self.spanned_width(&widths, span);
                 if header_cell.cell.width > target_width {
