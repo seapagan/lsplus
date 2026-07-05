@@ -354,6 +354,26 @@ fn write_spaces(output: &mut impl Write, count: usize) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{Cell, HeaderCell, HeaderRow, Row, Table};
+    use std::io::{self, Write};
+
+    struct FailAfterFirstWrite {
+        writes: usize,
+    }
+
+    impl Write for FailAfterFirstWrite {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            if self.writes == 0 {
+                self.writes += 1;
+                Ok(buf.len())
+            } else {
+                Err(io::Error::other("write failed"))
+            }
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
 
     #[test]
     fn table_header_contributes_to_widths_and_uses_column_gaps() {
@@ -461,5 +481,19 @@ mod tests {
         table.add_row(Row::new(vec![Cell::new("b")]));
 
         assert_eq!(table.to_string(), " a wide end\n b      \n");
+    }
+
+    #[test]
+    fn table_propagates_header_cell_write_errors() {
+        let table = Table::new();
+        let header = HeaderRow::new(vec![HeaderCell::new("Name")]);
+        let mut output = FailAfterFirstWrite { writes: 0 };
+
+        let err = table.write_header(&mut output, &header, &[4]).unwrap_err();
+
+        assert_eq!(err.kind(), io::ErrorKind::Other);
+
+        let mut output = FailAfterFirstWrite { writes: 0 };
+        output.flush().unwrap();
     }
 }

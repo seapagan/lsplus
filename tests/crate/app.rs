@@ -152,6 +152,61 @@ fn test_run_with_flags_and_config_rejects_tree_and_recursive_merge() {
 }
 
 #[test]
+fn test_run_with_flags_renders_multiple_long_directory_sections() {
+    let temp_dir = tempdir().unwrap();
+    let left = temp_dir.path().join("left");
+    let right = temp_dir.path().join("right");
+    fs::create_dir(&left).unwrap();
+    fs::create_dir(&right).unwrap();
+    fs::write(left.join("alpha.txt"), "alpha").unwrap();
+    fs::write(right.join("beta.txt"), "beta").unwrap();
+
+    let mut flags = default_flags_with_paths(vec![
+        left.display().to_string(),
+        right.display().to_string(),
+    ]);
+    flags.long = true;
+
+    assert!(run_with_flags_and_config(flags, &Params::default()).is_ok());
+}
+
+#[test]
+fn test_run_with_flags_renders_multiple_tree_sections() {
+    let temp_dir = tempdir().unwrap();
+    let left = temp_dir.path().join("left");
+    let right = temp_dir.path().join("right");
+    fs::create_dir(&left).unwrap();
+    fs::create_dir(&right).unwrap();
+    fs::write(left.join("alpha.txt"), "alpha").unwrap();
+    fs::write(right.join("beta.txt"), "beta").unwrap();
+
+    let mut flags = default_flags_with_paths(vec![
+        left.display().to_string(),
+        right.display().to_string(),
+    ]);
+    flags.tree = true;
+    flags.long = true;
+
+    assert!(run_with_flags_and_config(flags, &Params::default()).is_ok());
+}
+
+#[test]
+fn test_run_with_flags_renders_recursive_long_sections() {
+    let temp_dir = tempdir().unwrap();
+    let nested = temp_dir.path().join("nested");
+    fs::create_dir(&nested).unwrap();
+    fs::write(temp_dir.path().join("root.txt"), "root").unwrap();
+    fs::write(nested.join("deep.txt"), "deep").unwrap();
+
+    let mut flags =
+        default_flags_with_paths(vec![temp_dir.path().display().to_string()]);
+    flags.recursive = true;
+    flags.long = true;
+
+    assert!(run_with_flags_and_config(flags, &Params::default()).is_ok());
+}
+
+#[test]
 fn test_collect_listing_sections_groups_multiple_directories() {
     let temp_dir = tempdir().unwrap();
     let left = temp_dir.path().join("left");
@@ -456,6 +511,28 @@ fn test_collect_listing_sections_recursive_invalid_filter_glob_is_empty() {
     let sections = collect_listing_sections(&[pattern], &params).unwrap();
 
     assert!(sections.is_empty());
+}
+
+#[test]
+fn test_collect_listing_sections_recursive_parent_glob_uses_operand_matches() {
+    let temp_dir = tempdir().unwrap();
+    let first = temp_dir.path().join("first");
+    let second = temp_dir.path().join("second");
+    fs::create_dir(&first).unwrap();
+    fs::create_dir(&second).unwrap();
+    fs::write(first.join("alpha.rs"), "alpha").unwrap();
+    fs::write(second.join("beta.txt"), "beta").unwrap();
+    let params = Params {
+        recursive: true,
+        ..Params::default()
+    };
+    let pattern = format!("{}/*/*.rs", temp_dir.path().display());
+
+    let sections = collect_listing_sections(&[pattern], &params).unwrap();
+
+    assert_eq!(sections.len(), 1);
+    assert_eq!(sections[0].header, None);
+    assert_eq!(sections[0].entries[0].short_name, "alpha.rs");
 }
 
 #[test]
