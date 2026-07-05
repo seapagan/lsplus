@@ -287,33 +287,16 @@ pub fn get_item_icon(metadata: &fs::Metadata, file_path: &Path) -> Icon {
         .map(|name| name.to_string_lossy())
         .unwrap_or_default();
 
-    let file_type = long_format_file_type(metadata);
-    if let Some(icon) = special_file_type_icon(file_type) {
-        return icon;
-    }
-
-    match file_type {
+    match long_format_file_type(metadata) {
         LongFormatFileType::Directory => get_folder_icon(file_name.as_ref()),
         LongFormatFileType::Symlink => Icon::Symlink,
         LongFormatFileType::Regular | LongFormatFileType::Unknown => {
             get_filename_icon(file_name.as_ref())
                 .unwrap_or_else(|| get_file_icon(file_name.as_ref()))
         }
-        LongFormatFileType::Socket
-        | LongFormatFileType::Fifo
-        | LongFormatFileType::CharDevice
-        | LongFormatFileType::BlockDevice => unreachable!(),
-    }
-}
-
-pub(crate) fn special_file_type_icon(
-    file_type: LongFormatFileType,
-) -> Option<Icon> {
-    match file_type {
-        LongFormatFileType::Socket => Some(Icon::SocketFile),
-        LongFormatFileType::Fifo => Some(Icon::PipeFile),
-        LongFormatFileType::CharDevice => Some(Icon::CharDeviceFile),
-        LongFormatFileType::BlockDevice => Some(Icon::BlockDeviceFile),
-        _ => None,
+        LongFormatFileType::Socket => Icon::SocketFile,
+        LongFormatFileType::Fifo => Icon::PipeFile,
+        LongFormatFileType::CharDevice => Icon::CharDeviceFile,
+        LongFormatFileType::BlockDevice => Icon::BlockDeviceFile,
     }
 }

@@ -1,7 +1,4 @@
-use crate::utils::file::LongFormatFileType;
-use crate::utils::icons::{
-    Icon, get_item_icon, has_extension, special_file_type_icon,
-};
+use crate::utils::icons::{Icon, get_item_icon, has_extension};
 use std::fs;
 use std::path::Path;
 use tempfile::tempdir;
@@ -69,34 +66,6 @@ fn test_get_item_icon_handles_symlinks_and_non_utf8_extensions() {
     let metadata = fs::metadata(&full_path).unwrap();
 
     assert_eq!(get_item_icon(&metadata, &full_path), Icon::RustFile);
-}
-
-#[test]
-fn test_special_file_type_icons() {
-    let cases = [
-        (LongFormatFileType::Socket, Some(Icon::SocketFile)),
-        (LongFormatFileType::Fifo, Some(Icon::PipeFile)),
-        (LongFormatFileType::CharDevice, Some(Icon::CharDeviceFile)),
-        (LongFormatFileType::BlockDevice, Some(Icon::BlockDeviceFile)),
-        (LongFormatFileType::Regular, None),
-        (LongFormatFileType::Unknown, None),
-    ];
-
-    for (file_type, expected) in cases {
-        assert_eq!(special_file_type_icon(file_type), expected);
-    }
-}
-
-#[test]
-fn test_special_file_type_icon_short_circuits_item_icon_selection() {
-    for (file_type, expected) in [
-        (LongFormatFileType::Socket, Icon::SocketFile),
-        (LongFormatFileType::Fifo, Icon::PipeFile),
-        (LongFormatFileType::CharDevice, Icon::CharDeviceFile),
-        (LongFormatFileType::BlockDevice, Icon::BlockDeviceFile),
-    ] {
-        assert_eq!(special_file_type_icon(file_type), Some(expected));
-    }
 }
 
 #[test]
