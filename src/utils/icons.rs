@@ -5,6 +5,7 @@
 
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::sync::OnceLock;
 use std::{fmt, fs};
@@ -287,7 +288,10 @@ pub fn get_item_icon(metadata: &fs::Metadata, file_path: &Path) -> Icon {
         .map(|name| name.to_string_lossy())
         .unwrap_or_default();
 
-    icon_for_file_type(long_format_file_type(metadata), file_name.as_ref())
+    icon_for_file_type(
+        long_format_file_type(metadata.mode()),
+        file_name.as_ref(),
+    )
 }
 
 pub(crate) fn icon_for_file_type(

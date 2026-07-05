@@ -10,7 +10,7 @@ use nix::unistd::{Group, User};
 use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::io;
-use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
@@ -21,6 +21,15 @@ use crate::structs::NameStyle;
 use crate::utils;
 use crate::utils::format;
 use crate::utils::gitignore::GitignoreCache;
+
+const MODE_FILE_TYPE_MASK: u32 = 0o170000;
+const MODE_FIFO: u32 = 0o010000;
+const MODE_CHAR_DEVICE: u32 = 0o020000;
+const MODE_DIRECTORY: u32 = 0o040000;
+const MODE_BLOCK_DEVICE: u32 = 0o060000;
+const MODE_REGULAR: u32 = 0o100000;
+const MODE_SYMLINK: u32 = 0o120000;
+const MODE_SOCKET: u32 = 0o140000;
 
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;
@@ -63,25 +72,16 @@ impl LongFormatFileType {
     }
 }
 
-pub(crate) fn long_format_file_type(
-    metadata: &fs::Metadata,
-) -> LongFormatFileType {
-    if metadata.is_dir() {
-        LongFormatFileType::Directory
-    } else if metadata.is_file() {
-        LongFormatFileType::Regular
-    } else if metadata.is_symlink() {
-        LongFormatFileType::Symlink
-    } else if metadata.file_type().is_socket() {
-        LongFormatFileType::Socket
-    } else if metadata.file_type().is_fifo() {
-        LongFormatFileType::Fifo
-    } else if metadata.file_type().is_char_device() {
-        LongFormatFileType::CharDevice
-    } else if metadata.file_type().is_block_device() {
-        LongFormatFileType::BlockDevice
-    } else {
-        LongFormatFileType::Unknown
+pub(crate) fn long_format_file_type(mode: u32) -> LongFormatFileType {
+    match mode & MODE_FILE_TYPE_MASK {
+        MODE_DIRECTORY => LongFormatFileType::Directory,
+        MODE_REGULAR => LongFormatFileType::Regular,
+        MODE_SYMLINK => LongFormatFileType::Symlink,
+        MODE_SOCKET => LongFormatFileType::Socket,
+        MODE_FIFO => LongFormatFileType::Fifo,
+        MODE_CHAR_DEVICE => LongFormatFileType::CharDevice,
+        MODE_BLOCK_DEVICE => LongFormatFileType::BlockDevice,
+        _ => LongFormatFileType::Unknown,
     }
 }
 
@@ -96,7 +96,8 @@ pub(crate) struct DirectoryEntryData {
 }
 
 fn get_file_details(metadata: &fs::Metadata) -> FileDetails {
-    let file_type = long_format_file_type(metadata).as_char().to_string();
+    let file_type =
+        long_format_file_type(metadata.mode()).as_char().to_string();
 
     let permissions = metadata.permissions();
     let mode = permissions.mode();
@@ -505,7 +506,7 @@ fn file_type_indicator_suffix(
     classify_executables: bool,
 ) -> &'static str {
     file_type_indicator_suffix_for_type(
-        long_format_file_type(metadata),
+        long_format_file_type(metadata.mode()),
         classify_executables,
         is_executable(metadata),
     )
@@ -559,7 +560,7 @@ pub(crate) fn name_style_for_file_type(
 
 fn name_style_by_metadata(metadata: &fs::Metadata) -> NameStyle {
     name_style_for_file_type(
-        long_format_file_type(metadata),
+        long_format_file_type(metadata.mode()),
         is_executable(metadata),
     )
 }
