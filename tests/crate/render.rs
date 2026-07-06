@@ -940,6 +940,7 @@ fn test_size_style_for_color_level_omits_size_colors_when_disabled() {
 
 #[test]
 fn test_build_long_format_table_keeps_future_time_plain_without_color() {
+    let _guard = ColorModeGuard::set(ColorMode::Never);
     let info = test_file_info(
         "future.txt",
         None,

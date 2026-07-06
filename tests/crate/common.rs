@@ -1,20 +1,30 @@
 use colored_text::{ColorMode, ColorizeConfig};
+use std::sync::{Mutex, MutexGuard};
 
 use crate::Params;
 
-pub(crate) struct ColorModeGuard(ColorMode);
+static COLOR_MODE_LOCK: Mutex<()> = Mutex::new(());
+
+pub(crate) struct ColorModeGuard {
+    previous: ColorMode,
+    _lock: MutexGuard<'static, ()>,
+}
 
 impl ColorModeGuard {
     pub(crate) fn set(mode: ColorMode) -> Self {
+        let lock = COLOR_MODE_LOCK.lock().unwrap();
         let previous = ColorizeConfig::color_mode();
         ColorizeConfig::set_color_mode(mode);
-        Self(previous)
+        Self {
+            previous,
+            _lock: lock,
+        }
     }
 }
 
 impl Drop for ColorModeGuard {
     fn drop(&mut self) {
-        ColorizeConfig::set_color_mode(self.0);
+        ColorizeConfig::set_color_mode(self.previous);
     }
 }
 
