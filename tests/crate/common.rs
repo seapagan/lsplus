@@ -12,7 +12,9 @@ pub(crate) struct ColorModeGuard {
 
 impl ColorModeGuard {
     pub(crate) fn set(mode: ColorMode) -> Self {
-        let lock = COLOR_MODE_LOCK.lock().unwrap();
+        let lock = COLOR_MODE_LOCK
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let previous = ColorizeConfig::color_mode();
         ColorizeConfig::set_color_mode(mode);
         Self {
