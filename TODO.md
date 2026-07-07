@@ -67,3 +67,6 @@
       `Icon` enum variants.
 - [ ] Continue shifting tests toward behavior-focused checks at module seams
       (`app`, `settings`, `render`) instead of broad smoke-style coverage.
+- [ ] Evaluate `rstest` for table-driven tests/fixtures and `serial_test` for
+      tests that mutate process-global state such as color mode or environment
+      variables.

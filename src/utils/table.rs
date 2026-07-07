@@ -484,8 +484,5 @@ mod tests {
         let err = table.write_header(&mut output, &header, &[4]).unwrap_err();
 
         assert_eq!(err.kind(), io::ErrorKind::Other);
-
-        let mut output = FailAfterFirstWrite { writes: 0 };
-        output.flush().unwrap();
     }
 }
