@@ -22,14 +22,20 @@ use crate::utils;
 use crate::utils::format;
 use crate::utils::gitignore::GitignoreCache;
 
-const MODE_FILE_TYPE_MASK: u32 = nix::libc::S_IFMT;
-const MODE_FIFO: u32 = nix::libc::S_IFIFO;
-const MODE_CHAR_DEVICE: u32 = nix::libc::S_IFCHR;
-const MODE_DIRECTORY: u32 = nix::libc::S_IFDIR;
-const MODE_BLOCK_DEVICE: u32 = nix::libc::S_IFBLK;
-const MODE_REGULAR: u32 = nix::libc::S_IFREG;
-const MODE_SYMLINK: u32 = nix::libc::S_IFLNK;
-const MODE_SOCKET: u32 = nix::libc::S_IFSOCK;
+#[allow(
+    clippy::unnecessary_cast,
+    reason = "libc::mode_t is u16 on Apple targets"
+)]
+mod mode_bits {
+    pub(super) const FILE_TYPE_MASK: u32 = nix::libc::S_IFMT as u32;
+    pub(super) const FIFO: u32 = nix::libc::S_IFIFO as u32;
+    pub(super) const CHAR_DEVICE: u32 = nix::libc::S_IFCHR as u32;
+    pub(super) const DIRECTORY: u32 = nix::libc::S_IFDIR as u32;
+    pub(super) const BLOCK_DEVICE: u32 = nix::libc::S_IFBLK as u32;
+    pub(super) const REGULAR: u32 = nix::libc::S_IFREG as u32;
+    pub(super) const SYMLINK: u32 = nix::libc::S_IFLNK as u32;
+    pub(super) const SOCKET: u32 = nix::libc::S_IFSOCK as u32;
+}
 
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;
@@ -73,14 +79,14 @@ impl LongFormatFileType {
 }
 
 pub(crate) fn long_format_file_type(mode: u32) -> LongFormatFileType {
-    match mode & MODE_FILE_TYPE_MASK {
-        MODE_DIRECTORY => LongFormatFileType::Directory,
-        MODE_REGULAR => LongFormatFileType::Regular,
-        MODE_SYMLINK => LongFormatFileType::Symlink,
-        MODE_SOCKET => LongFormatFileType::Socket,
-        MODE_FIFO => LongFormatFileType::Fifo,
-        MODE_CHAR_DEVICE => LongFormatFileType::CharDevice,
-        MODE_BLOCK_DEVICE => LongFormatFileType::BlockDevice,
+    match mode & mode_bits::FILE_TYPE_MASK {
+        mode_bits::DIRECTORY => LongFormatFileType::Directory,
+        mode_bits::REGULAR => LongFormatFileType::Regular,
+        mode_bits::SYMLINK => LongFormatFileType::Symlink,
+        mode_bits::SOCKET => LongFormatFileType::Socket,
+        mode_bits::FIFO => LongFormatFileType::Fifo,
+        mode_bits::CHAR_DEVICE => LongFormatFileType::CharDevice,
+        mode_bits::BLOCK_DEVICE => LongFormatFileType::BlockDevice,
         _ => LongFormatFileType::Unknown,
     }
 }
