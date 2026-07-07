@@ -70,3 +70,6 @@
 - [ ] Evaluate `rstest` for table-driven tests/fixtures and `serial_test` for
       tests that mutate process-global state such as color mode or environment
       variables.
+- [ ] Consider deriving or implementing `Default` for `cli::Flags` so tests can
+      use struct update syntax instead of hand-rolling every flag field. Keep
+      the parsed default path behavior (`"."`) explicit in tests that need it.

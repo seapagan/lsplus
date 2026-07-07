@@ -22,14 +22,14 @@ use crate::utils;
 use crate::utils::format;
 use crate::utils::gitignore::GitignoreCache;
 
-const MODE_FILE_TYPE_MASK: u32 = 0o170000;
-const MODE_FIFO: u32 = 0o010000;
-const MODE_CHAR_DEVICE: u32 = 0o020000;
-const MODE_DIRECTORY: u32 = 0o040000;
-const MODE_BLOCK_DEVICE: u32 = 0o060000;
-const MODE_REGULAR: u32 = 0o100000;
-const MODE_SYMLINK: u32 = 0o120000;
-const MODE_SOCKET: u32 = 0o140000;
+const MODE_FILE_TYPE_MASK: u32 = nix::libc::S_IFMT;
+const MODE_FIFO: u32 = nix::libc::S_IFIFO;
+const MODE_CHAR_DEVICE: u32 = nix::libc::S_IFCHR;
+const MODE_DIRECTORY: u32 = nix::libc::S_IFDIR;
+const MODE_BLOCK_DEVICE: u32 = nix::libc::S_IFBLK;
+const MODE_REGULAR: u32 = nix::libc::S_IFREG;
+const MODE_SYMLINK: u32 = nix::libc::S_IFLNK;
+const MODE_SOCKET: u32 = nix::libc::S_IFSOCK;
 
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;
