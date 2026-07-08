@@ -6,90 +6,19 @@
 //! entries.
 
 use colored_text::{Colorize, StyledText};
-use nix::unistd::{Group, User};
 use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::io;
-use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
 
 use crate::IndicatorStyle;
 use crate::Params;
+use crate::platform;
+use crate::platform::LongFormatFileType;
 use crate::structs::FileInfo;
 use crate::structs::NameStyle;
 use crate::utils;
-use crate::utils::format;
 use crate::utils::gitignore::GitignoreCache;
-
-#[allow(
-    clippy::unnecessary_cast,
-    reason = "libc::mode_t is u16 on Apple targets"
-)]
-mod mode_bits {
-    pub(super) const FILE_TYPE_MASK: u32 = nix::libc::S_IFMT as u32;
-    pub(super) const FIFO: u32 = nix::libc::S_IFIFO as u32;
-    pub(super) const CHAR_DEVICE: u32 = nix::libc::S_IFCHR as u32;
-    pub(super) const DIRECTORY: u32 = nix::libc::S_IFDIR as u32;
-    pub(super) const BLOCK_DEVICE: u32 = nix::libc::S_IFBLK as u32;
-    pub(super) const REGULAR: u32 = nix::libc::S_IFREG as u32;
-    pub(super) const SYMLINK: u32 = nix::libc::S_IFLNK as u32;
-    pub(super) const SOCKET: u32 = nix::libc::S_IFSOCK as u32;
-}
-
-#[cfg(unix)]
-use std::os::unix::ffi::OsStrExt;
-
-struct FileDetails {
-    file_type: String,
-    mode: String,
-    mode_bits: u32,
-    nlink: u64,
-    size: u64,
-    mtime: SystemTime,
-    user: String,
-    group: String,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum LongFormatFileType {
-    Directory,
-    Regular,
-    Symlink,
-    Socket,
-    Fifo,
-    CharDevice,
-    BlockDevice,
-    Unknown,
-}
-
-impl LongFormatFileType {
-    pub(crate) fn as_char(self) -> char {
-        match self {
-            Self::Directory => 'd',
-            Self::Regular => '-',
-            Self::Symlink => 'l',
-            Self::Socket => 's',
-            Self::Fifo => 'p',
-            Self::CharDevice => 'c',
-            Self::BlockDevice => 'b',
-            Self::Unknown => '?',
-        }
-    }
-}
-
-pub(crate) fn long_format_file_type(mode: u32) -> LongFormatFileType {
-    match mode & mode_bits::FILE_TYPE_MASK {
-        mode_bits::DIRECTORY => LongFormatFileType::Directory,
-        mode_bits::REGULAR => LongFormatFileType::Regular,
-        mode_bits::SYMLINK => LongFormatFileType::Symlink,
-        mode_bits::SOCKET => LongFormatFileType::Socket,
-        mode_bits::FIFO => LongFormatFileType::Fifo,
-        mode_bits::CHAR_DEVICE => LongFormatFileType::CharDevice,
-        mode_bits::BLOCK_DEVICE => LongFormatFileType::BlockDevice,
-        _ => LongFormatFileType::Unknown,
-    }
-}
 
 /// Directory entry data captured before visibility filtering and sorting.
 pub(crate) struct DirectoryEntryData {
@@ -101,32 +30,14 @@ pub(crate) struct DirectoryEntryData {
     pub is_dir: Result<bool, io::Error>,
 }
 
-fn get_file_details(metadata: &fs::Metadata) -> FileDetails {
-    let file_type =
-        long_format_file_type(metadata.mode()).as_char().to_string();
+/// Look up a username, falling back to the numeric UID.
+pub fn get_username(uid: u32) -> String {
+    platform::get_username(uid)
+}
 
-    let permissions = metadata.permissions();
-    let mode = permissions.mode();
-    let rwx_mode = format::mode_to_rwx(mode);
-
-    let nlink = metadata.nlink();
-    let size = metadata.size();
-
-    let user = get_username(metadata.uid());
-    let group = get_groupname(metadata.gid());
-
-    let mtime = metadata.modified().unwrap();
-
-    FileDetails {
-        file_type,
-        mode: rwx_mode,
-        mode_bits: mode & 0o7777,
-        nlink,
-        size,
-        mtime,
-        user,
-        group,
-    }
+/// Look up a group name, falling back to the numeric GID.
+pub fn get_groupname(gid: u32) -> String {
+    platform::get_groupname(gid)
 }
 
 /// Return displayable names for a file path or visible entries in a directory.
@@ -230,22 +141,6 @@ pub(crate) fn collect_visible_file_names(
     file_names
 }
 
-/// Look up a username, falling back to the numeric UID.
-pub fn get_username(uid: u32) -> String {
-    match User::from_uid(uid.into()) {
-        Ok(Some(user)) => user.name,
-        _ => uid.to_string(),
-    }
-}
-
-/// Look up a group name, falling back to the numeric GID.
-pub fn get_groupname(gid: u32) -> String {
-    match Group::from_gid(gid.into()) {
-        Ok(Some(group)) => group.name,
-        _ => gid.to_string(),
-    }
-}
-
 /// Collect display metadata for a file or every visible entry in a directory.
 ///
 /// Directory symlinks are followed for directory traversal decisions, while
@@ -345,7 +240,7 @@ pub(crate) fn create_file_info_from_metadata_with_gitignore(
     } else {
         Some(utils::icons::get_item_icon(metadata, path))
     };
-    let details = utils::file::get_file_details(metadata);
+    let details = platform::file_details(metadata);
 
     let mut file_name = path
         .file_name()
@@ -411,39 +306,11 @@ pub fn check_display_name(info: &FileInfo) -> String {
 }
 
 fn entry_name_is_hidden(name: &OsStr) -> bool {
-    #[cfg(unix)]
-    {
-        name.as_bytes().starts_with(b".")
-    }
-
-    #[cfg(not(unix))]
-    {
-        name.to_string_lossy().starts_with('.')
-    }
+    platform::entry_name_is_hidden(name)
 }
 
 fn sort_key(name: &OsStr) -> Vec<u8> {
-    #[cfg(unix)]
-    {
-        let bytes = name.as_bytes();
-        let trimmed = bytes
-            .iter()
-            .skip_while(|byte| **byte == b'.')
-            .copied()
-            .collect::<Vec<_>>();
-        trimmed
-            .into_iter()
-            .map(|byte| byte.to_ascii_lowercase())
-            .collect()
-    }
-
-    #[cfg(not(unix))]
-    {
-        name.to_string_lossy()
-            .trim_start_matches('.')
-            .to_lowercase()
-            .into_bytes()
-    }
+    platform::sort_key(name)
 }
 
 /// Escape control characters so paths cannot inject terminal control output.
@@ -512,9 +379,9 @@ fn file_type_indicator_suffix(
     classify_executables: bool,
 ) -> &'static str {
     file_type_indicator_suffix_for_type(
-        long_format_file_type(metadata.mode()),
+        platform::metadata_file_type(metadata),
         classify_executables,
-        is_executable(metadata),
+        platform::is_executable(metadata),
     )
 }
 
@@ -546,29 +413,8 @@ fn plain_text(text: impl Into<String>, dimmed: bool) -> String {
     apply_dim(StyledText::plain(text), dimmed).to_string()
 }
 
-pub(crate) fn name_style_for_file_type(
-    file_type: LongFormatFileType,
-    executable: bool,
-) -> NameStyle {
-    match file_type {
-        LongFormatFileType::Symlink => NameStyle::Symlink,
-        LongFormatFileType::Directory => NameStyle::Directory,
-        LongFormatFileType::Socket => NameStyle::Socket,
-        LongFormatFileType::Fifo => NameStyle::Fifo,
-        LongFormatFileType::CharDevice => NameStyle::CharDevice,
-        LongFormatFileType::BlockDevice => NameStyle::BlockDevice,
-        LongFormatFileType::Regular if executable => NameStyle::Executable,
-        LongFormatFileType::Regular | LongFormatFileType::Unknown => {
-            NameStyle::Plain
-        }
-    }
-}
-
 fn name_style_by_metadata(metadata: &fs::Metadata) -> NameStyle {
-    name_style_for_file_type(
-        long_format_file_type(metadata.mode()),
-        is_executable(metadata),
-    )
+    platform::name_style_by_metadata(metadata)
 }
 
 fn colorize_name_by_metadata(
@@ -592,18 +438,6 @@ fn colorize_name_by_metadata(
             apply_dim(safe_name.yellow().bold(), dimmed).to_string()
         }
         NameStyle::Plain => plain_text(safe_name, dimmed),
-    }
-}
-
-fn is_executable(metadata: &fs::Metadata) -> bool {
-    #[cfg(unix)]
-    {
-        metadata.permissions().mode() & 0o111 != 0
-    }
-
-    #[cfg(windows)]
-    {
-        false
     }
 }
 

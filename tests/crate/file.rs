@@ -1,13 +1,15 @@
 use crate::common_tests::{
     ColorModeGuard, has_ansi, with_color_output_enabled,
 };
+use crate::platform::{
+    LongFormatFileType, long_format_file_type, name_style_for_file_type,
+};
 use crate::utils::file::{
-    DirectoryEntryData, LongFormatFileType, append_file_info_for_names,
-    check_display_name, collect_file_info, collect_file_names,
-    collect_visible_file_names, create_file_info,
-    file_type_indicator_suffix_for_type, format_path_error,
+    DirectoryEntryData, append_file_info_for_names, check_display_name,
+    collect_file_info, collect_file_names, collect_visible_file_names,
+    create_file_info, file_type_indicator_suffix_for_type, format_path_error,
     format_symlink_display_name_with_dim, get_groupname, get_username,
-    long_format_file_type, name_style_for_file_type, sanitize_for_terminal,
+    sanitize_for_terminal,
 };
 use crate::utils::icons::Icon;
 use crate::{FileInfo, IndicatorStyle, NameStyle, Params};

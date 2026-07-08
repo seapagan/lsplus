@@ -7,6 +7,7 @@
 
 pub mod app;
 pub mod cli;
+mod platform;
 pub mod settings;
 pub mod structs;
 pub mod utils;

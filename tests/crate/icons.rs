@@ -1,4 +1,4 @@
-use crate::utils::file::LongFormatFileType;
+use crate::platform::LongFormatFileType;
 use crate::utils::icons::{
     Icon, get_item_icon, has_extension, icon_for_file_type,
 };
