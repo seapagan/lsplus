@@ -385,7 +385,7 @@ fn indicator_style_arg() -> Arg {
         .action(ArgAction::Set)
         .require_equals(true)
         .value_name("WORD")
-        .value_parser(["none", "slash", "file-type", "classify"])
+        .value_parser(clap::value_parser!(IndicatorStyle))
         .help("Append indicator with style WORD to entry names")
 }
 
@@ -554,14 +554,8 @@ fn indicator_style_from_matches(
             }
         }
         CompatMode::Gnu => matches
-            .get_one::<String>(ARG_INDICATOR_STYLE)
-            .and_then(|value| match value.as_str() {
-                "none" => Some(IndicatorStyle::None),
-                "slash" => Some(IndicatorStyle::Slash),
-                "file-type" => Some(IndicatorStyle::FileType),
-                "classify" => Some(IndicatorStyle::Classify),
-                _ => None,
-            }),
+            .get_one::<IndicatorStyle>(ARG_INDICATOR_STYLE)
+            .copied(),
     }
 }
 

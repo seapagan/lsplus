@@ -192,10 +192,10 @@ impl Table {
 
         let mut column = 0;
         for header_cell in &header.cells {
-            if column >= widths.len() {
-                break;
-            }
-
+            debug_assert!(
+                column < widths.len(),
+                "header column span exceeded computed widths"
+            );
             let span = self.column_span(column, header_cell.span, widths);
             let target_width = self.spanned_width(widths, span);
             let skip_right_fill =
@@ -299,10 +299,10 @@ impl Table {
         if let Some(header) = &self.header {
             let mut column = 0;
             for header_cell in &header.cells {
-                if column >= widths.len() {
-                    break;
-                }
-
+                debug_assert!(
+                    column < widths.len(),
+                    "header column span exceeded computed widths"
+                );
                 let span = self.column_span(column, header_cell.span, &widths);
                 let target_width = self.spanned_width(&widths, span);
                 if header_cell.cell.width > target_width {
@@ -354,6 +354,7 @@ fn write_spaces(output: &mut impl Write, count: usize) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{Cell, HeaderCell, HeaderRow, Row, Table};
+    use std::io::{self, Cursor};
 
     #[test]
     fn table_header_contributes_to_widths_and_uses_column_gaps() {
@@ -430,5 +431,48 @@ mod tests {
         ]));
 
         assert_eq!(table.to_string(), " Name Size\n");
+    }
+
+    #[test]
+    fn table_default_matches_new_table() {
+        assert_eq!(Table::default(), Table::new());
+    }
+
+    #[test]
+    fn table_pads_missing_header_columns_before_final_column() {
+        let mut table = Table::new();
+        table.set_header(HeaderRow::new(vec![HeaderCell::new("Name")]));
+        table.add_row(Row::new(vec![
+            Cell::new("a"),
+            Cell::new("middle"),
+            Cell::new("end"),
+        ]));
+
+        assert_eq!(table.to_string(), " Name        \n a    middle end\n");
+    }
+
+    #[test]
+    fn table_pads_missing_row_cells_before_final_column() {
+        let mut table = Table::new();
+        table.add_row(Row::new(vec![
+            Cell::new("a"),
+            Cell::new("wide"),
+            Cell::new("end"),
+        ]));
+        table.add_row(Row::new(vec![Cell::new("b")]));
+
+        assert_eq!(table.to_string(), " a wide end\n b      \n");
+    }
+
+    #[test]
+    fn table_propagates_header_cell_write_errors() {
+        let table = Table::new();
+        let header = HeaderRow::new(vec![HeaderCell::new("Name")]);
+        // One byte lets the leading-space write succeed, then the header cell fails.
+        let mut output = Cursor::new([0_u8; 1]);
+
+        let err = table.write_header(&mut output, &header, &[4]).unwrap_err();
+
+        assert_eq!(err.kind(), io::ErrorKind::WriteZero);
     }
 }

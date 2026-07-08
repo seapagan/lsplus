@@ -1,7 +1,7 @@
 use crate::Params;
 use crate::app::{
     collect_listing_sections, collect_tree_sections, patterns_from_args,
-    run_with_flags,
+    run_with_flags, run_with_flags_and_config,
 };
 use crate::cli::Flags;
 use crate::common_tests::ColorModeGuard;
@@ -9,6 +9,34 @@ use crate::utils::color::{color_mode_for, long_format_color_level};
 use colored_text::{ColorLevel, ColorMode};
 use std::fs;
 use tempfile::tempdir;
+
+fn default_flags_with_paths(paths: Vec<String>) -> Flags {
+    Flags {
+        show_all: false,
+        almost_all: false,
+        long: false,
+        header: false,
+        human_readable: false,
+        si: false,
+        recursive: false,
+        tree: false,
+        tree_level: None,
+        prune_noisy_dirs: false,
+        prune_dirs: Vec::new(),
+        paths,
+        indicator_style: None,
+        dirs_first: false,
+        no_icons: true,
+        no_color: false,
+        no_permission_colors: false,
+        permissions: None,
+        no_time_gradient: false,
+        no_size_colors: false,
+        gitignore: false,
+        version: false,
+        fuzzy_time: false,
+    }
+}
 
 #[test]
 fn test_patterns_from_args_defaults_to_current_directory() {
@@ -106,6 +134,76 @@ fn test_run_with_flags_lists_matching_entries() {
 
         assert!(run_with_flags(flags).is_ok());
     });
+}
+
+#[test]
+fn test_run_with_flags_and_config_rejects_tree_and_recursive_merge() {
+    let flags = default_flags_with_paths(Vec::new());
+    let config = Params {
+        recursive: true,
+        tree: true,
+        ..Params::default()
+    };
+
+    let err = run_with_flags_and_config(flags, &config).unwrap_err();
+
+    assert_eq!(err.kind(), std::io::ErrorKind::InvalidInput);
+    assert!(err.to_string().contains("--tree and --recursive"));
+}
+
+#[test]
+fn test_run_with_flags_renders_multiple_long_directory_sections() {
+    let temp_dir = tempdir().unwrap();
+    let left = temp_dir.path().join("left");
+    let right = temp_dir.path().join("right");
+    fs::create_dir(&left).unwrap();
+    fs::create_dir(&right).unwrap();
+    fs::write(left.join("alpha.txt"), "alpha").unwrap();
+    fs::write(right.join("beta.txt"), "beta").unwrap();
+
+    let mut flags = default_flags_with_paths(vec![
+        left.display().to_string(),
+        right.display().to_string(),
+    ]);
+    flags.long = true;
+
+    assert!(run_with_flags_and_config(flags, &Params::default()).is_ok());
+}
+
+#[test]
+fn test_run_with_flags_renders_multiple_tree_sections() {
+    let temp_dir = tempdir().unwrap();
+    let left = temp_dir.path().join("left");
+    let right = temp_dir.path().join("right");
+    fs::create_dir(&left).unwrap();
+    fs::create_dir(&right).unwrap();
+    fs::write(left.join("alpha.txt"), "alpha").unwrap();
+    fs::write(right.join("beta.txt"), "beta").unwrap();
+
+    let mut flags = default_flags_with_paths(vec![
+        left.display().to_string(),
+        right.display().to_string(),
+    ]);
+    flags.tree = true;
+    flags.long = true;
+
+    assert!(run_with_flags_and_config(flags, &Params::default()).is_ok());
+}
+
+#[test]
+fn test_run_with_flags_renders_recursive_long_sections() {
+    let temp_dir = tempdir().unwrap();
+    let nested = temp_dir.path().join("nested");
+    fs::create_dir(&nested).unwrap();
+    fs::write(temp_dir.path().join("root.txt"), "root").unwrap();
+    fs::write(nested.join("deep.txt"), "deep").unwrap();
+
+    let mut flags =
+        default_flags_with_paths(vec![temp_dir.path().display().to_string()]);
+    flags.recursive = true;
+    flags.long = true;
+
+    assert!(run_with_flags_and_config(flags, &Params::default()).is_ok());
 }
 
 #[test]
@@ -399,6 +497,42 @@ fn test_collect_listing_sections_recursive_missing_filter_root_is_empty() {
     let sections = collect_listing_sections(&[pattern], &params).unwrap();
 
     assert!(sections.is_empty());
+}
+
+#[test]
+fn test_collect_listing_sections_recursive_invalid_filter_glob_is_empty() {
+    let temp_dir = tempdir().unwrap();
+    let params = Params {
+        recursive: true,
+        ..Params::default()
+    };
+    let pattern = format!("{}/[invalid", temp_dir.path().display());
+
+    let sections = collect_listing_sections(&[pattern], &params).unwrap();
+
+    assert!(sections.is_empty());
+}
+
+#[test]
+fn test_collect_listing_sections_recursive_parent_glob_uses_operand_matches() {
+    let temp_dir = tempdir().unwrap();
+    let first = temp_dir.path().join("first");
+    let second = temp_dir.path().join("second");
+    fs::create_dir(&first).unwrap();
+    fs::create_dir(&second).unwrap();
+    fs::write(first.join("alpha.rs"), "alpha").unwrap();
+    fs::write(second.join("beta.txt"), "beta").unwrap();
+    let params = Params {
+        recursive: true,
+        ..Params::default()
+    };
+    let pattern = format!("{}/*/*.rs", temp_dir.path().display());
+
+    let sections = collect_listing_sections(&[pattern], &params).unwrap();
+
+    assert_eq!(sections.len(), 1);
+    assert_eq!(sections[0].header, None);
+    assert_eq!(sections[0].entries[0].short_name, "alpha.rs");
 }
 
 #[test]
@@ -765,6 +899,77 @@ fn test_collect_tree_sections_keeps_prefixes_for_nested_entries() {
         nested_entry.name_prefix.contains("└──")
             || nested_entry.name_prefix.contains("├──")
     );
+}
+
+#[test]
+fn test_collect_tree_sections_keeps_vertical_prefix_for_non_last_branch() {
+    let temp_dir = tempdir().unwrap();
+    let first = temp_dir.path().join("a-first");
+    let first_branch = first.join("a-branch");
+    let first_leaf = first.join("z-leaf");
+    let second = temp_dir.path().join("b-second");
+    let second_branch = second.join("only-branch");
+    fs::create_dir_all(&first_branch).unwrap();
+    fs::create_dir_all(&second_branch).unwrap();
+    fs::write(&first_leaf, "leaf").unwrap();
+    fs::write(first_branch.join("nested.txt"), "nested").unwrap();
+    fs::write(second_branch.join("other.txt"), "other").unwrap();
+    let params = Params {
+        tree: true,
+        long_format: true,
+        no_icons: true,
+        tree_level: 3,
+        ..Params::default()
+    };
+
+    let sections = collect_tree_sections(
+        &[temp_dir.path().display().to_string()],
+        &params,
+    )
+    .unwrap();
+
+    let nested_entry = sections[0]
+        .entries
+        .iter()
+        .find(|entry| entry.info.short_name == "nested.txt")
+        .unwrap();
+    let other_entry = sections[0]
+        .entries
+        .iter()
+        .find(|entry| entry.info.short_name == "other.txt")
+        .unwrap();
+
+    assert!(nested_entry.name_prefix.starts_with("│   "));
+    assert!(other_entry.name_prefix.starts_with("    "));
+}
+
+#[test]
+fn test_collect_tree_sections_handles_file_operand_and_missing_operand() {
+    let temp_dir = tempdir().unwrap();
+    let file_path = temp_dir.path().join("shown.txt");
+    let missing_path = temp_dir.path().join("missing.txt");
+    fs::write(&file_path, "shown").unwrap();
+    let params = Params {
+        tree: true,
+        long_format: true,
+        no_icons: true,
+        ..Params::default()
+    };
+
+    let sections = collect_tree_sections(
+        &[
+            file_path.display().to_string(),
+            missing_path.display().to_string(),
+        ],
+        &params,
+    )
+    .unwrap();
+
+    assert_eq!(sections.len(), 1);
+    assert_eq!(sections[0].header, file_path.display().to_string());
+    assert_eq!(sections[0].entries.len(), 1);
+    assert_eq!(sections[0].entries[0].info.short_name, "shown.txt");
+    assert!(sections[0].entries[0].name_prefix.is_empty());
 }
 
 #[test]

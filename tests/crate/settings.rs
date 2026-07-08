@@ -45,6 +45,18 @@ fn test_load_config_returns_default_when_config_is_invalid() {
 }
 
 #[test]
+fn test_load_config_returns_default_when_deserialization_fails() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(config_dir.join("config.toml"), "show_all = \"yes\"\n").unwrap();
+
+    temp_env::with_var("HOME", Some(temp_dir.path()), || {
+        assert_eq!(load_config(), Params::default());
+    });
+}
+
+#[test]
 fn test_load_config_reads_boolean_settings_from_home_config() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().join(".config").join("lsplus");

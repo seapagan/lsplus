@@ -7,7 +7,7 @@ use crate::utils::file::{
     collect_visible_file_names, create_file_info,
     file_type_indicator_suffix_for_type, format_path_error,
     format_symlink_display_name_with_dim, get_groupname, get_username,
-    name_style_for_file_type, sanitize_for_terminal,
+    long_format_file_type, name_style_for_file_type, sanitize_for_terminal,
 };
 use crate::utils::icons::Icon;
 use crate::{FileInfo, IndicatorStyle, NameStyle, Params};
@@ -25,6 +25,8 @@ use tempfile::tempdir;
 
 #[cfg(unix)]
 use std::os::unix::ffi::OsStringExt;
+#[cfg(unix)]
+use std::os::unix::fs::FileTypeExt;
 #[cfg(unix)]
 use std::os::unix::net::UnixListener;
 
@@ -480,6 +482,26 @@ fn test_create_file_info_colors_special_file_names() {
 
 #[cfg(unix)]
 #[test]
+fn test_create_file_info_colors_char_device_names() {
+    let metadata = fs::symlink_metadata("/dev/null").unwrap();
+    if !metadata.file_type().is_char_device() {
+        return;
+    }
+
+    with_color_output_enabled(|| {
+        let info =
+            create_file_info(Path::new("/dev/null"), &Params::default())
+                .unwrap();
+
+        assert_eq!(info.file_type, "c");
+        assert_eq!(info.name_style, NameStyle::CharDevice);
+        assert_eq!(info.item_icon, Some(Icon::CharDeviceFile));
+        assert!(info.display_name.contains("\u{1b}[1;33m"));
+    });
+}
+
+#[cfg(unix)]
+#[test]
 fn test_long_format_file_type_chars_for_unix_special_types() {
     let cases = [
         (LongFormatFileType::Fifo, 'p'),
@@ -491,6 +513,25 @@ fn test_long_format_file_type_chars_for_unix_special_types() {
 
     for (file_type, expected) in cases {
         assert_eq!(file_type.as_char(), expected);
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn test_long_format_file_type_maps_unix_file_type_bits() {
+    let cases = [
+        (0o040755, LongFormatFileType::Directory),
+        (0o100644, LongFormatFileType::Regular),
+        (0o120777, LongFormatFileType::Symlink),
+        (0o140777, LongFormatFileType::Socket),
+        (0o010644, LongFormatFileType::Fifo),
+        (0o020644, LongFormatFileType::CharDevice),
+        (0o060644, LongFormatFileType::BlockDevice),
+        (0, LongFormatFileType::Unknown),
+    ];
+
+    for (mode, expected) in cases {
+        assert_eq!(long_format_file_type(mode), expected);
     }
 }
 
