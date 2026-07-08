@@ -18,7 +18,7 @@ use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io;
 #[cfg(unix)]
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{FileTypeExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::SystemTime;
@@ -27,8 +27,6 @@ use tempfile::tempdir;
 
 #[cfg(unix)]
 use std::os::unix::ffi::OsStringExt;
-#[cfg(unix)]
-use std::os::unix::fs::FileTypeExt;
 #[cfg(unix)]
 use std::os::unix::net::UnixListener;
 

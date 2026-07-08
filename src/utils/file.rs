@@ -13,12 +13,10 @@ use std::path::{Path, PathBuf};
 
 use crate::IndicatorStyle;
 use crate::Params;
-use crate::platform;
-use crate::platform::LongFormatFileType;
+use crate::platform::{self, LongFormatFileType};
 use crate::structs::FileInfo;
 use crate::structs::NameStyle;
-use crate::utils;
-use crate::utils::gitignore::GitignoreCache;
+use crate::utils::{self, gitignore::GitignoreCache};
 
 /// Directory entry data captured before visibility filtering and sorting.
 pub(crate) struct DirectoryEntryData {
