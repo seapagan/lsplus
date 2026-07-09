@@ -3,7 +3,7 @@ use crate::utils::file::{
     DirectoryEntryData, append_file_info_for_names, check_display_name,
     collect_file_info, collect_file_names, collect_visible_file_names,
     create_file_info, format_path_error, format_symlink_display_name_with_dim,
-    get_groupname, get_username, sanitize_for_terminal,
+    sanitize_for_terminal,
 };
 use crate::{FileInfo, IndicatorStyle, NameStyle, Params};
 use std::ffi::OsString;
@@ -239,14 +239,6 @@ fn test_append_file_info_for_names_handles_empty_input() {
     );
 
     assert!(file_info.is_empty());
-}
-
-#[test]
-fn test_get_username_and_groupname_fall_back_to_ids() {
-    assert!(matches!(get_username(0).as_str(), "root" | "0"));
-    assert_eq!(get_username(u32::MAX), u32::MAX.to_string());
-    assert!(matches!(get_groupname(0).as_str(), "root" | "0"));
-    assert_eq!(get_groupname(u32::MAX), u32::MAX.to_string());
 }
 
 #[test]

@@ -2,7 +2,8 @@ use crate::common_tests::{
     ColorModeGuard, has_ansi, with_color_output_enabled,
 };
 use crate::platform::{
-    LongFormatFileType, long_format_file_type, name_style_for_file_type,
+    LongFormatFileType, get_groupname, get_username, long_format_file_type,
+    name_style_for_file_type,
 };
 use crate::utils::file::{
     collect_file_info, collect_file_names, create_file_info,
@@ -20,6 +21,14 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use strip_ansi_escapes::strip_str;
 use tempfile::tempdir;
+
+#[test]
+fn test_get_username_and_groupname_fall_back_to_ids() {
+    assert!(matches!(get_username(0).as_str(), "root" | "0"));
+    assert_eq!(get_username(u32::MAX), u32::MAX.to_string());
+    assert!(matches!(get_groupname(0).as_str(), "root" | "0"));
+    assert_eq!(get_groupname(u32::MAX), u32::MAX.to_string());
+}
 
 #[test]
 fn test_collect_file_names_errors_for_broken_directory_symlink() {

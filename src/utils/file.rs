@@ -28,16 +28,6 @@ pub(crate) struct DirectoryEntryData {
     pub is_dir: Result<bool, io::Error>,
 }
 
-/// Look up a username, falling back to the numeric UID.
-pub fn get_username(uid: u32) -> String {
-    platform::get_username(uid)
-}
-
-/// Look up a group name, falling back to the numeric GID.
-pub fn get_groupname(gid: u32) -> String {
-    platform::get_groupname(gid)
-}
-
 /// Return displayable names for a file path or visible entries in a directory.
 pub fn collect_file_names(
     path: &Path,
