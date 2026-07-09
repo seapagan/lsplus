@@ -110,7 +110,7 @@ pub(crate) fn file_details(metadata: &fs::Metadata) -> FileDetails {
 }
 
 /// Look up a username, falling back to the numeric UID.
-pub fn get_username(uid: u32) -> String {
+pub(crate) fn get_username(uid: u32) -> String {
     match User::from_uid(uid.into()) {
         Ok(Some(user)) => user.name,
         _ => uid.to_string(),
@@ -118,7 +118,7 @@ pub fn get_username(uid: u32) -> String {
 }
 
 /// Look up a group name, falling back to the numeric GID.
-pub fn get_groupname(gid: u32) -> String {
+pub(crate) fn get_groupname(gid: u32) -> String {
     match Group::from_gid(gid.into()) {
         Ok(Some(group)) => group.name,
         _ => gid.to_string(),
@@ -130,14 +130,9 @@ pub(crate) fn entry_name_is_hidden(name: &OsStr) -> bool {
 }
 
 pub(crate) fn sort_key(name: &OsStr) -> Vec<u8> {
-    let bytes = name.as_bytes();
-    let trimmed = bytes
+    name.as_bytes()
         .iter()
         .skip_while(|byte| **byte == b'.')
-        .copied()
-        .collect::<Vec<_>>();
-    trimmed
-        .into_iter()
         .map(|byte| byte.to_ascii_lowercase())
         .collect()
 }

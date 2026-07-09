@@ -97,7 +97,7 @@ fn test_collect_file_info_handles_direct_file_arguments() {
 }
 
 #[test]
-fn test_file_helpers_return_errors_for_missing_paths_and_broken_symlinks() {
+fn test_file_helpers_return_errors_for_missing_paths() {
     let temp_dir = tempdir().unwrap();
     let missing = temp_dir.path().join("missing.txt");
 
