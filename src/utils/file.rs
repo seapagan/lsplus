@@ -6,7 +6,7 @@
 //! entries.
 
 use colored_text::{Colorize, StyledText};
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -101,7 +101,7 @@ pub(crate) fn collect_visible_file_names(
             Ok(entry) => {
                 if params.show_all
                     || params.almost_all
-                    || !entry_name_is_hidden(&entry.file_name)
+                    || !platform::entry_name_is_hidden(&entry.file_name)
                 {
                     visible_entries.push(entry);
                 }
@@ -110,7 +110,8 @@ pub(crate) fn collect_visible_file_names(
         }
     }
 
-    visible_entries.sort_by_cached_key(|entry| sort_key(&entry.file_name));
+    visible_entries
+        .sort_by_cached_key(|entry| platform::sort_key(&entry.file_name));
 
     if params.dirs_first {
         let (dirs, files): (Vec<_>, Vec<_>) = visible_entries
@@ -272,7 +273,7 @@ pub(crate) fn create_file_info_from_metadata_with_gitignore(
         (
             colorize_name_by_metadata(&indicated_file_name, metadata, ignored),
             indicated_file_name.clone(),
-            name_style_by_metadata(metadata),
+            platform::name_style_by_metadata(metadata),
         )
     };
 
@@ -301,14 +302,6 @@ pub fn check_display_name(info: &FileInfo) -> String {
         p if p.ends_with("/..") => "..".blue().to_string(),
         _ => info.display_name.to_string(),
     }
-}
-
-fn entry_name_is_hidden(name: &OsStr) -> bool {
-    platform::entry_name_is_hidden(name)
-}
-
-fn sort_key(name: &OsStr) -> Vec<u8> {
-    platform::sort_key(name)
 }
 
 /// Escape control characters so paths cannot inject terminal control output.
@@ -411,16 +404,12 @@ fn plain_text(text: impl Into<String>, dimmed: bool) -> String {
     apply_dim(StyledText::plain(text), dimmed).to_string()
 }
 
-fn name_style_by_metadata(metadata: &fs::Metadata) -> NameStyle {
-    platform::name_style_by_metadata(metadata)
-}
-
 fn colorize_name_by_metadata(
     safe_name: &str,
     metadata: &fs::Metadata,
     dimmed: bool,
 ) -> String {
-    match name_style_by_metadata(metadata) {
+    match platform::name_style_by_metadata(metadata) {
         NameStyle::Symlink => apply_dim(safe_name.cyan(), dimmed).to_string(),
         NameStyle::Directory => {
             apply_dim(safe_name.blue(), dimmed).to_string()
