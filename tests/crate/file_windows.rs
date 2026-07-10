@@ -3,17 +3,19 @@ use crate::platform::{
     EntryClassification, LongColumn, LongFormatFileType,
     LongFormatLayoutOptions, attribute_text, classify_entry,
     compare_entry_names, compare_result_ordering, default_config_path,
-    long_format_layout, non_reparse_file_type, normalize_path, parse_pathext,
-    reparse_file_type, validate_params,
+    extended_find_path, long_format_layout, non_reparse_file_type,
+    normalize_path, parse_pathext, reparse_file_type, validate_params,
 };
 use crate::structs::PermissionDisplay;
 use crate::utils::file::{
+    DirectoryEntryData, collect_visible_file_names,
     format_symlink_display_name_with_dim, slash_indicator_suffix,
 };
 use crate::{Params, structs::NameStyle};
 use std::cmp::Ordering;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::fs;
+use std::os::windows::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use tempfile::tempdir;
 
@@ -176,6 +178,33 @@ fn test_windows_normalizes_nt_and_unc_prefixes() {
 }
 
 #[test]
+fn test_windows_reparse_queries_use_extended_paths() {
+    let to_wide = |value: &str| {
+        OsStr::new(value)
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect::<Vec<_>>()
+    };
+
+    assert_eq!(
+        extended_find_path(Path::new(r"C:\work\entry")),
+        to_wide(r"\\?\C:\work\entry")
+    );
+    assert_eq!(
+        extended_find_path(Path::new(r"\\server\share\entry")),
+        to_wide(r"\\?\UNC\server\share\entry")
+    );
+    assert_eq!(
+        extended_find_path(Path::new(r"\\?\C:\work\entry")),
+        to_wide(r"\\?\C:\work\entry")
+    );
+    assert_eq!(
+        extended_find_path(Path::new(r"\??\C:\work\entry")),
+        to_wide(r"\\?\C:\work\entry")
+    );
+}
+
+#[test]
 fn test_windows_junction_source_uses_junction_style() {
     with_color_output_enabled(|| {
         let display = format_symlink_display_name_with_dim(
@@ -215,6 +244,59 @@ fn test_windows_directory_symlink_uses_symlink_style() {
 fn test_windows_slash_indicator_uses_link_object_state() {
     assert_eq!(slash_indicator_suffix(true), "/");
     assert_eq!(slash_indicator_suffix(false), "");
+}
+
+#[test]
+fn test_windows_collection_filters_hidden_and_groups_directories() {
+    let entry =
+        |name, file_type, hidden, group_with_directories| DirectoryEntryData {
+            file_name: OsString::from(name),
+            path: PathBuf::from(name),
+            classification_result: Ok(EntryClassification {
+                file_type,
+                hidden,
+                display_as_directory: group_with_directories,
+                group_with_directories,
+                may_recurse: group_with_directories,
+                may_render_link_target: false,
+            }),
+        };
+    let entries = || {
+        vec![
+            Ok(entry("visible", LongFormatFileType::Regular, false, false)),
+            Ok(entry("hidden", LongFormatFileType::Regular, true, false)),
+            Ok(entry(
+                "directory",
+                LongFormatFileType::Directory,
+                false,
+                true,
+            )),
+        ]
+    };
+    let params = Params {
+        dirs_first: true,
+        ..Params::default()
+    };
+
+    assert_eq!(
+        collect_visible_file_names(Path::new("listing"), entries(), &params),
+        vec![String::from("directory"), String::from("visible")]
+    );
+    assert_eq!(
+        collect_visible_file_names(
+            Path::new("listing"),
+            entries(),
+            &Params {
+                show_all: true,
+                ..params
+            },
+        ),
+        vec![
+            String::from("directory"),
+            String::from("hidden"),
+            String::from("visible"),
+        ]
+    );
 }
 
 #[test]

@@ -72,6 +72,10 @@ fn test_icon_for_file_type_maps_special_file_types() {
         icon_for_file_type(LongFormatFileType::Symlink, "link"),
         Icon::Symlink
     );
+    assert_eq!(
+        icon_for_file_type(LongFormatFileType::Junction, "junction"),
+        Icon::Junction
+    );
 }
 
 #[test]

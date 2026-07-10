@@ -26,6 +26,12 @@ fn windows_file_info() -> FileInfo {
     }
 }
 
+fn windows_file_info_with_type(file_type: &str) -> FileInfo {
+    let mut info = windows_file_info();
+    info.file_type = String::from(file_type);
+    info
+}
+
 #[test]
 fn test_windows_long_table_uses_native_columns() {
     let _guard = ColorModeGuard::set(ColorMode::Never);
@@ -73,4 +79,27 @@ fn test_windows_long_table_omits_disabled_columns() {
     assert!(rendered.contains("Name"));
     assert!(!rendered.contains("Attributes"));
     assert!(!rendered.contains(&Icon::Junction.to_string()));
+}
+
+#[test]
+fn test_windows_long_table_colors_native_type_markers() {
+    let _guard = ColorModeGuard::set(ColorMode::Always);
+    let params = Params {
+        long_format: true,
+        no_icons: true,
+        ..Params::default()
+    };
+    let rendered = build_long_format_table(
+        &[
+            windows_file_info_with_type("j"),
+            windows_file_info_with_type("L"),
+            windows_file_info_with_type("r"),
+        ],
+        &params,
+    )
+    .to_string();
+
+    assert!(rendered.contains("\u{1b}[35mj"));
+    assert!(rendered.contains("\u{1b}[36mL"));
+    assert!(rendered.contains("\u{1b}[2mr"));
 }
