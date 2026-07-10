@@ -41,6 +41,9 @@ mod icons_tests;
 #[cfg(all(test, unix))]
 #[path = "../tests/crate/render.rs"]
 mod render_tests;
+#[cfg(all(test, windows))]
+#[path = "../tests/crate/render_windows.rs"]
+mod render_windows_tests;
 #[cfg(test)]
 #[path = "../tests/crate/settings.rs"]
 mod settings_tests;

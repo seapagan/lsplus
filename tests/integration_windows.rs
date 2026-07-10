@@ -154,6 +154,25 @@ fn test_windows_junction_listing_and_recursion_behavior() {
         .stdout(predicate::str::contains("linked-target"))
         .stdout(predicate::str::contains("j"));
 
+    let mut slash = Command::cargo_bin("lsp").unwrap();
+    slash
+        .arg("--slash-dirs")
+        .arg("--no-icons")
+        .arg(&parent)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("linked-target"))
+        .stdout(predicate::str::contains("linked-target/").not());
+
+    let mut file_type = Command::cargo_bin("lsp").unwrap();
+    file_type
+        .arg("--file-type")
+        .arg("--no-icons")
+        .arg(&parent)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("linked-target@"));
+
     let mut recursive = Command::cargo_bin("lsp").unwrap();
     recursive
         .arg("--recursive")

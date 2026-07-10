@@ -78,11 +78,24 @@ pub(crate) fn metadata_file_type(
         );
     }
 
-    if metadata.is_dir() {
+    non_reparse_file_type(
+        metadata.is_dir(),
+        metadata.file_type().is_symlink(),
+        metadata.is_file(),
+    )
+}
+
+/// Classify a non-reparse entry from its link-object metadata state.
+pub(crate) fn non_reparse_file_type(
+    is_directory: bool,
+    is_symlink: bool,
+    is_file: bool,
+) -> LongFormatFileType {
+    if is_directory {
         LongFormatFileType::Directory
-    } else if metadata.file_type().is_symlink() {
+    } else if is_symlink {
         LongFormatFileType::Symlink
-    } else if metadata.is_file() {
+    } else if is_file {
         LongFormatFileType::Regular
     } else {
         LongFormatFileType::Unknown
@@ -345,5 +358,11 @@ mod tests {
         assert!(extensions.contains("EXE"));
         assert!(extensions.contains("CMD"));
         assert!(extensions.contains("PS1"));
+    }
+
+    #[test]
+    fn test_reparse_tag_returns_none_for_missing_path() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        assert_eq!(reparse_tag(&temp_dir.path().join("missing")), None);
     }
 }

@@ -1,13 +1,20 @@
+use crate::common_tests::with_color_output_enabled;
 use crate::platform::{
-    LongColumn, LongFormatLayoutOptions, attribute_text, classify_entry,
-    compare_entry_names, default_config_path, long_format_layout,
-    parse_pathext, validate_params,
+    EntryClassification, LongColumn, LongFormatFileType,
+    LongFormatLayoutOptions, attribute_text, classify_entry,
+    compare_entry_names, compare_result_ordering, default_config_path,
+    long_format_layout, non_reparse_file_type, normalize_path, parse_pathext,
+    reparse_file_type, validate_params,
 };
 use crate::structs::PermissionDisplay;
+use crate::utils::file::{
+    format_symlink_display_name_with_dim, slash_indicator_suffix,
+};
 use crate::{Params, structs::NameStyle};
 use std::cmp::Ordering;
 use std::ffi::OsStr;
 use std::fs;
+use std::path::{Path, PathBuf};
 use tempfile::tempdir;
 
 #[test]
@@ -28,6 +35,25 @@ fn test_windows_layout_uses_native_columns() {
             LongColumn::Date,
             LongColumn::Icon,
             LongColumn::Name,
+        ]
+    );
+}
+
+#[test]
+fn test_windows_layout_omits_optional_columns() {
+    let layout = long_format_layout(&LongFormatLayoutOptions {
+        permission_display: PermissionDisplay::None,
+        include_size_unit: false,
+        include_icon: false,
+    });
+
+    assert_eq!(
+        layout.columns,
+        vec![
+            LongColumn::Type,
+            LongColumn::Size,
+            LongColumn::Date,
+            LongColumn::Name
         ]
     );
 }
@@ -56,6 +82,15 @@ fn test_windows_attribute_text_is_readable() {
 }
 
 #[test]
+fn test_windows_attribute_text_handles_recall_and_structural_bits() {
+    assert_eq!(
+        attribute_text(0x0004_0000 | 0x0040_0000),
+        "EA, RecallOnOpen, RecallOnDataAccess"
+    );
+    assert_eq!(attribute_text(0x0000_04D0), "Normal");
+}
+
+#[test]
 fn test_windows_pathext_parser_normalizes_extensions() {
     let extensions = parse_pathext(".exe; .Cmd;PS1");
     assert!(extensions.contains("EXE"));
@@ -73,6 +108,113 @@ fn test_windows_sorting_is_case_insensitive_then_deterministic() {
         compare_entry_names(OsStr::new("alpha"), OsStr::new("Beta")),
         Ordering::Less
     );
+}
+
+#[test]
+fn test_windows_sorting_falls_back_to_utf16_ordering() {
+    assert_eq!(
+        compare_result_ordering(Some(0), &[0xD800], &[0xD801]),
+        Ordering::Less
+    );
+    assert_eq!(compare_result_ordering(None, &[2], &[1]), Ordering::Greater);
+}
+
+#[test]
+fn test_windows_reparse_classification_is_conservative() {
+    assert_eq!(
+        reparse_file_type(Some(0xA000_0003), false),
+        LongFormatFileType::Junction
+    );
+    assert_eq!(
+        reparse_file_type(Some(0xA000_000C), true),
+        LongFormatFileType::SymlinkDirectory
+    );
+    assert_eq!(
+        reparse_file_type(Some(0xA000_000C), false),
+        LongFormatFileType::SymlinkFile
+    );
+    assert_eq!(
+        reparse_file_type(Some(0xDEAD_BEEF), false),
+        LongFormatFileType::ReparsePoint
+    );
+    assert_eq!(
+        reparse_file_type(None, false),
+        LongFormatFileType::ReparsePoint
+    );
+}
+
+#[test]
+fn test_windows_non_reparse_classification_handles_all_metadata_states() {
+    assert_eq!(
+        non_reparse_file_type(true, false, false),
+        LongFormatFileType::Directory
+    );
+    assert_eq!(
+        non_reparse_file_type(false, true, false),
+        LongFormatFileType::Symlink
+    );
+    assert_eq!(
+        non_reparse_file_type(false, false, true),
+        LongFormatFileType::Regular
+    );
+    assert_eq!(
+        non_reparse_file_type(false, false, false),
+        LongFormatFileType::Unknown
+    );
+}
+
+#[test]
+fn test_windows_normalizes_nt_and_unc_prefixes() {
+    assert_eq!(
+        normalize_path(PathBuf::from(r"\??\C:\work\entry")),
+        PathBuf::from(r"C:\work\entry")
+    );
+    assert_eq!(
+        normalize_path(PathBuf::from(r"\\?\UNC\server\share\entry")),
+        PathBuf::from(r"\\server\share\entry")
+    );
+}
+
+#[test]
+fn test_windows_junction_source_uses_junction_style() {
+    with_color_output_enabled(|| {
+        let display = format_symlink_display_name_with_dim(
+            "junction",
+            Path::new("junction"),
+            Ok(PathBuf::from("target")),
+            &Params::default(),
+            NameStyle::Junction,
+            false,
+        );
+        assert!(display.contains("\u{1b}[35mjunction"));
+    });
+}
+
+#[test]
+fn test_windows_directory_symlink_uses_symlink_style() {
+    let temp_dir = tempdir().unwrap();
+    let file = temp_dir.path().join("file.txt");
+    fs::write(&file, "file").unwrap();
+    let metadata = fs::symlink_metadata(&file).unwrap();
+    let classification = EntryClassification {
+        file_type: LongFormatFileType::SymlinkDirectory,
+        hidden: false,
+        display_as_directory: true,
+        group_with_directories: true,
+        may_recurse: false,
+        may_render_link_target: true,
+    };
+
+    assert_eq!(
+        crate::platform::name_style(&file, &metadata, classification),
+        NameStyle::Symlink
+    );
+}
+
+#[test]
+fn test_windows_slash_indicator_uses_link_object_state() {
+    assert_eq!(slash_indicator_suffix(true), "/");
+    assert_eq!(slash_indicator_suffix(false), "");
 }
 
 #[test]

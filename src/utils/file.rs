@@ -353,11 +353,9 @@ fn indicator_suffix(
 
     match params.indicator_style {
         IndicatorStyle::None => "",
-        IndicatorStyle::Slash => {
-            // Deliberately inspect the link object: directory links and
-            // junctions have no suffix in slash-only mode.
-            if metadata.is_dir() { "/" } else { "" }
-        }
+        // Deliberately inspect the link object: directory links and junctions
+        // have no suffix in slash-only mode.
+        IndicatorStyle::Slash => slash_indicator_suffix(metadata.is_dir()),
         IndicatorStyle::FileType => {
             file_type_indicator_suffix(path, metadata, classification, false)
         }
@@ -365,6 +363,11 @@ fn indicator_suffix(
             file_type_indicator_suffix(path, metadata, classification, true)
         }
     }
+}
+
+/// Return the slash-only indicator for the listed link object.
+pub(crate) fn slash_indicator_suffix(is_directory: bool) -> &'static str {
+    if is_directory { "/" } else { "" }
 }
 
 /// Return the GNU-style indicator suffix for the entry metadata.
