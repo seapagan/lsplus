@@ -324,20 +324,22 @@ fn append_prune_names<'a>(
 /// Metadata and pre-rendered name data for one listed filesystem entry.
 #[derive(Debug)]
 pub struct FileInfo {
-    /// Long-format file-type character: `d`, `-`, `l`, `s`, `p`, `c`, `b`,
-    /// or `?`.
+    /// Long-format type marker, such as Unix `d` or `l`, or Windows `j`, `L`,
+    /// or `r`.
     pub file_type: String,
-    /// Unix-style permission string, possibly including `s`, `S`, `t`, or
-    /// `T` special-bit overlays.
+    /// Long-format access text: Unix symbolic permissions or Windows file
+    /// attributes.
     pub mode: String,
-    /// Unix permission bits masked to the displayable permission and special
-    /// bit range.
+    /// Unix permission bits for octal rendering; zero is a Windows-only
+    /// internal placeholder.
     pub mode_bits: u32,
-    /// Link count from filesystem metadata.
+    /// Unix link count; zero is a Windows-only internal placeholder.
     pub nlink: u64,
-    /// Owner name, or numeric user ID when lookup fails.
+    /// Unix owner name or fallback numeric ID; empty on Windows and not
+    /// rendered there.
     pub user: String,
-    /// Group name, or numeric group ID when lookup fails.
+    /// Unix group name or fallback numeric ID; empty on Windows and not
+    /// rendered there.
     pub group: String,
     /// Size in bytes.
     pub size: u64,
