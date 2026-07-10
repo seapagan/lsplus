@@ -416,6 +416,7 @@ fn test_format_symlink_display_name_colors_long_format_targets_by_type() {
             &temp_dir.path().join("dir-link"),
             Ok(PathBuf::from("dir-target")),
             &params,
+            NameStyle::Symlink,
             false,
         );
         assert!(dir_display.contains("-> \u{1b}[34m"));
@@ -425,6 +426,7 @@ fn test_format_symlink_display_name_colors_long_format_targets_by_type() {
             &temp_dir.path().join("file-link"),
             Ok(PathBuf::from("file-target.txt")),
             &params,
+            NameStyle::Symlink,
             false,
         );
         assert!(!file_display.contains("-> \u{1b}["));
@@ -434,6 +436,7 @@ fn test_format_symlink_display_name_colors_long_format_targets_by_type() {
             &temp_dir.path().join("symlink-link"),
             Ok(PathBuf::from("symlink-target")),
             &params,
+            NameStyle::Symlink,
             false,
         );
         assert!(symlink_display.contains("-> \u{1b}[36m"));
@@ -443,6 +446,7 @@ fn test_format_symlink_display_name_colors_long_format_targets_by_type() {
             &temp_dir.path().join("exec-link"),
             Ok(PathBuf::from("exec-target.sh")),
             &params,
+            NameStyle::Symlink,
             false,
         );
         assert!(exec_display.contains("-> \u{1b}[1;32m"));

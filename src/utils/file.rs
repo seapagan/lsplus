@@ -252,6 +252,7 @@ pub(crate) fn create_file_info_from_metadata_with_gitignore(
                 path,
                 fs::read_link(path),
                 params,
+                name_style,
                 ignored,
             ),
             indicated_file_name.clone(),
@@ -353,11 +354,9 @@ fn indicator_suffix(
     match params.indicator_style {
         IndicatorStyle::None => "",
         IndicatorStyle::Slash => {
-            if metadata.is_dir() {
-                "/"
-            } else {
-                ""
-            }
+            // Deliberately inspect the link object: directory links and
+            // junctions have no suffix in slash-only mode.
+            if metadata.is_dir() { "/" } else { "" }
         }
         IndicatorStyle::FileType => {
             file_type_indicator_suffix(path, metadata, classification, false)
@@ -449,6 +448,7 @@ pub(crate) fn format_symlink_display_name_with_dim(
     path: &Path,
     target: io::Result<PathBuf>,
     params: &Params,
+    source_style: NameStyle,
     dimmed: bool,
 ) -> String {
     match target {
@@ -479,14 +479,14 @@ pub(crate) fn format_symlink_display_name_with_dim(
                 if matches!(target_exists, Ok(true)) {
                     format!(
                         "{}{}{}",
-                        link_source_text(source_name, path, dimmed),
+                        link_source_text(source_name, source_style, dimmed),
                         plain_text(" -> ", dimmed),
                         display_target
                     )
                 } else if matches!(target_exists, Ok(false)) {
                     format!(
                         "{}{}{}{}{}",
-                        link_source_text(source_name, path, dimmed),
+                        link_source_text(source_name, source_style, dimmed),
                         plain_text(" -> ", dimmed),
                         display_target,
                         plain_text(" ", dimmed),
@@ -495,7 +495,7 @@ pub(crate) fn format_symlink_display_name_with_dim(
                 } else {
                     format!(
                         "{}{}{}{}{}",
-                        link_source_text(source_name, path, dimmed),
+                        link_source_text(source_name, source_style, dimmed),
                         plain_text(" -> ", dimmed),
                         display_target,
                         plain_text(" ", dimmed),
@@ -503,7 +503,7 @@ pub(crate) fn format_symlink_display_name_with_dim(
                     )
                 }
             } else {
-                link_source_text(source_name, path, dimmed)
+                link_source_text(source_name, source_style, dimmed)
             }
         }
         Err(_) => {
@@ -514,22 +514,18 @@ pub(crate) fn format_symlink_display_name_with_dim(
                 )
                 .to_string()
             } else {
-                link_source_text(source_name, path, dimmed)
+                link_source_text(source_name, source_style, dimmed)
             }
         }
     }
 }
 
-fn link_source_text(source_name: &str, path: &Path, dimmed: bool) -> String {
-    let junction = fs::symlink_metadata(path)
-        .map(|metadata| {
-            matches!(
-                platform::classify_entry(path, &metadata).file_type,
-                LongFormatFileType::Junction
-            )
-        })
-        .unwrap_or(false);
-    if junction {
+fn link_source_text(
+    source_name: &str,
+    source_style: NameStyle,
+    dimmed: bool,
+) -> String {
+    if source_style == NameStyle::Junction {
         apply_dim(source_name.magenta(), dimmed).to_string()
     } else {
         apply_dim(source_name.cyan(), dimmed).to_string()

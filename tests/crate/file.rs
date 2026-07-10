@@ -277,6 +277,7 @@ fn test_format_symlink_display_name_handles_unreadable_targets() {
         Path::new("/tmp/broken-link"),
         Err(io::Error::other("boom")),
         &params,
+        NameStyle::Symlink,
         false,
     );
     assert!(unreadable.contains("[Target Unavailable]"));
@@ -289,6 +290,7 @@ fn test_format_symlink_display_name_handles_unreadable_targets() {
             indicator_style: IndicatorStyle::FileType,
             ..Params::default()
         },
+        NameStyle::Symlink,
         false,
     );
     assert!(short.contains('@'));
@@ -325,6 +327,7 @@ fn test_format_symlink_display_name_short_format_omits_marker_without_indicator(
         Path::new("/tmp/link"),
         Ok(PathBuf::from("target")),
         &Params::default(),
+        NameStyle::Symlink,
         false,
     );
 
@@ -343,6 +346,7 @@ fn test_format_symlink_display_name_short_format_uses_at_for_file_type() {
             indicator_style: IndicatorStyle::FileType,
             ..Params::default()
         },
+        NameStyle::Symlink,
         false,
     );
 
@@ -359,6 +363,7 @@ fn test_format_symlink_display_name_unreadable_short_format_omits_marker_without
         Path::new("/tmp/link"),
         Err(io::Error::other("boom")),
         &Params::default(),
+        NameStyle::Symlink,
         false,
     );
 
