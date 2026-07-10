@@ -248,6 +248,15 @@ fn reparse_tag(path: &Path) -> Option<u32> {
 
 /// Return an extended-length absolute path for Win32 file queries.
 pub(crate) fn extended_find_path(path: &Path) -> Vec<u16> {
+    let current_directory = std::env::current_dir().ok();
+    extended_find_path_with_current_dir(path, current_directory.as_deref())
+}
+
+/// Return an extended-length path using an optional current directory.
+pub(crate) fn extended_find_path_with_current_dir(
+    path: &Path,
+    current_directory: Option<&Path>,
+) -> Vec<u16> {
     const EXTENDED_PREFIX: &[u16] = &[92, 92, 63, 92];
     const NT_PREFIX: &[u16] = &[92, 63, 63, 92];
     const UNC_PREFIX: &[u16] = &[92, 92];
@@ -267,9 +276,9 @@ pub(crate) fn extended_find_path(path: &Path) -> Vec<u16> {
     let path = if path.is_absolute() {
         path.to_path_buf()
     } else {
-        std::env::current_dir()
+        current_directory
             .map(|directory| directory.join(path))
-            .unwrap_or_else(|_| path.to_path_buf())
+            .unwrap_or_else(|| path.to_path_buf())
     };
     let wide = path.as_os_str().encode_wide().collect::<Vec<_>>();
 

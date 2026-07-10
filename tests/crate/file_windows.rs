@@ -3,8 +3,9 @@ use crate::platform::{
     EntryClassification, LongColumn, LongFormatFileType,
     LongFormatLayoutOptions, attribute_text, classify_entry,
     compare_entry_names, compare_result_ordering, default_config_path,
-    extended_find_path, long_format_layout, non_reparse_file_type,
-    normalize_path, parse_pathext, reparse_file_type, validate_params,
+    extended_find_path, extended_find_path_with_current_dir,
+    long_format_layout, non_reparse_file_type, normalize_path, parse_pathext,
+    reparse_file_type, validate_params,
 };
 use crate::structs::PermissionDisplay;
 use crate::utils::file::{
@@ -201,6 +202,16 @@ fn test_windows_reparse_queries_use_extended_paths() {
     assert_eq!(
         extended_find_path(Path::new(r"\??\C:\work\entry")),
         to_wide(r"\\?\C:\work\entry")
+    );
+}
+
+#[test]
+fn test_windows_extended_path_keeps_relative_path_without_current_directory() {
+    let path =
+        extended_find_path_with_current_dir(Path::new("relative"), None);
+    assert_eq!(
+        String::from_utf16(&path[..path.len() - 1]).unwrap(),
+        r"\\?\relative"
     );
 }
 
