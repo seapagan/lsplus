@@ -41,7 +41,7 @@ fn config_path() -> Option<PathBuf> {
 }
 
 /// Return the default config path for a home directory, when one is known.
-#[cfg(unix)]
+#[cfg(all(unix, test))]
 pub(crate) fn config_path_from_home(home: Option<PathBuf>) -> Option<PathBuf> {
     let mut path = home?;
     path.push(".config/lsplus/config.toml");

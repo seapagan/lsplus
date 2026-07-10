@@ -21,9 +21,13 @@ pub(crate) enum LongFormatFileType {
     Directory,
     Regular,
     Symlink,
+    #[cfg_attr(unix, allow(dead_code))]
     SymlinkFile,
+    #[cfg_attr(unix, allow(dead_code))]
     SymlinkDirectory,
+    #[cfg_attr(unix, allow(dead_code))]
     Junction,
+    #[cfg_attr(unix, allow(dead_code))]
     ReparsePoint,
     #[cfg_attr(windows, allow(dead_code))]
     Socket,
@@ -83,7 +87,9 @@ pub(crate) enum LongColumn {
     UnixOctalWithType,
     #[cfg_attr(windows, allow(dead_code))]
     UnixOctal,
+    #[cfg_attr(unix, allow(dead_code))]
     Type,
+    #[cfg_attr(unix, allow(dead_code))]
     Attributes,
     #[cfg_attr(windows, allow(dead_code))]
     Links,
