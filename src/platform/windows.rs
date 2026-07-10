@@ -14,13 +14,15 @@ use std::time::SystemTime;
 use windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
 use windows_sys::Win32::Globalization::CompareStringOrdinal;
 use windows_sys::Win32::Storage::FileSystem::{
-    FILE_ATTRIBUTE_ARCHIVE, FILE_ATTRIBUTE_COMPRESSED,
-    FILE_ATTRIBUTE_ENCRYPTED, FILE_ATTRIBUTE_HIDDEN,
-    FILE_ATTRIBUTE_INTEGRITY_STREAM, FILE_ATTRIBUTE_NOT_CONTENT_INDEXED,
-    FILE_ATTRIBUTE_OFFLINE, FILE_ATTRIBUTE_PINNED, FILE_ATTRIBUTE_READONLY,
-    FILE_ATTRIBUTE_REPARSE_POINT, FILE_ATTRIBUTE_SPARSE_FILE,
-    FILE_ATTRIBUTE_SYSTEM, FILE_ATTRIBUTE_TEMPORARY, FILE_ATTRIBUTE_UNPINNED,
-    FILE_ATTRIBUTE_VIRTUAL, FindClose, FindFirstFileW, WIN32_FIND_DATAW,
+    FILE_ATTRIBUTE_ARCHIVE, FILE_ATTRIBUTE_COMPRESSED, FILE_ATTRIBUTE_DEVICE,
+    FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_ENCRYPTED, FILE_ATTRIBUTE_HIDDEN,
+    FILE_ATTRIBUTE_INTEGRITY_STREAM, FILE_ATTRIBUTE_NORMAL,
+    FILE_ATTRIBUTE_NOT_CONTENT_INDEXED, FILE_ATTRIBUTE_OFFLINE,
+    FILE_ATTRIBUTE_PINNED, FILE_ATTRIBUTE_READONLY,
+    FILE_ATTRIBUTE_RECALL_ON_OPEN, FILE_ATTRIBUTE_REPARSE_POINT,
+    FILE_ATTRIBUTE_SPARSE_FILE, FILE_ATTRIBUTE_SYSTEM,
+    FILE_ATTRIBUTE_TEMPORARY, FILE_ATTRIBUTE_UNPINNED, FILE_ATTRIBUTE_VIRTUAL,
+    FindClose, FindFirstFileW, WIN32_FIND_DATAW,
 };
 
 use crate::platform::{
@@ -70,18 +72,10 @@ pub(crate) fn metadata_file_type(
 ) -> LongFormatFileType {
     let attributes = metadata.file_attributes();
     if attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
-        return match reparse_tag(path) {
-            Some(IO_REPARSE_TAG_MOUNT_POINT) => LongFormatFileType::Junction,
-            Some(IO_REPARSE_TAG_SYMLINK) => {
-                let file_type = metadata.file_type();
-                if file_type.is_symlink_dir() {
-                    LongFormatFileType::SymlinkDirectory
-                } else {
-                    LongFormatFileType::SymlinkFile
-                }
-            }
-            _ => LongFormatFileType::ReparsePoint,
-        };
+        return reparse_file_type(
+            reparse_tag(path),
+            metadata.file_type().is_symlink_dir(),
+        );
     }
 
     if metadata.is_dir() {
@@ -92,6 +86,21 @@ pub(crate) fn metadata_file_type(
         LongFormatFileType::Regular
     } else {
         LongFormatFileType::Unknown
+    }
+}
+
+/// Classify a reparse point using its tag and directory-link state.
+pub(crate) fn reparse_file_type(
+    tag: Option<u32>,
+    is_symlink_directory: bool,
+) -> LongFormatFileType {
+    match tag {
+        Some(IO_REPARSE_TAG_MOUNT_POINT) => LongFormatFileType::Junction,
+        Some(IO_REPARSE_TAG_SYMLINK) if is_symlink_directory => {
+            LongFormatFileType::SymlinkDirectory
+        }
+        Some(IO_REPARSE_TAG_SYMLINK) => LongFormatFileType::SymlinkFile,
+        _ => LongFormatFileType::ReparsePoint,
     }
 }
 
@@ -230,24 +239,31 @@ fn reparse_tag(path: &Path) -> Option<u32> {
 }
 
 fn compare_wide(left: &[u16], right: &[u16], ignore_case: bool) -> Ordering {
-    let left_len = i32::try_from(left.len());
-    let right_len = i32::try_from(right.len());
-    let (Ok(left_len), Ok(right_len)) = (left_len, right_len) else {
-        return left.cmp(right);
-    };
-    let result = unsafe {
-        CompareStringOrdinal(
-            left.as_ptr(),
-            left_len,
-            right.as_ptr(),
-            right_len,
-            ignore_case.into(),
-        )
-    };
+    let result = i32::try_from(left.len())
+        .ok()
+        .zip(i32::try_from(right.len()).ok())
+        .map(|(left_len, right_len)| unsafe {
+            CompareStringOrdinal(
+                left.as_ptr(),
+                left_len,
+                right.as_ptr(),
+                right_len,
+                ignore_case.into(),
+            )
+        });
+    compare_result_ordering(result, left, right)
+}
+
+/// Convert a Win32 ordinal-comparison result into a total ordering.
+pub(crate) fn compare_result_ordering(
+    result: Option<i32>,
+    left: &[u16],
+    right: &[u16],
+) -> Ordering {
     match result {
-        1 => Ordering::Less,
-        2 => Ordering::Equal,
-        3 => Ordering::Greater,
+        Some(1) => Ordering::Less,
+        Some(2) => Ordering::Equal,
+        Some(3) => Ordering::Greater,
         _ => left.cmp(right),
     }
 }
@@ -292,6 +308,7 @@ pub(crate) fn attribute_text(attributes: u32) -> String {
         (FILE_ATTRIBUTE_EA, "EA"),
         (FILE_ATTRIBUTE_PINNED, "Pinned"),
         (FILE_ATTRIBUTE_UNPINNED, "Unpinned"),
+        (FILE_ATTRIBUTE_RECALL_ON_OPEN, "RecallOnOpen"),
         (FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS, "RecallOnDataAccess"),
     ];
     let mut values = known
@@ -300,10 +317,14 @@ pub(crate) fn attribute_text(attributes: u32) -> String {
             (attributes & flag != 0).then_some((*name).to_string())
         })
         .collect::<Vec<_>>();
-    let known_mask = known
-        .iter()
-        .fold(FILE_ATTRIBUTE_REPARSE_POINT, |mask, (flag, _)| mask | flag);
-    let unknown = attributes & !known_mask & !0x0000_0090;
+    let known_mask = known.iter().fold(
+        FILE_ATTRIBUTE_REPARSE_POINT
+            | FILE_ATTRIBUTE_DIRECTORY
+            | FILE_ATTRIBUTE_DEVICE
+            | FILE_ATTRIBUTE_NORMAL,
+        |mask, (flag, _)| mask | flag,
+    );
+    let unknown = attributes & !known_mask;
     if unknown != 0 {
         values.push(format!("Unknown(0x{unknown:08X})"));
     }
