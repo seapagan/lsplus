@@ -7,6 +7,7 @@
 
 pub mod app;
 pub mod cli;
+mod platform;
 pub mod settings;
 pub mod structs;
 pub mod utils;
@@ -25,6 +26,9 @@ mod common_tests;
 #[cfg(test)]
 #[path = "../tests/crate/file.rs"]
 mod file_tests;
+#[cfg(all(test, unix))]
+#[path = "../tests/crate/file_unix.rs"]
+mod file_unix_tests;
 #[cfg(test)]
 #[path = "../tests/crate/gitignore.rs"]
 mod gitignore_tests;

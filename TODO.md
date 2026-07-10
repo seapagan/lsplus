@@ -56,6 +56,12 @@
       that preserves extensions without changing the default wrap behavior.
 - [ ] Consider separating config-loaded values from effective runtime params so
       merge behavior is more explicit than the current shared `Params` type.
+- [ ] Detect terminal color capability once at startup and pass the effective
+      color mode/level through render paths, instead of re-checking
+      `colored_text` capability while building long-format tables. Refactor
+      `lsplus` render tests to inject explicit color levels rather than
+      mutating `TERM`, `NO_COLOR`, or `COLORTERM`; leave the env/terminal
+      detection matrix to `colored_text`.
 - [ ] Extend human-readable size units beyond petabytes so exabyte-scale values
       render as `E` instead of large `P` multiples.
 - [ ] Review `src/lib.rs` and crate/module visibility. Keep the current

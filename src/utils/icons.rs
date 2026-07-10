@@ -5,12 +5,11 @@
 
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::sync::OnceLock;
 use std::{fmt, fs};
 
-use crate::utils::file::{LongFormatFileType, long_format_file_type};
+use crate::platform::{self, LongFormatFileType};
 
 /// Icon glyphs used for known file and directory categories.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -289,7 +288,7 @@ pub fn get_item_icon(metadata: &fs::Metadata, file_path: &Path) -> Icon {
         .unwrap_or_default();
 
     icon_for_file_type(
-        long_format_file_type(metadata.mode()),
+        platform::metadata_file_type(metadata),
         file_name.as_ref(),
     )
 }
