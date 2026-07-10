@@ -1,6 +1,5 @@
 #![cfg(unix)]
 
-use assert_cmd::Command;
 use lsplus::utils::icons::Icon;
 use nix::unistd::Uid;
 use std::fs;
@@ -60,7 +59,7 @@ fn test_glob_entry_error_reports_stderr_and_lists_matches() {
     };
 
     let pattern = format!("{}/**/*.txt", temp_dir.path().display());
-    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    let mut cmd = command_with_home(temp_dir.path());
     cmd.arg(pattern);
     let (stdout, stderr) = run_and_capture(&mut cmd);
 
@@ -138,7 +137,7 @@ fn test_recursive_continues_after_unreadable_directory_operand() {
         path: blocked_dir.clone(),
     };
 
-    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    let mut cmd = command_with_home(temp_dir.path());
     let output = cmd
         .arg("-R")
         .arg("--no-icons")
@@ -175,7 +174,7 @@ fn test_recursive_filter_reports_unreadable_root() {
     };
     let pattern = format!("{}/*.rs", blocked_dir.display());
 
-    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    let mut cmd = command_with_home(temp_dir.path());
     let output = cmd
         .arg("-R")
         .arg("--no-icons")
@@ -215,7 +214,7 @@ fn test_broken_symlink_argument_long_format() {
 
     std::os::unix::fs::symlink("missing-target", &broken_symlink).unwrap();
 
-    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    let mut cmd = command_with_home(temp_dir.path());
     cmd.arg("-l")
         .arg(&broken_symlink)
         .assert()
@@ -293,7 +292,7 @@ fn test_native_no_indicators_overrides_config_indicator_style() {
 fn test_gnu_compat_mode_accepts_file_type_and_classify_output() {
     let temp_dir = create_indicator_fixture();
 
-    let mut file_type = Command::cargo_bin("lsp").unwrap();
+    let mut file_type = command_with_home(temp_dir.path());
     file_type
         .env("LSP_COMPAT_MODE", "gnu")
         .arg("--file-type")
@@ -305,7 +304,7 @@ fn test_gnu_compat_mode_accepts_file_type_and_classify_output() {
     assert!(file_type_stdout.contains("link@"));
     assert!(!file_type_stdout.contains("run.sh*"));
 
-    let mut classify = Command::cargo_bin("lsp").unwrap();
+    let mut classify = command_with_home(temp_dir.path());
     classify
         .env("LSP_COMPAT_MODE", "gnu")
         .arg("-F")
@@ -322,7 +321,7 @@ fn test_gnu_compat_mode_accepts_file_type_and_classify_output() {
 fn test_gnu_compat_mode_omits_symlink_at_indicator_in_long_mode() {
     let temp_dir = create_indicator_fixture();
 
-    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    let mut cmd = command_with_home(temp_dir.path());
     cmd.env("LSP_COMPAT_MODE", "gnu")
         .arg("-l")
         .arg("--file-type")
@@ -339,7 +338,7 @@ fn test_gnu_compat_mode_omits_symlink_at_indicator_in_long_mode() {
 fn test_gnu_compat_mode_accepts_indicator_style_none() {
     let temp_dir = create_indicator_fixture();
 
-    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    let mut cmd = command_with_home(temp_dir.path());
     cmd.env("LSP_COMPAT_MODE", "gnu")
         .arg("--indicator-style=none")
         .arg("--no-icons")
