@@ -337,11 +337,12 @@ fn long_permission_text(
 fn write_file_type_char(output: &mut String, value: char) {
     match value {
         'd' => write!(output, "{}", value.blue()).unwrap(),
-        'l' => write!(output, "{}", value.cyan()).unwrap(),
+        'l' | 'L' => write!(output, "{}", value.cyan()).unwrap(),
+        'j' => write!(output, "{}", value.magenta()).unwrap(),
         's' => write!(output, "{}", value.magenta().bold()).unwrap(),
         'p' => write!(output, "{}", value.yellow()).unwrap(),
         'c' | 'b' => write!(output, "{}", value.yellow().bold()).unwrap(),
-        '-' | '?' => write!(output, "{}", value.dim()).unwrap(),
+        '-' | '?' | 'r' => write!(output, "{}", value.dim()).unwrap(),
         _ => output.push(value),
     }
 }

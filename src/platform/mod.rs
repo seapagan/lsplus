@@ -17,7 +17,6 @@ pub(crate) struct EntryClassification {
 
 /// File types that can appear in long-format output.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(windows, allow(dead_code))]
 pub(crate) enum LongFormatFileType {
     Directory,
     Regular,
@@ -26,9 +25,13 @@ pub(crate) enum LongFormatFileType {
     SymlinkDirectory,
     Junction,
     ReparsePoint,
+    #[cfg_attr(windows, allow(dead_code))]
     Socket,
+    #[cfg_attr(windows, allow(dead_code))]
     Fifo,
+    #[cfg_attr(windows, allow(dead_code))]
     CharDevice,
+    #[cfg_attr(windows, allow(dead_code))]
     BlockDevice,
     Unknown,
 }
@@ -73,15 +76,20 @@ pub(crate) struct LongFormatLayoutOptions {
 
 /// A platform-neutral long-format table column.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(windows, allow(dead_code))]
 pub(crate) enum LongColumn {
+    #[cfg_attr(windows, allow(dead_code))]
     UnixSymbolicPermissions,
+    #[cfg_attr(windows, allow(dead_code))]
     UnixOctalWithType,
+    #[cfg_attr(windows, allow(dead_code))]
     UnixOctal,
     Type,
     Attributes,
+    #[cfg_attr(windows, allow(dead_code))]
     Links,
+    #[cfg_attr(windows, allow(dead_code))]
     User,
+    #[cfg_attr(windows, allow(dead_code))]
     Group,
     Size,
     Unit,
