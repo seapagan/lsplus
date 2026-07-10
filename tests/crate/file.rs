@@ -1,13 +1,20 @@
 use crate::common_tests::with_color_output_enabled;
+#[cfg(unix)]
+use crate::platform::{EntryClassification, LongFormatFileType};
+#[cfg(unix)]
+use crate::utils::file::DirectoryEntryData;
 use crate::utils::file::{
-    DirectoryEntryData, append_file_info_for_names, check_display_name,
-    collect_file_info, collect_file_names, collect_visible_file_names,
-    create_file_info, format_path_error, format_symlink_display_name_with_dim,
+    append_file_info_for_names, check_display_name, collect_file_info,
+    collect_file_names, collect_visible_file_names, create_file_info,
+    format_path_error, format_symlink_display_name_with_dim,
     sanitize_for_terminal,
 };
 use crate::{FileInfo, IndicatorStyle, NameStyle, Params};
+#[cfg(unix)]
 use std::ffi::OsString;
-use std::fs::{self, File};
+use std::fs;
+#[cfg(unix)]
+use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
@@ -50,6 +57,7 @@ fn test_check_display_name_handles_regular_and_special_entries() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_collect_file_info_respects_visibility_and_directory_order() {
     let temp_dir = tempdir().unwrap();
     fs::write(temp_dir.path().join("file1.txt"), "one").unwrap();
@@ -107,6 +115,7 @@ fn test_file_helpers_return_errors_for_missing_paths() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_collect_file_names_handles_visibility_flags_and_regular_files() {
     let temp_dir = tempdir().unwrap();
     let hidden_path = temp_dir.path().join(".hidden_file");
@@ -165,6 +174,7 @@ fn test_collect_file_names_handles_visibility_flags_and_regular_files() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_collect_visible_file_names_handles_iterator_and_file_type_errors() {
     let params = Params {
         show_all: true,
@@ -176,17 +186,31 @@ fn test_collect_visible_file_names_handles_iterator_and_file_type_errors() {
         Ok(DirectoryEntryData {
             file_name: OsString::from("alpha.txt"),
             path: PathBuf::from("/tmp/alpha.txt"),
-            is_dir: Ok(false),
+            classification_result: Ok(EntryClassification {
+                file_type: LongFormatFileType::Regular,
+                hidden: false,
+                display_as_directory: false,
+                group_with_directories: false,
+                may_recurse: false,
+                may_render_link_target: false,
+            }),
         }),
         Ok(DirectoryEntryData {
             file_name: OsString::from("broken"),
             path: PathBuf::from("/tmp/broken"),
-            is_dir: Err(io::Error::other("type error")),
+            classification_result: Err(io::Error::other("type error")),
         }),
         Ok(DirectoryEntryData {
             file_name: OsString::from("dir"),
             path: PathBuf::from("/tmp/dir"),
-            is_dir: Ok(true),
+            classification_result: Ok(EntryClassification {
+                file_type: LongFormatFileType::Directory,
+                hidden: false,
+                display_as_directory: true,
+                group_with_directories: true,
+                may_recurse: true,
+                may_render_link_target: false,
+            }),
         }),
     ];
 
@@ -255,7 +279,7 @@ fn test_format_symlink_display_name_handles_unreadable_targets() {
         &params,
         false,
     );
-    assert!(unreadable.contains("(unreadable)"));
+    assert!(unreadable.contains("[Target Unavailable]"));
 
     let short = format_symlink_display_name_with_dim(
         "broken-link@",

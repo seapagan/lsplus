@@ -1,8 +1,12 @@
 use lsplus::app::run_with_flags;
 use lsplus::cli::Flags;
+#[cfg(unix)]
 use lsplus::utils::file::create_file_info;
+#[cfg(unix)]
 use lsplus::{IndicatorStyle, Params};
+#[cfg(unix)]
 use std::fs;
+#[cfg(unix)]
 use tempfile::tempdir;
 
 #[cfg(unix)]

@@ -629,6 +629,7 @@ fn test_collect_listing_sections_recursive_level_one_shows_only_root_entries()
 }
 
 #[test]
+#[cfg(unix)]
 fn test_collect_listing_sections_recursive_ignores_dot_entries() {
     let temp_dir = tempdir().unwrap();
     let nested = temp_dir.path().join("nested");

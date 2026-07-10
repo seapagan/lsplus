@@ -84,6 +84,7 @@ fn test_long_format() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_long_format_header_flag() {
     let temp_dir = tempdir().unwrap();
     let file_path = temp_dir.path().join("header.txt");
@@ -106,6 +107,7 @@ fn test_long_format_header_flag() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_long_format_header_from_config() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().join(".config").join("lsplus");
@@ -242,6 +244,7 @@ fn test_recursive_current_directory_omits_root_header_and_cleans_child_headers()
 }
 
 #[test]
+#[cfg(unix)]
 fn test_recursive_bare_directory_lists_contents() {
     let temp_dir = tempdir().unwrap();
     let src = temp_dir.path().join("src");
@@ -265,6 +268,7 @@ fn test_recursive_bare_directory_lists_contents() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_recursive_quoted_glob_filters_nested_matches() {
     let temp_dir = tempdir().unwrap();
     let src = temp_dir.path().join("src");
@@ -294,6 +298,7 @@ fn test_recursive_quoted_glob_filters_nested_matches() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_recursive_prefixed_glob_filters_from_parent_directory() {
     let temp_dir = tempdir().unwrap();
     let src = temp_dir.path().join("src");
@@ -1066,6 +1071,7 @@ fn test_gnu_compat_mode_from_env_rejects_fuzzy_time_short_flag() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_gnu_compat_mode_from_config_rejects_conflicting_short_flag() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().join(".config").join("lsplus");
@@ -1092,6 +1098,7 @@ fn test_invalid_env_compat_mode_fails_startup() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_invalid_config_compat_mode_fails_startup() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().join(".config").join("lsplus");
@@ -1247,6 +1254,7 @@ fn test_gnu_compat_mode_accepts_indicator_style_slash() {
     let temp_dir = tempdir().unwrap();
     let child_dir = temp_dir.path().join("child");
     let target_path = temp_dir.path().join("target.txt");
+    #[cfg(unix)]
     let link_path = temp_dir.path().join("link");
     fs::create_dir(&child_dir).unwrap();
     fs::write(&target_path, "target").unwrap();
@@ -1273,6 +1281,7 @@ fn test_gnu_compat_mode_accepts_short_p() {
     let temp_dir = tempdir().unwrap();
     let child_dir = temp_dir.path().join("child");
     let target_path = temp_dir.path().join("target.txt");
+    #[cfg(unix)]
     let link_path = temp_dir.path().join("link");
     fs::create_dir(&child_dir).unwrap();
     fs::write(&target_path, "target").unwrap();
