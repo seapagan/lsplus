@@ -95,7 +95,7 @@ pub(crate) fn file_details(metadata: &fs::Metadata) -> FileDetails {
     let user = get_username(metadata.uid());
     let group = get_groupname(metadata.gid());
 
-    let mtime = metadata.modified().unwrap();
+    let mtime = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
 
     FileDetails {
         file_type,
