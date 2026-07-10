@@ -20,8 +20,12 @@ using the following command:
 cargo install lsplus
 ```
 
-This will install the `lsp` binary into your `~/.cargo/bin` directory. Make
-sure that this directory is in your `PATH` environment variable so that you
+This will install the `lsp` binary into:
+
+- Linux and macOS: `~/.cargo/bin`
+- Windows: `%USERPROFILE%\\.cargo\\bin`
+
+Make sure this directory is in your `PATH` environment variable so that you
 can run the `lsp` command from anywhere.
 
 ## From Source
