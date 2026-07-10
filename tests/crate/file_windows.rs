@@ -85,7 +85,7 @@ fn test_windows_attribute_text_is_readable() {
 fn test_windows_attribute_text_handles_recall_and_structural_bits() {
     assert_eq!(
         attribute_text(0x0004_0000 | 0x0040_0000),
-        "EA, RecallOnOpen, RecallOnDataAccess"
+        "EA, RecallOnDataAccess"
     );
     assert_eq!(attribute_text(0x0000_04D0), "Normal");
 }

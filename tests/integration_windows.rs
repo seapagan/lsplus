@@ -39,11 +39,11 @@ fn test_windows_all_does_not_synthesize_dot_entries() {
 
     let mut command = Command::cargo_bin("lsp").unwrap();
     command.arg("--all").arg("--no-icons").arg(temp_dir.path());
-    command
-        .assert()
-        .success()
-        .stdout(predicate::str::contains(".visible-dotfile"))
-        .stdout(predicate::str::contains("\n.\n").not());
+    let output = command.output().unwrap();
+    assert!(output.status.success());
+    let output = String::from_utf8_lossy(&output.stdout);
+    let names = output.split_whitespace().collect::<Vec<_>>();
+    assert_eq!(names, vec![".visible-dotfile"]);
 }
 
 #[test]
