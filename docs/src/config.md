@@ -4,6 +4,8 @@ Configure `lsplus` with a **`TOML`** file at:
 
 - Linux: `~/.config/lsplus/config.toml`
 - macOS: `~/.config/lsplus/config.toml`
+- Windows: `%APPDATA%\\lsplus\\config.toml`
+- Windows: `%APPDATA%\\lsplus\\config.toml`
 
 The configuration file is optional. `lsplus` uses default settings when the file
 does not exist.
@@ -206,6 +208,14 @@ fields. `symbolic` shows the default file type character and symbolic
 permissions, `octal` replaces that field with the file type character and
 four-digit octal permission bits, `both` adds an octal permission cell after
 the symbolic field, and `none` omits permission fields.
+
+On Windows, `symbolic` shows a readable file-attribute column instead. `octal`
+and `both` are unsupported when long format is active; use `symbolic` or
+`none`.
+
+On Windows, `symbolic` shows a readable file-attribute column instead. `octal`
+and `both` are unsupported when long format is active; use `symbolic` or
+`none`.
 
 ### time_gradient
 

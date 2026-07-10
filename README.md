@@ -56,8 +56,8 @@ all my machines as standard, replacing GNU ls.
 
 ## Compatibility
 
-LSPlus supports Unix-like systems: Linux, macOS, and similar platforms. Windows
-support is on the roadmap.
+LSPlus supports Linux, macOS, and Windows. Windows uses native file attributes,
+`PATHEXT` command classification, and junction-aware traversal.
 
 ## Nerd Fonts
 
@@ -78,6 +78,8 @@ the program (or `no_icons=true` in the config file).
 Download the latest Linux or macOS archive from the [release
 page](https://github.com/seapagan/lsplus/releases/latest). Unpack it, move
 `lsp` into a directory on your `PATH`, and make it executable if needed.
+Windows is supported through Cargo or source installation; official Windows
+release archives are not published yet.
 
 These binaries are auto-generated for each release.
 
@@ -202,6 +204,10 @@ Long-format output shows symbolic permissions by default. Use
 `--permissions octal` to replace them with octal permission bits,
 `--permissions both` to add octal bits after the symbolic field, or
 `--permissions none` to omit permission fields.
+
+On Windows, symbolic permission display is replaced by a readable `Attributes`
+column. `--permissions octal` and `--permissions both` are unsupported with
+long output; use `symbolic` or `none` instead.
 
 Long-format output colors permission bits, timestamp freshness, and large file
 sizes by default. You can adjust those accents independently with

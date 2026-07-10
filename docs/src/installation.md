@@ -6,6 +6,9 @@ Download the latest Linux or macOS archive from the [release
 page](https://github.com/seapagan/lsplus/releases/latest). Unpack it, move
 `lsp` into a directory on your `PATH`, and make it executable if needed.
 
+Windows is supported through Cargo or source installation. Official Windows
+release archives are not published yet.
+
 These binaries are auto-generated for each release.
 
 ## Using Cargo

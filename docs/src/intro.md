@@ -8,8 +8,8 @@ learning project, so some code may still show beginner decisions.
 
 ## Compatibility
 
-LSPlus supports Unix-like systems: Linux, macOS, and similar platforms. Windows
-support is on the roadmap.
+LSPlus supports Linux, macOS, and Windows. Windows output uses native file
+attributes and recognises junctions separately from symbolic links.
 
 ## Nerd Fonts
 

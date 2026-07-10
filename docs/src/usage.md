@@ -120,6 +120,12 @@ Long-format output shows symbolic permissions by default. Use
 `--permissions both` to add octal bits after the symbolic field, or
 `--permissions none` to omit permission fields.
 
+On Windows, long format shows native file attributes for `symbolic` display.
+`octal` and `both` are unsupported with long output; use `symbolic` or `none`.
+
+On Windows, long format shows native file attributes for `symbolic` display.
+`octal` and `both` are unsupported with long output; use `symbolic` or `none`.
+
 Use `--header` with long-format output to add a title row for the active
 columns. It has no effect on short output. In the config file, set
 `header = true` alongside `long_format = true` or `tree = true`.
