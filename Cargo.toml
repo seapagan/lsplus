@@ -32,6 +32,13 @@ ignore = "0.4.25"
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.31.0", features = ["user"] }
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59.0", features = [
+  "Win32_Foundation",
+  "Win32_Storage_FileSystem",
+  "Win32_Globalization",
+] }
+
 [dev-dependencies]
 tempfile = "3.19.1"
 assert_cmd = "2.0.12"

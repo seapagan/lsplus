@@ -1,13 +1,20 @@
 //! Unix filesystem metadata interpretation.
 
 use nix::unistd::{Group, User};
+use std::cmp::Ordering;
 use std::ffi::OsStr;
 use std::fs;
+use std::io;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
+use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-use crate::structs::NameStyle;
+use crate::platform::{
+    EntryClassification, FileDetails, LongColumn, LongFormatFileType,
+    LongFormatLayout, LongFormatLayoutOptions,
+};
+use crate::structs::{NameStyle, Params, PermissionDisplay};
 use crate::utils::format;
 
 #[allow(
@@ -25,44 +32,6 @@ mod mode_bits {
     pub(super) const SOCKET: u32 = nix::libc::S_IFSOCK as u32;
 }
 
-pub(crate) struct FileDetails {
-    pub(crate) file_type: String,
-    pub(crate) mode: String,
-    pub(crate) mode_bits: u32,
-    pub(crate) nlink: u64,
-    pub(crate) size: u64,
-    pub(crate) mtime: SystemTime,
-    pub(crate) user: String,
-    pub(crate) group: String,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum LongFormatFileType {
-    Directory,
-    Regular,
-    Symlink,
-    Socket,
-    Fifo,
-    CharDevice,
-    BlockDevice,
-    Unknown,
-}
-
-impl LongFormatFileType {
-    pub(crate) fn as_char(self) -> char {
-        match self {
-            Self::Directory => 'd',
-            Self::Regular => '-',
-            Self::Symlink => 'l',
-            Self::Socket => 's',
-            Self::Fifo => 'p',
-            Self::CharDevice => 'c',
-            Self::BlockDevice => 'b',
-            Self::Unknown => '?',
-        }
-    }
-}
-
 pub(crate) fn long_format_file_type(mode: u32) -> LongFormatFileType {
     match mode & mode_bits::FILE_TYPE_MASK {
         mode_bits::DIRECTORY => LongFormatFileType::Directory,
@@ -76,14 +45,44 @@ pub(crate) fn long_format_file_type(mode: u32) -> LongFormatFileType {
     }
 }
 
+pub(crate) fn classify_entry(
+    path: &Path,
+    metadata: &fs::Metadata,
+) -> EntryClassification {
+    let file_type = metadata_file_type(path, metadata);
+    let is_directory = metadata.is_dir();
+
+    EntryClassification {
+        file_type,
+        hidden: path
+            .file_name()
+            .is_some_and(|name| name.as_bytes().starts_with(b".")),
+        display_as_directory: if metadata.is_symlink() {
+            fs::metadata(path)
+                .map(|target| target.is_dir())
+                .unwrap_or(false)
+        } else {
+            is_directory
+        },
+        group_with_directories: is_directory,
+        may_recurse: is_directory && !metadata.is_symlink(),
+        may_render_link_target: metadata.is_symlink(),
+    }
+}
+
 pub(crate) fn metadata_file_type(
+    _path: &Path,
     metadata: &fs::Metadata,
 ) -> LongFormatFileType {
     long_format_file_type(metadata.mode())
 }
 
-pub(crate) fn file_details(metadata: &fs::Metadata) -> FileDetails {
-    let file_type = metadata_file_type(metadata).as_char().to_string();
+pub(crate) fn file_details(
+    _path: &Path,
+    metadata: &fs::Metadata,
+    classification: EntryClassification,
+) -> FileDetails {
+    let file_type = classification.file_type.as_char().to_string();
 
     let permissions = metadata.permissions();
     let mode = permissions.mode();
@@ -125,19 +124,19 @@ pub(crate) fn get_groupname(gid: u32) -> String {
     }
 }
 
-pub(crate) fn entry_name_is_hidden(name: &OsStr) -> bool {
-    name.as_bytes().starts_with(b".")
+pub(crate) fn compare_entry_names(left: &OsStr, right: &OsStr) -> Ordering {
+    fn sort_key(name: &OsStr) -> Vec<u8> {
+        name.as_bytes()
+            .iter()
+            .skip_while(|byte| **byte == b'.')
+            .map(|byte| byte.to_ascii_lowercase())
+            .collect()
+    }
+
+    sort_key(left).cmp(&sort_key(right))
 }
 
-pub(crate) fn sort_key(name: &OsStr) -> Vec<u8> {
-    name.as_bytes()
-        .iter()
-        .skip_while(|byte| **byte == b'.')
-        .map(|byte| byte.to_ascii_lowercase())
-        .collect()
-}
-
-pub(crate) fn is_executable(metadata: &fs::Metadata) -> bool {
+pub(crate) fn is_executable(_path: &Path, metadata: &fs::Metadata) -> bool {
     metadata.permissions().mode() & 0o111 != 0
 }
 
@@ -146,22 +145,89 @@ pub(crate) fn name_style_for_file_type(
     executable: bool,
 ) -> NameStyle {
     match file_type {
-        LongFormatFileType::Symlink => NameStyle::Symlink,
+        LongFormatFileType::Symlink
+        | LongFormatFileType::SymlinkFile
+        | LongFormatFileType::SymlinkDirectory => NameStyle::Symlink,
+        LongFormatFileType::Junction => NameStyle::Junction,
         LongFormatFileType::Directory => NameStyle::Directory,
         LongFormatFileType::Socket => NameStyle::Socket,
         LongFormatFileType::Fifo => NameStyle::Fifo,
         LongFormatFileType::CharDevice => NameStyle::CharDevice,
         LongFormatFileType::BlockDevice => NameStyle::BlockDevice,
         LongFormatFileType::Regular if executable => NameStyle::Executable,
-        LongFormatFileType::Regular | LongFormatFileType::Unknown => {
-            NameStyle::Plain
-        }
+        LongFormatFileType::Regular
+        | LongFormatFileType::ReparsePoint
+        | LongFormatFileType::Unknown => NameStyle::Plain,
     }
 }
 
-pub(crate) fn name_style_by_metadata(metadata: &fs::Metadata) -> NameStyle {
+pub(crate) fn name_style(
+    path: &Path,
+    metadata: &fs::Metadata,
+    classification: EntryClassification,
+) -> NameStyle {
     name_style_for_file_type(
-        metadata_file_type(metadata),
-        is_executable(metadata),
+        classification.file_type,
+        is_executable(path, metadata),
     )
+}
+
+pub(crate) fn synthetic_dot_entries(
+    params: &Params,
+) -> &'static [&'static str] {
+    if !params.almost_all && params.show_all {
+        &[".", ".."]
+    } else {
+        &[]
+    }
+}
+
+pub(crate) fn validate_params(_params: &Params) -> io::Result<()> {
+    Ok(())
+}
+
+pub(crate) fn default_config_path() -> Option<PathBuf> {
+    let mut path = dirs_next::home_dir()?;
+    path.push(".config/lsplus/config.toml");
+    Some(path)
+}
+
+pub(crate) fn normalize_path(path: PathBuf) -> PathBuf {
+    path
+}
+
+pub(crate) fn long_format_layout(
+    options: &LongFormatLayoutOptions,
+) -> LongFormatLayout {
+    let mut columns = Vec::with_capacity(10);
+
+    match options.permission_display {
+        PermissionDisplay::Symbolic => {
+            columns.push(LongColumn::UnixSymbolicPermissions);
+        }
+        PermissionDisplay::Octal => {
+            columns.push(LongColumn::UnixOctalWithType);
+        }
+        PermissionDisplay::Both => {
+            columns.push(LongColumn::UnixSymbolicPermissions);
+            columns.push(LongColumn::UnixOctal);
+        }
+        PermissionDisplay::None => {}
+    }
+
+    columns.extend([
+        LongColumn::Links,
+        LongColumn::User,
+        LongColumn::Group,
+        LongColumn::Size,
+    ]);
+    if options.include_size_unit {
+        columns.push(LongColumn::Unit);
+    }
+    columns.push(LongColumn::Date);
+    if options.include_icon {
+        columns.push(LongColumn::Icon);
+    }
+    columns.push(LongColumn::Name);
+    LongFormatLayout { columns }
 }

@@ -18,6 +18,7 @@ pub enum Icon {
     // list as we decode more file types.
     Folder = '\u{f07c}' as isize,
     Symlink = '\u{f1177}' as isize,
+    Junction = '\u{f0a0}' as isize,
     GenericFile = '\u{f15b}' as isize,
     SocketFile = '\u{f0318}' as isize,
     PipeFile = '\u{f07e5}' as isize,
@@ -288,7 +289,7 @@ pub fn get_item_icon(metadata: &fs::Metadata, file_path: &Path) -> Icon {
         .unwrap_or_default();
 
     icon_for_file_type(
-        platform::metadata_file_type(metadata),
+        platform::metadata_file_type(file_path, metadata),
         file_name.as_ref(),
     )
 }
@@ -299,11 +300,14 @@ pub(crate) fn icon_for_file_type(
 ) -> Icon {
     match file_type {
         LongFormatFileType::Directory => get_folder_icon(file_name),
-        LongFormatFileType::Symlink => Icon::Symlink,
-        LongFormatFileType::Regular | LongFormatFileType::Unknown => {
-            get_filename_icon(file_name)
-                .unwrap_or_else(|| get_file_icon(file_name))
-        }
+        LongFormatFileType::Symlink
+        | LongFormatFileType::SymlinkFile
+        | LongFormatFileType::SymlinkDirectory => Icon::Symlink,
+        LongFormatFileType::Junction => Icon::Junction,
+        LongFormatFileType::Regular
+        | LongFormatFileType::ReparsePoint
+        | LongFormatFileType::Unknown => get_filename_icon(file_name)
+            .unwrap_or_else(|| get_file_icon(file_name)),
         LongFormatFileType::Socket => Icon::SocketFile,
         LongFormatFileType::Fifo => Icon::PipeFile,
         LongFormatFileType::CharDevice => Icon::CharDeviceFile,

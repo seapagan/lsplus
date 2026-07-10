@@ -1,7 +1,109 @@
 //! Platform-specific filesystem metadata interpretation.
 
+use std::time::SystemTime;
+
+use crate::structs::PermissionDisplay;
+
+/// Platform-neutral interpretation of one directory entry.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct EntryClassification {
+    pub(crate) file_type: LongFormatFileType,
+    pub(crate) hidden: bool,
+    pub(crate) display_as_directory: bool,
+    pub(crate) group_with_directories: bool,
+    pub(crate) may_recurse: bool,
+    pub(crate) may_render_link_target: bool,
+}
+
+/// File types that can appear in long-format output.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(windows, allow(dead_code))]
+pub(crate) enum LongFormatFileType {
+    Directory,
+    Regular,
+    Symlink,
+    SymlinkFile,
+    SymlinkDirectory,
+    Junction,
+    ReparsePoint,
+    Socket,
+    Fifo,
+    CharDevice,
+    BlockDevice,
+    Unknown,
+}
+
+impl LongFormatFileType {
+    pub(crate) fn as_char(self) -> char {
+        match self {
+            Self::Directory => 'd',
+            Self::Regular => '-',
+            Self::Symlink | Self::SymlinkFile => 'l',
+            Self::SymlinkDirectory => 'L',
+            Self::Junction => 'j',
+            Self::ReparsePoint => 'r',
+            Self::Socket => 's',
+            Self::Fifo => 'p',
+            Self::CharDevice => 'c',
+            Self::BlockDevice => 'b',
+            Self::Unknown => '?',
+        }
+    }
+}
+
+/// Metadata consumed by the shared rendering pipeline.
+pub(crate) struct FileDetails {
+    pub(crate) file_type: String,
+    pub(crate) mode: String,
+    pub(crate) mode_bits: u32,
+    pub(crate) nlink: u64,
+    pub(crate) size: u64,
+    pub(crate) mtime: SystemTime,
+    pub(crate) user: String,
+    pub(crate) group: String,
+}
+
+/// Runtime choices that influence an otherwise platform-specific layout.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct LongFormatLayoutOptions {
+    pub(crate) permission_display: PermissionDisplay,
+    pub(crate) include_size_unit: bool,
+    pub(crate) include_icon: bool,
+}
+
+/// A platform-neutral long-format table column.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(windows, allow(dead_code))]
+pub(crate) enum LongColumn {
+    UnixSymbolicPermissions,
+    UnixOctalWithType,
+    UnixOctal,
+    Type,
+    Attributes,
+    Links,
+    User,
+    Group,
+    Size,
+    Unit,
+    Date,
+    Icon,
+    Name,
+}
+
+/// Ordered long-format columns for the active platform.
+#[derive(Clone, Debug)]
+pub(crate) struct LongFormatLayout {
+    pub(crate) columns: Vec<LongColumn>,
+}
+
 #[cfg(unix)]
 mod unix;
 
 #[cfg(unix)]
 pub(crate) use unix::*;
+
+#[cfg(windows)]
+mod windows;
+
+#[cfg(windows)]
+pub(crate) use windows::*;

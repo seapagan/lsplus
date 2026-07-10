@@ -164,6 +164,8 @@ pub enum NameStyle {
     Directory,
     /// A symbolic link entry.
     Symlink,
+    /// A Windows directory junction.
+    Junction,
     /// A regular executable file.
     Executable,
     /// A Unix socket.

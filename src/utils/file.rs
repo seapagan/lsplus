@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 
 use crate::IndicatorStyle;
 use crate::Params;
-use crate::platform::{self, LongFormatFileType};
+use crate::platform::{self, EntryClassification, LongFormatFileType};
 use crate::structs::FileInfo;
 use crate::structs::NameStyle;
 use crate::utils::{self, gitignore::GitignoreCache};
@@ -24,8 +24,10 @@ pub(crate) struct DirectoryEntryData {
     pub file_name: OsString,
     /// Full entry path.
     pub path: PathBuf,
-    /// Directory classification captured while reading the entry.
-    pub is_dir: Result<bool, io::Error>,
+    /// Platform classification captured while reading the entry.
+    ///
+    /// An error means metadata acquisition failed before classification.
+    pub classification_result: Result<EntryClassification, io::Error>,
 }
 
 /// Return displayable names for a file path or visible entries in a directory.
@@ -35,17 +37,10 @@ pub fn collect_file_names(
 ) -> io::Result<Vec<String>> {
     let mut file_names = Vec::new();
 
-    // First get the symlink metadata to check if this is a symlink
     let symlink_metadata = fs::symlink_metadata(path)?;
+    let classification = platform::classify_entry(path, &symlink_metadata);
 
-    // If it's a symlink, get the actual metadata by following it
-    let path_metadata = if symlink_metadata.is_symlink() {
-        fs::metadata(path)?
-    } else {
-        symlink_metadata
-    };
-
-    if !path_metadata.is_dir() {
+    if !classification.display_as_directory {
         // If it's a file or symlink, add it directly to the file_names vector
         let file_name = path
             .file_name()
@@ -59,9 +54,10 @@ pub fn collect_file_names(
                 entry_result.map(|entry| DirectoryEntryData {
                     file_name: entry.file_name(),
                     path: entry.path(),
-                    is_dir: entry
-                        .file_type()
-                        .map(|file_type| file_type.is_dir()),
+                    classification_result: fs::symlink_metadata(entry.path())
+                        .map(|metadata| {
+                            platform::classify_entry(&entry.path(), &metadata)
+                        }),
                 })
             })
             .collect();
@@ -89,10 +85,11 @@ pub(crate) fn collect_visible_file_names(
     for entry_result in entries {
         match entry_result {
             Ok(entry) => {
-                if params.show_all
-                    || params.almost_all
-                    || !platform::entry_name_is_hidden(&entry.file_name)
-                {
+                let visible = match &entry.classification_result {
+                    Ok(classification) => !classification.hidden,
+                    Err(_) => true,
+                };
+                if params.show_all || params.almost_all || visible {
                     visible_entries.push(entry);
                 }
             }
@@ -100,14 +97,15 @@ pub(crate) fn collect_visible_file_names(
         }
     }
 
-    visible_entries
-        .sort_by_cached_key(|entry| platform::sort_key(&entry.file_name));
+    visible_entries.sort_by(|left, right| {
+        platform::compare_entry_names(&left.file_name, &right.file_name)
+    });
 
     if params.dirs_first {
         let (dirs, files): (Vec<_>, Vec<_>) = visible_entries
             .into_iter()
-            .partition(|entry| match &entry.is_dir {
-                Ok(is_dir) => *is_dir,
+            .partition(|entry| match &entry.classification_result {
+                Ok(classification) => classification.group_with_directories,
                 Err(err) => {
                     report_path_error(&entry.path, err);
                     false
@@ -118,10 +116,11 @@ pub(crate) fn collect_visible_file_names(
     }
 
     let mut file_names = Vec::new();
-    if !params.almost_all && params.show_all {
-        file_names.push(".".to_string());
-        file_names.push("..".to_string());
-    }
+    file_names.extend(
+        platform::synthetic_dot_entries(params)
+            .iter()
+            .map(|entry| (*entry).to_string()),
+    );
 
     for entry in visible_entries {
         file_names.push(entry.file_name.to_string_lossy().into_owned())
@@ -142,17 +141,9 @@ pub fn collect_file_info(
     let mut gitignore_cache = GitignoreCache::default();
     let symlink_metadata = fs::symlink_metadata(path)?;
 
-    // If it's a symlink, try following it to determine whether it points to a
-    // directory. Broken symlinks should still be displayed as entries.
-    let is_dir = if symlink_metadata.is_symlink() {
-        fs::metadata(path)
-            .map(|metadata| metadata.is_dir())
-            .unwrap_or(false)
-    } else {
-        symlink_metadata.is_dir()
-    };
+    let classification = platform::classify_entry(path, &symlink_metadata);
 
-    if is_dir {
+    if classification.display_as_directory {
         let file_names = utils::file::collect_file_names(path, params)?;
         append_file_info_for_names(
             &mut file_info,
@@ -224,12 +215,13 @@ pub(crate) fn create_file_info_from_metadata_with_gitignore(
     params: &Params,
     gitignore_cache: &mut GitignoreCache,
 ) -> FileInfo {
+    let classification = platform::classify_entry(path, metadata);
     let item_icon = if params.no_icons {
         None
     } else {
         Some(utils::icons::get_item_icon(metadata, path))
     };
-    let details = platform::file_details(metadata);
+    let details = platform::file_details(path, metadata, classification);
 
     let mut file_name = path
         .file_name()
@@ -241,13 +233,19 @@ pub(crate) fn create_file_info_from_metadata_with_gitignore(
     }
 
     let safe_file_name = sanitize_for_terminal(&file_name);
-    let indicated_file_name =
-        format_name_with_indicator(&safe_file_name, metadata, params);
+    let indicated_file_name = format_name_with_indicator(
+        &safe_file_name,
+        path,
+        metadata,
+        classification,
+        params,
+    );
 
     let ignored = params.gitignore
         && gitignore_cache.is_ignored(path, metadata.is_dir());
 
-    let (display_name, short_name, name_style) = if metadata.is_symlink() {
+    let name_style = platform::name_style(path, metadata, classification);
+    let (display_name, short_name) = if classification.may_render_link_target {
         (
             format_symlink_display_name_with_dim(
                 &indicated_file_name,
@@ -257,13 +255,17 @@ pub(crate) fn create_file_info_from_metadata_with_gitignore(
                 ignored,
             ),
             indicated_file_name.clone(),
-            NameStyle::Symlink,
         )
     } else {
         (
-            colorize_name_by_metadata(&indicated_file_name, metadata, ignored),
+            colorize_name_by_metadata(
+                &indicated_file_name,
+                path,
+                metadata,
+                classification,
+                ignored,
+            ),
             indicated_file_name.clone(),
-            platform::name_style_by_metadata(metadata),
         )
     };
 
@@ -287,9 +289,9 @@ pub(crate) fn create_file_info_from_metadata_with_gitignore(
 
 /// Return the displayed name, preserving special styling for `.` and `..`.
 pub fn check_display_name(info: &FileInfo) -> String {
-    match &info.full_path.to_string_lossy() {
-        p if p.ends_with("/.") => ".".blue().to_string(),
-        p if p.ends_with("/..") => "..".blue().to_string(),
+    match info.short_name.as_str() {
+        "." => ".".blue().to_string(),
+        ".." => "..".blue().to_string(),
         _ => info.display_name.to_string(),
     }
 }
@@ -323,18 +325,28 @@ pub(crate) fn sanitize_path_for_terminal(path: &Path) -> String {
 /// Append the configured file-type indicator to a sanitized entry name.
 fn format_name_with_indicator(
     safe_name: &str,
+    path: &Path,
     metadata: &fs::Metadata,
+    classification: EntryClassification,
     params: &Params,
 ) -> String {
-    format!("{safe_name}{}", indicator_suffix(metadata, params))
+    format!(
+        "{safe_name}{}",
+        indicator_suffix(path, metadata, classification, params)
+    )
 }
 
 /// Return the suffix for the configured indicator style.
 ///
 /// Long-format symlink rows display targets with `->`, so the short-format
 /// `@` symlink marker is suppressed there.
-fn indicator_suffix(metadata: &fs::Metadata, params: &Params) -> &'static str {
-    if metadata.is_symlink() && params.long_format {
+fn indicator_suffix(
+    path: &Path,
+    metadata: &fs::Metadata,
+    classification: EntryClassification,
+    params: &Params,
+) -> &'static str {
+    if classification.may_render_link_target && params.long_format {
         return "";
     }
 
@@ -348,21 +360,25 @@ fn indicator_suffix(metadata: &fs::Metadata, params: &Params) -> &'static str {
             }
         }
         IndicatorStyle::FileType => {
-            file_type_indicator_suffix(metadata, false)
+            file_type_indicator_suffix(path, metadata, classification, false)
         }
-        IndicatorStyle::Classify => file_type_indicator_suffix(metadata, true),
+        IndicatorStyle::Classify => {
+            file_type_indicator_suffix(path, metadata, classification, true)
+        }
     }
 }
 
 /// Return the GNU-style indicator suffix for the entry metadata.
 fn file_type_indicator_suffix(
+    path: &Path,
     metadata: &fs::Metadata,
+    classification: EntryClassification,
     classify_executables: bool,
 ) -> &'static str {
     file_type_indicator_suffix_for_type(
-        platform::metadata_file_type(metadata),
+        classification.file_type,
         classify_executables,
-        platform::is_executable(metadata),
+        platform::is_executable(path, metadata),
     )
 }
 
@@ -373,7 +389,10 @@ pub(crate) fn file_type_indicator_suffix_for_type(
 ) -> &'static str {
     match file_type {
         LongFormatFileType::Directory => "/",
-        LongFormatFileType::Symlink => "@",
+        LongFormatFileType::Symlink
+        | LongFormatFileType::SymlinkFile
+        | LongFormatFileType::SymlinkDirectory
+        | LongFormatFileType::Junction => "@",
         LongFormatFileType::Fifo => "|",
         LongFormatFileType::Socket => "=",
         LongFormatFileType::Regular if classify_executables && executable => {
@@ -382,6 +401,7 @@ pub(crate) fn file_type_indicator_suffix_for_type(
         LongFormatFileType::Regular
         | LongFormatFileType::CharDevice
         | LongFormatFileType::BlockDevice
+        | LongFormatFileType::ReparsePoint
         | LongFormatFileType::Unknown => "",
     }
 }
@@ -396,11 +416,16 @@ fn plain_text(text: impl Into<String>, dimmed: bool) -> String {
 
 fn colorize_name_by_metadata(
     safe_name: &str,
+    path: &Path,
     metadata: &fs::Metadata,
+    classification: EntryClassification,
     dimmed: bool,
 ) -> String {
-    match platform::name_style_by_metadata(metadata) {
+    match platform::name_style(path, metadata, classification) {
         NameStyle::Symlink => apply_dim(safe_name.cyan(), dimmed).to_string(),
+        NameStyle::Junction => {
+            apply_dim(safe_name.magenta(), dimmed).to_string()
+        }
         NameStyle::Directory => {
             apply_dim(safe_name.blue(), dimmed).to_string()
         }
@@ -433,50 +458,81 @@ pub(crate) fn format_symlink_display_name_with_dim(
             } else {
                 target
             };
+            let target_path = platform::normalize_path(target_path);
             let display_target = sanitize_path_for_terminal(&target_path);
             if params.long_format {
                 let display_target = fs::symlink_metadata(&target_path)
                     .map(|metadata| {
+                        let classification =
+                            platform::classify_entry(&target_path, &metadata);
                         colorize_name_by_metadata(
                             &display_target,
+                            &target_path,
                             &metadata,
+                            classification,
                             dimmed,
                         )
                     })
                     .unwrap_or_else(|_| plain_text(&display_target, dimmed));
 
-                if target_path.exists() {
+                let target_exists = target_path.try_exists();
+                if matches!(target_exists, Ok(true)) {
                     format!(
                         "{}{}{}",
-                        apply_dim(source_name.cyan(), dimmed),
+                        link_source_text(source_name, path, dimmed),
                         plain_text(" -> ", dimmed),
                         display_target
                     )
-                } else {
+                } else if matches!(target_exists, Ok(false)) {
                     format!(
                         "{}{}{}{}{}",
-                        apply_dim(source_name.cyan(), dimmed),
+                        link_source_text(source_name, path, dimmed),
                         plain_text(" -> ", dimmed),
                         display_target,
                         plain_text(" ", dimmed),
                         apply_dim("[Broken Link]".red(), dimmed)
                     )
+                } else {
+                    format!(
+                        "{}{}{}{}{}",
+                        link_source_text(source_name, path, dimmed),
+                        plain_text(" -> ", dimmed),
+                        display_target,
+                        plain_text(" ", dimmed),
+                        apply_dim("[Target Unresolved]".yellow(), dimmed)
+                    )
                 }
             } else {
-                apply_dim(source_name.cyan(), dimmed).to_string()
+                link_source_text(source_name, path, dimmed)
             }
         }
         Err(_) => {
             if params.long_format {
                 apply_dim(
-                    format!("{source_name} -> (unreadable)").red(),
+                    format!("{source_name} [Target Unavailable]").red(),
                     dimmed,
                 )
                 .to_string()
             } else {
-                apply_dim(source_name.cyan(), dimmed).to_string()
+                link_source_text(source_name, path, dimmed)
             }
         }
+    }
+}
+
+fn link_source_text(source_name: &str, path: &Path, dimmed: bool) -> String {
+    let junction = fs::symlink_metadata(path)
+        .map(|metadata| {
+            matches!(
+                platform::classify_entry(path, &metadata).file_type,
+                LongFormatFileType::Junction
+            )
+        })
+        .unwrap_or(false);
+    if junction {
+        apply_dim(source_name.magenta(), dimmed).to_string()
+    } else {
+        apply_dim(source_name.cyan(), dimmed).to_string()
     }
 }
 

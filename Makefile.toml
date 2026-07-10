@@ -1,5 +1,10 @@
+[tasks.prepare-coverage]
+script_runner = "@duckscript"
+script = ["mkdir target/llvm-cov"]
+
 [tasks.test]
 # this needs the crates 'nextest' and 'cargo-llvm-cov' installed locally
+dependencies = ["prepare-coverage"]
 command = "cargo"
 args = [
   "llvm-cov",

@@ -33,6 +33,42 @@ jobs:
       - name: Run tests
         run: cargo test --all-targets --all-features
 
+  windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install cargo tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-make,cargo-nextest,cargo-llvm-cov
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Run tests
+        run: cargo test --all-targets --all-features
+
+      - name: Generate coverage
+        run: cargo make test
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-coverage
+          path: target/llvm-cov/coverage.lcov
+          if-no-files-found: error
+
   audit:
     runs-on: ubuntu-latest
 

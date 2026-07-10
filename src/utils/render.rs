@@ -12,6 +12,8 @@ use std::time::{Duration, SystemTime};
 use strip_ansi_escapes::strip_str;
 use terminal_size::{Height, Width, terminal_size};
 
+use crate::Params;
+use crate::platform::{self, LongColumn, LongFormatLayoutOptions};
 use crate::structs::{FileInfo, NameStyle};
 use crate::utils;
 use crate::utils::color::long_format_color_level;
@@ -20,7 +22,6 @@ use crate::utils::table::{
     Cell, HeaderCell, HeaderRow, Row, Table, visible_width,
 };
 use crate::utils::time::{DAY, MONTH, WEEK, YEAR};
-use crate::{Params, structs::PermissionDisplay};
 
 const SHORT_CELL_PADDING: usize = 2;
 const LONG_TABLE_DEFAULT_GAP: usize = 2;
@@ -30,44 +31,25 @@ const HUGE_SIZE_BYTES: u64 = 1024 * 1024 * 1024;
 const HEADER_SALMON_TRUECOLOR: (u8, u8, u8) = (250, 128, 114);
 const HEADER_SALMON_ANSI_256: u8 = 209;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum LongColumn {
-    Permissions(PermissionColumn),
-    Octal,
-    Links,
-    User,
-    Group,
-    Size,
-    Unit,
-    Date,
-    Icon,
-    Name,
+fn long_column_header(column: LongColumn) -> &'static str {
+    match column {
+        LongColumn::UnixSymbolicPermissions
+        | LongColumn::UnixOctalWithType => "Permissions",
+        LongColumn::UnixOctal => "Octal",
+        LongColumn::Type => "Type",
+        LongColumn::Attributes => "Attributes",
+        LongColumn::Links => "Links",
+        LongColumn::User => "User",
+        LongColumn::Group => "Group",
+        LongColumn::Size => "Size",
+        LongColumn::Unit | LongColumn::Icon => "",
+        LongColumn::Date => "Date Modified",
+        LongColumn::Name => "Name",
+    }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum PermissionColumn {
-    Symbolic,
-    OctalWithType,
-}
-
-impl LongColumn {
-    fn header(self) -> &'static str {
-        match self {
-            LongColumn::Permissions(_) => "Permissions",
-            LongColumn::Octal => "Octal",
-            LongColumn::Links => "Links",
-            LongColumn::User => "User",
-            LongColumn::Group => "Group",
-            LongColumn::Size => "Size",
-            LongColumn::Unit | LongColumn::Icon => "",
-            LongColumn::Date => "Date Modified",
-            LongColumn::Name => "Name",
-        }
-    }
-
-    fn header_aligns_right(self) -> bool {
-        matches!(self, LongColumn::Size | LongColumn::Date)
-    }
+fn long_column_aligns_right(column: LongColumn) -> bool {
+    matches!(column, LongColumn::Size | LongColumn::Date)
 }
 
 /// Render long-format rows to stdout.
@@ -133,48 +115,19 @@ pub(crate) fn build_long_format_table_with_name_prefixes<'a>(
 }
 
 fn long_format_columns(params: &Params) -> Vec<LongColumn> {
-    let mut columns = Vec::with_capacity(10);
-
-    match params.permissions {
-        PermissionDisplay::Symbolic => {
-            columns.push(LongColumn::Permissions(PermissionColumn::Symbolic));
-        }
-        PermissionDisplay::Octal => {
-            columns.push(LongColumn::Permissions(
-                PermissionColumn::OctalWithType,
-            ));
-        }
-        PermissionDisplay::Both => {
-            columns.push(LongColumn::Permissions(PermissionColumn::Symbolic));
-            columns.push(LongColumn::Octal);
-        }
-        PermissionDisplay::None => {}
-    }
-
-    columns.push(LongColumn::Links);
-    columns.push(LongColumn::User);
-    columns.push(LongColumn::Group);
-    columns.push(LongColumn::Size);
-
-    if params.size_scale().is_some() {
-        columns.push(LongColumn::Unit);
-    }
-
-    columns.push(LongColumn::Date);
-
-    if !params.no_icons {
-        columns.push(LongColumn::Icon);
-    }
-
-    columns.push(LongColumn::Name);
-    columns
+    platform::long_format_layout(&LongFormatLayoutOptions {
+        permission_display: params.permissions,
+        include_size_unit: params.size_scale().is_some(),
+        include_icon: !params.no_icons,
+    })
+    .columns
 }
 
 fn apply_long_format_gaps(table: &mut Table, columns: &[LongColumn]) {
     for (index, pair) in columns.windows(2).enumerate() {
         if matches!(
             pair,
-            [LongColumn::Permissions(_), LongColumn::Octal]
+            [LongColumn::UnixSymbolicPermissions, LongColumn::UnixOctal]
                 | [LongColumn::User, LongColumn::Group]
                 | [LongColumn::Size, LongColumn::Unit]
         ) {
@@ -204,12 +157,19 @@ fn long_format_row(
 
     for column in columns {
         cells.push(match column {
-            LongColumn::Permissions(permission_column) => {
-                permission_cell(info, *permission_column, params, color_level)
+            LongColumn::UnixSymbolicPermissions => {
+                symbolic_permission_cell(info, params, color_level)
             }
-            LongColumn::Octal => {
+            LongColumn::UnixOctalWithType => {
+                octal_with_type_permission_cell(info, params, color_level)
+            }
+            LongColumn::UnixOctal => {
                 octal_permission_cell(info, params, color_level)
             }
+            LongColumn::Type => {
+                Cell::new(long_file_type_text(info, params, color_level))
+            }
+            LongColumn::Attributes => Cell::new(info.mode.clone()),
             LongColumn::Links => Cell::new(info.nlink.to_string()),
             LongColumn::User => Cell::new(info.user.cyan().to_string()),
             LongColumn::Group => Cell::new(info.group.green().to_string()),
@@ -257,8 +217,8 @@ fn long_format_header_row(
 }
 
 fn header_cell(column: LongColumn, color_level: ColorLevel) -> HeaderCell {
-    let text = header_text(column.header(), color_level);
-    if column.header_aligns_right() {
+    let text = header_text(long_column_header(column), color_level);
+    if long_column_aligns_right(column) {
         HeaderCell::right(text)
     } else {
         HeaderCell::new(text)
@@ -287,22 +247,24 @@ fn header_text(text: &str, color_level: ColorLevel) -> String {
     }
 }
 
-fn permission_cell(
+fn symbolic_permission_cell(
     info: &FileInfo,
-    column: PermissionColumn,
     params: &Params,
     color_level: ColorLevel,
 ) -> Cell {
-    match column {
-        PermissionColumn::Symbolic => {
-            Cell::new(long_permission_text(info, params, color_level))
-        }
-        PermissionColumn::OctalWithType => Cell::new(format!(
-            "{} {}",
-            long_file_type_text(info, params, color_level),
-            long_octal_permission_text(info, params, color_level)
-        )),
-    }
+    Cell::new(long_permission_text(info, params, color_level))
+}
+
+fn octal_with_type_permission_cell(
+    info: &FileInfo,
+    params: &Params,
+    color_level: ColorLevel,
+) -> Cell {
+    Cell::new(format!(
+        "{} {}",
+        long_file_type_text(info, params, color_level),
+        long_octal_permission_text(info, params, color_level)
+    ))
 }
 
 fn octal_permission_cell(
@@ -734,6 +696,7 @@ fn style_short_segment(info: &FileInfo, text: String) -> String {
         NameStyle::Plain => StyledText::plain(text),
         NameStyle::Directory => text.blue(),
         NameStyle::Symlink => text.cyan(),
+        NameStyle::Junction => text.magenta(),
         NameStyle::Executable => text.green().bold(),
         NameStyle::Socket => text.magenta().bold(),
         NameStyle::Fifo => text.yellow(),
