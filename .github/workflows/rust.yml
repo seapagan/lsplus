@@ -35,10 +35,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
+        uses: ./.github/actions/setup-rust
         with:
-          toolchain: stable
-          components: rustfmt, clippy
+          components: rustfmt clippy
 
       - name: Check formatting
         run: cargo fmt --check
@@ -65,10 +64,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
+        uses: ./.github/actions/setup-rust
         with:
-          toolchain: stable
-          components: rustfmt, clippy
+          components: rustfmt clippy
 
       - name: Check formatting
         run: cargo fmt --check
@@ -95,9 +93,7 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
-        with:
-          toolchain: stable
+        uses: ./.github/actions/setup-rust
 
       - name: Install cargo tools
         uses: taiki-e/install-action@2ca9b94c269419b7b0c711c09d0b21c4e1d51145 # v2
@@ -123,9 +119,7 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
-        with:
-          toolchain: stable
+        uses: ./.github/actions/setup-rust
 
       - name: Install cargo tools
         uses: taiki-e/install-action@2ca9b94c269419b7b0c711c09d0b21c4e1d51145 # v2
