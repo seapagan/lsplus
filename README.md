@@ -75,11 +75,10 @@ the program (or `no_icons=true` in the config file).
 
 ### Download a Binary
 
-Download the latest Linux or macOS archive from the [release
-page](https://github.com/seapagan/lsplus/releases/latest). Unpack it, move
-`lsp` into a directory on your `PATH`, and make it executable if needed.
-Windows is supported through Cargo or source installation; official Windows
-release archives are not published yet.
+Download the latest Linux, macOS, or Windows archive from the [release
+page](https://github.com/seapagan/lsplus/releases/latest). Unpack it and move
+`lsp` (or `lsp.exe` on Windows) into a directory on your `PATH`. On Unix,
+make it executable if needed.
 
 These binaries are auto-generated for each release.
 
