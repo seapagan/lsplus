@@ -349,14 +349,26 @@ cargo install cargo-xwin
 rustup target add x86_64-pc-windows-msvc
 ```
 
-Run all Linux-side Windows compatibility checks with:
+Run all native Unix and Windows cross-target verification checks with:
 
 ```bash
-cargo make windows-verify
+cargo make verify
 ```
 
-This runs the Windows-targeted check, Clippy, and build tasks. It does not run
-Windows binaries; Windows CI remains responsible for the native test suite.
+Use `cargo make verify-unix` or `cargo make verify-windows` to run either set
+of checks independently. These Cargo Make verification tasks are Linux-only:
+`verify-windows` depends on `cargo-xwin`, whose Windows SDK downloads are not
+supported on Windows hosts. The Windows checks compile, lint, and build only;
+Windows CI remains responsible for the native test suite.
+
+On Windows, run the native checks directly:
+
+```powershell
+cargo fmt --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all-targets --all-features
+cargo build --all-targets --all-features
+```
 
 ## Future Plans
 
