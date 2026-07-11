@@ -325,16 +325,39 @@ currently run:
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test` on `pre-push`
 
-`cargo-make` and `cargo-deny` are separate Cargo subcommands, so contributors
-who want the full local tooling workflow should install them explicitly. They
-are used for the repo's preferred task aliases such as `cargo make test`,
-`cargo make test-html`, `cargo make audit`, and `cargo make deny`. Install
-them with:
+Optional development tooling is provided through Cargo subcommands.
+
+For task aliases and dependency checks, install:
 
 ```bash
 cargo install cargo-make
+cargo install cargo-audit
 cargo install cargo-deny
 ```
+
+The coverage aliases, `cargo make test` and `cargo make test-html`, also
+require:
+
+```bash
+cargo install cargo-nextest
+cargo install cargo-llvm-cov
+```
+
+On Linux, install `cargo-xwin` to cross-check the Windows MSVC target:
+
+```bash
+cargo install cargo-xwin
+rustup target add x86_64-pc-windows-msvc
+```
+
+Run all Linux-side Windows compatibility checks with:
+
+```bash
+cargo make windows-verify
+```
+
+This runs the Windows-targeted check, Clippy, and build tasks. It does not run
+Windows binaries; Windows CI remains responsible for the native test suite.
 
 ## Future Plans
 

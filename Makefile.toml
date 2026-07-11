@@ -25,3 +25,50 @@ args = ["audit"]
 [tasks.deny]
 command = "cargo"
 args = ["deny", "check"]
+
+[tasks.windows-check]
+description = "Cross-check the Windows MSVC target from Linux"
+command = "cargo"
+args = [
+    "xwin",
+    "check",
+    "--target",
+    "x86_64-pc-windows-msvc",
+    "--all-targets",
+    "--all-features",
+]
+
+[tasks.windows-clippy]
+description = "Run Clippy for the Windows MSVC target from Linux"
+command = "cargo"
+args = [
+    "xwin",
+    "clippy",
+    "--target",
+    "x86_64-pc-windows-msvc",
+    "--all-targets",
+    "--all-features",
+    "--",
+    "-D",
+    "warnings",
+]
+
+[tasks.windows-build]
+description = "Cross-build the Windows MSVC target from Linux"
+command = "cargo"
+args = [
+    "xwin",
+    "build",
+    "--target",
+    "x86_64-pc-windows-msvc",
+    "--all-targets",
+    "--all-features",
+]
+
+[tasks.windows-verify]
+description = "Run all Linux-side Windows compatibility checks"
+dependencies = [
+    "windows-check",
+    "windows-clippy",
+    "windows-build",
+]
