@@ -17,7 +17,8 @@ use crate::utils;
 use crate::utils::file::{
     collect_file_info, create_file_info,
     create_file_info_from_metadata_with_gitignore,
-    create_file_info_with_gitignore, format_path_error, sanitize_for_terminal,
+    create_file_info_with_gitignore, format_path_error,
+    preserve_synthetic_dot_name, sanitize_for_terminal,
     sanitize_path_for_terminal as display_path,
 };
 use crate::utils::gitignore::GitignoreCache;
@@ -629,12 +630,14 @@ fn collect_recursive_directory(
         let classification = platform::classify_entry(&child_path, &metadata);
 
         if name_filter.is_none_or(|pattern| pattern.matches(&child_name)) {
-            entries.push(create_file_info_from_metadata_with_gitignore(
+            let mut info = create_file_info_from_metadata_with_gitignore(
                 &child_path,
                 &metadata,
                 params,
                 &mut gitignore_cache,
-            ));
+            );
+            preserve_synthetic_dot_name(&mut info, &child_name);
+            entries.push(info);
         }
 
         if is_traversable_child_name(&child_name)

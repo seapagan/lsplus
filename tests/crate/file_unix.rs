@@ -78,6 +78,7 @@ fn test_collect_visible_file_names_hides_dotfiles_after_metadata_failure() {
 #[test]
 fn test_collect_file_info_preserves_synthetic_dot_names() {
     let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join("visible"), "visible").unwrap();
     let info = collect_file_info(
         temp_dir.path(),
         &Params {

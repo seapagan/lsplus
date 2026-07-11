@@ -186,14 +186,26 @@ pub(crate) fn append_file_info_for_names(
             gitignore_cache,
         ) {
             Ok(mut info) => {
-                if matches!(file_name.as_str(), "." | "..") {
-                    info.short_name.clone_from(file_name);
-                    info.display_name.clone_from(file_name);
-                }
+                preserve_synthetic_dot_name(&mut info, file_name);
                 file_info.push(info);
             }
             Err(err) => report_path_error(&full_path, &err),
         }
+    }
+}
+
+/// Preserve the display identity of synthetic Unix `.` and `..` entries.
+///
+/// `Path` normalizes these components while constructing `FileInfo`, so
+/// callers that received the original directory-entry name must restore it.
+pub(crate) fn preserve_synthetic_dot_name(
+    info: &mut FileInfo,
+    file_name: &str,
+) {
+    if matches!(file_name, "." | "..") {
+        let file_name = String::from(file_name);
+        info.short_name.clone_from(&file_name);
+        info.display_name = file_name;
     }
 }
 
