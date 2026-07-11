@@ -26,6 +26,11 @@ args = ["audit"]
 command = "cargo"
 args = ["deny", "check"]
 
+[tasks.zizmor]
+description = "Audit GitHub Actions workflows"
+command = "zizmor"
+args = ["--persona=regular", "."]
+
 [tasks.format]
 description = "Check Rust formatting"
 command = "cargo"
