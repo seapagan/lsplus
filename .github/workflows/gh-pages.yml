@@ -11,6 +11,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Monitor GitHub token permissions
@@ -21,6 +23,8 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Install mdBook
         run: cargo install mdbook
@@ -31,6 +35,6 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
-          github_token: ${{ secrets.GH_PAT }}
+          github_token: ${{ github.token }}
           publish_dir: ./docs/book
           publish_branch: gh-pages

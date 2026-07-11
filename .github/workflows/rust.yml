@@ -9,6 +9,9 @@ on:
     - cron: "0 6 * * 1"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -24,6 +27,8 @@ jobs:
           config: ${{ vars.PERMISSIONS_CONFIG }}
 
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -50,6 +55,8 @@ jobs:
           config: ${{ vars.PERMISSIONS_CONFIG }}
 
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -76,6 +83,8 @@ jobs:
           config: ${{ vars.PERMISSIONS_CONFIG }}
 
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -99,6 +108,8 @@ jobs:
           config: ${{ vars.PERMISSIONS_CONFIG }}
 
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
