@@ -17,20 +17,10 @@ all my machines as standard, replacing GNU ls.
 > tools - primarily `GPT-5.5` running in [Codex](https://openai.com/codex/) for
 > implementation, with `DeepSeek` (Running in [Oh-My-Pi](https://omp.sh/)) and
 > `GLM 5.2` (Running in [Claude Code](https://claude.com/product/claude-code))
-> performing independent local reviews for each PR. All of the above run side by
-> side in tabs using [Zellij](https://zellij.dev/) for multiplexing and session
-> persistence - i can shut down my pc and come back to the same session later
-> which is a huge performance boost.
->
-> The original work-spec for non-trivial features is first iteratively planned
-> with `ChatGPT` at `Pro` level thinking, which then generates a comprehensive
-> spec file or prompt to feed to `Codex` in plan mode for it to generate a
-> working plan and implement. At all stages of this process I am in the loop
-> steering and correcting the AI.
->
-> This is an experiment in how effective **properly planned** agentic coding can
-> be when combined with strong guardrails, peer-review and the explicit human
-> overview of an experienced coder.
+> performing independent local reviews for each PR. New non-trivial features are
+> first iteratively discussed and planned with `ChatGPT` at `Pro` level
+> thinking. All of the above run side by side in tabs using
+> [Zellij](https://zellij.dev/) for multiplexing and session persistence.
 
 ![lsp output](./docs/src/images/screenshot.png)
 
@@ -307,6 +297,52 @@ alias ls='lsp -laph'
 
 This will show a long format listing with hidden files, append a '/' to
 directories, and show human readable file sizes, as in the image above.
+
+On Windows, PowerShell users can add Linux-like commands to their PowerShell
+profile (`$PROFILE`):
+
+```powershell
+Set-Alias -Name ls -Value lsp -Force
+function ll { lsp -l @args }
+```
+
+Restart PowerShell or source the profile for the commands to take effect.
+
+Command Prompt users can create equivalent macros with `doskey`:
+
+```bat
+doskey ls=lsp $*
+doskey ll=lsp -l $*
+```
+
+To make these macros persistent, store them without the `doskey` prefix in
+`%USERPROFILE%\doskey.macros`:
+
+```text
+ls=lsp $*
+ll=lsp -l $*
+```
+
+Then configure Command Prompt to load the file automatically:
+
+```bat
+reg add "HKCU\Software\Microsoft\Command Processor" /v AutoRun /t REG_EXPAND_SZ /d "doskey /macrofile=\"^%USERPROFILE^%\doskey.macros\"" /f
+```
+
+This replaces any existing `AutoRun` command, so check it first:
+
+```bat
+reg query "HKCU\Software\Microsoft\Command Processor" /v AutoRun
+```
+
+If an `AutoRun` value already exists, copy only the command text after its type
+(`REG_EXPAND_SZ` or `REG_SZ`) from the `reg query` output, not the full output.
+Escape each `"` in that command as `\"`, then replace `existing command` below
+to chain the commands with `&`:
+
+```bat
+reg add "HKCU\Software\Microsoft\Command Processor" /v AutoRun /t REG_EXPAND_SZ /d "doskey /macrofile=\"^%USERPROFILE^%\doskey.macros\" & existing command" /f
+```
 
 ## Development
 

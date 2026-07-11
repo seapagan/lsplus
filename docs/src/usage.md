@@ -212,6 +212,52 @@ alias ll='lsp -laph'
 This shows a long-format listing with hidden files, appends `/` to directories,
 and shows human-readable file sizes.
 
+On Windows, PowerShell users can add Linux-like commands to their PowerShell
+profile (`$PROFILE`):
+
+```powershell
+Set-Alias -Name ls -Value lsp -Force
+function ll { lsp -l @args }
+```
+
+Restart PowerShell or source the profile for the commands to take effect.
+
+Command Prompt users can create equivalent macros with `doskey`:
+
+```bat
+doskey ls=lsp $*
+doskey ll=lsp -l $*
+```
+
+To make these macros persistent, store them without the `doskey` prefix in
+`%USERPROFILE%\doskey.macros`:
+
+```text
+ls=lsp $*
+ll=lsp -l $*
+```
+
+Then configure Command Prompt to load the file automatically:
+
+```bat
+reg add "HKCU\Software\Microsoft\Command Processor" /v AutoRun /t REG_EXPAND_SZ /d "doskey /macrofile=\"^%USERPROFILE^%\doskey.macros\"" /f
+```
+
+This replaces any existing `AutoRun` command, so check it first:
+
+```bat
+reg query "HKCU\Software\Microsoft\Command Processor" /v AutoRun
+```
+
+If an `AutoRun` value already exists, copy only the command text after its type
+(`REG_EXPAND_SZ` or `REG_SZ`) from the `reg query` output, not the full output.
+Escape each `"` in that command as `\"`, then replace `existing command` below
+to chain the commands with `&`:
+
+```bat
+reg add "HKCU\Software\Microsoft\Command Processor" /v AutoRun /t REG_EXPAND_SZ /d "doskey /macrofile=\"^%USERPROFILE^%\doskey.macros\" & existing command" /f
+```
+
 Set default options in the configuration file.
 
 ![lsp output](./images/screenshot.png)
