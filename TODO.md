@@ -49,7 +49,7 @@
       5. Avoid per-entry `symlink_metadata` on Unix where `DirEntry::file_type`
          and entry-name visibility rules are sufficient, while preserving the
          Windows reparse and hidden-attribute classification path.
-      6. Cache platform-native entry-name sort keys before sorting so Windows
+      6. Cache platform-native entry-name sort keys before sorting, so Windows
          avoids repeated UTF-16 allocation and ordinal comparisons.
       7. Carry `EntryClassification` from directory collection into `FileInfo`
          construction so Windows reparse tags are not queried twice per entry.
