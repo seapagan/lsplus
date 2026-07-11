@@ -144,33 +144,12 @@ pub(crate) fn is_executable(_path: &Path, metadata: &fs::Metadata) -> bool {
     metadata.permissions().mode() & 0o111 != 0
 }
 
-pub(crate) fn name_style_for_file_type(
-    file_type: LongFormatFileType,
-    executable: bool,
-) -> NameStyle {
-    match file_type {
-        LongFormatFileType::Symlink
-        | LongFormatFileType::SymlinkFile
-        | LongFormatFileType::SymlinkDirectory => NameStyle::Symlink,
-        LongFormatFileType::Junction => NameStyle::Junction,
-        LongFormatFileType::Directory => NameStyle::Directory,
-        LongFormatFileType::Socket => NameStyle::Socket,
-        LongFormatFileType::Fifo => NameStyle::Fifo,
-        LongFormatFileType::CharDevice => NameStyle::CharDevice,
-        LongFormatFileType::BlockDevice => NameStyle::BlockDevice,
-        LongFormatFileType::Regular if executable => NameStyle::Executable,
-        LongFormatFileType::Regular
-        | LongFormatFileType::ReparsePoint
-        | LongFormatFileType::Unknown => NameStyle::Plain,
-    }
-}
-
 pub(crate) fn name_style(
     path: &Path,
     metadata: &fs::Metadata,
     classification: EntryClassification,
 ) -> NameStyle {
-    name_style_for_file_type(
+    super::name_style_for_file_type(
         classification.file_type,
         is_executable(path, metadata),
     )

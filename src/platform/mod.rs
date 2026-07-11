@@ -2,7 +2,7 @@
 
 use std::time::SystemTime;
 
-use crate::structs::PermissionDisplay;
+use crate::structs::{NameStyle, PermissionDisplay};
 
 /// Platform-neutral interpretation of one directory entry.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -55,6 +55,28 @@ impl LongFormatFileType {
             Self::BlockDevice => 'b',
             Self::Unknown => '?',
         }
+    }
+}
+
+/// Return the shared name style for a classified file type.
+pub(crate) fn name_style_for_file_type(
+    file_type: LongFormatFileType,
+    executable: bool,
+) -> NameStyle {
+    match file_type {
+        LongFormatFileType::Symlink
+        | LongFormatFileType::SymlinkFile
+        | LongFormatFileType::SymlinkDirectory => NameStyle::Symlink,
+        LongFormatFileType::Junction => NameStyle::Junction,
+        LongFormatFileType::Directory => NameStyle::Directory,
+        LongFormatFileType::Socket => NameStyle::Socket,
+        LongFormatFileType::Fifo => NameStyle::Fifo,
+        LongFormatFileType::CharDevice => NameStyle::CharDevice,
+        LongFormatFileType::BlockDevice => NameStyle::BlockDevice,
+        LongFormatFileType::Regular if executable => NameStyle::Executable,
+        LongFormatFileType::Regular
+        | LongFormatFileType::ReparsePoint
+        | LongFormatFileType::Unknown => NameStyle::Plain,
     }
 }
 

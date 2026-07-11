@@ -35,6 +35,51 @@ const FILE_ATTRIBUTE_EA: u32 = 0x0004_0000;
 const FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS: u32 = 0x0040_0000;
 const IO_REPARSE_TAG_MOUNT_POINT: u32 = 0xA000_0003;
 const IO_REPARSE_TAG_SYMLINK: u32 = 0xA000_000C;
+const EXTENDED_PATH_PREFIX: &[u16] = &[92, 92, 63, 92];
+const NT_PATH_PREFIX: &[u16] = &[92, 63, 63, 92];
+const UNC_PATH_PREFIX: &[u16] = &[92, 92];
+const UNC_PATH_REMAINDER_PREFIX: &[u16] = &[85, 78, 67, 92];
+const EXTENDED_UNC_PATH_PREFIX: &[u16] = &[92, 92, 63, 92, 85, 78, 67, 92];
+const KNOWN_ATTRIBUTES: &[(u32, &str)] = &[
+    (FILE_ATTRIBUTE_READONLY, "ReadOnly"),
+    (FILE_ATTRIBUTE_HIDDEN, "Hidden"),
+    (FILE_ATTRIBUTE_SYSTEM, "System"),
+    (FILE_ATTRIBUTE_ARCHIVE, "Archive"),
+    (FILE_ATTRIBUTE_TEMPORARY, "Temporary"),
+    (FILE_ATTRIBUTE_SPARSE_FILE, "Sparse"),
+    (FILE_ATTRIBUTE_COMPRESSED, "Compressed"),
+    (FILE_ATTRIBUTE_OFFLINE, "Offline"),
+    (FILE_ATTRIBUTE_NOT_CONTENT_INDEXED, "NotIndexed"),
+    (FILE_ATTRIBUTE_ENCRYPTED, "Encrypted"),
+    (FILE_ATTRIBUTE_INTEGRITY_STREAM, "IntegrityStream"),
+    (FILE_ATTRIBUTE_VIRTUAL, "Virtual"),
+    (FILE_ATTRIBUTE_NO_SCRUB_DATA, "NoScrubData"),
+    (FILE_ATTRIBUTE_EA, "EA"),
+    (FILE_ATTRIBUTE_PINNED, "Pinned"),
+    (FILE_ATTRIBUTE_UNPINNED, "Unpinned"),
+    (FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS, "RecallOnDataAccess"),
+];
+const KNOWN_ATTRIBUTE_MASK: u32 = FILE_ATTRIBUTE_READONLY
+    | FILE_ATTRIBUTE_HIDDEN
+    | FILE_ATTRIBUTE_SYSTEM
+    | FILE_ATTRIBUTE_ARCHIVE
+    | FILE_ATTRIBUTE_TEMPORARY
+    | FILE_ATTRIBUTE_SPARSE_FILE
+    | FILE_ATTRIBUTE_COMPRESSED
+    | FILE_ATTRIBUTE_OFFLINE
+    | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
+    | FILE_ATTRIBUTE_ENCRYPTED
+    | FILE_ATTRIBUTE_INTEGRITY_STREAM
+    | FILE_ATTRIBUTE_VIRTUAL
+    | FILE_ATTRIBUTE_NO_SCRUB_DATA
+    | FILE_ATTRIBUTE_EA
+    | FILE_ATTRIBUTE_PINNED
+    | FILE_ATTRIBUTE_UNPINNED
+    | FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS
+    | FILE_ATTRIBUTE_REPARSE_POINT
+    | FILE_ATTRIBUTE_DIRECTORY
+    | FILE_ATTRIBUTE_DEVICE
+    | FILE_ATTRIBUTE_NORMAL;
 
 pub(crate) fn classify_entry(
     path: &Path,
@@ -158,17 +203,10 @@ pub(crate) fn name_style(
     metadata: &fs::Metadata,
     classification: EntryClassification,
 ) -> NameStyle {
-    match classification.file_type {
-        LongFormatFileType::Directory => NameStyle::Directory,
-        LongFormatFileType::Symlink
-        | LongFormatFileType::SymlinkFile
-        | LongFormatFileType::SymlinkDirectory => NameStyle::Symlink,
-        LongFormatFileType::Junction => NameStyle::Junction,
-        LongFormatFileType::Regular if is_executable(path, metadata) => {
-            NameStyle::Executable
-        }
-        _ => NameStyle::Plain,
-    }
+    super::name_style_for_file_type(
+        classification.file_type,
+        is_executable(path, metadata),
+    )
 }
 
 pub(crate) fn synthetic_dot_entries(
@@ -201,20 +239,18 @@ pub(crate) fn default_config_path() -> Option<PathBuf> {
 
 pub(crate) fn normalize_path(path: PathBuf) -> PathBuf {
     let wide = path.as_os_str().encode_wide().collect::<Vec<_>>();
-    const EXTENDED_PREFIX: &[u16] = &[92, 92, 63, 92];
-    const NT_PREFIX: &[u16] = &[92, 63, 63, 92];
-    const UNC_PREFIX: &[u16] = &[85, 78, 67, 92];
-    let prefix_len = if wide.starts_with(EXTENDED_PREFIX) {
-        EXTENDED_PREFIX.len()
-    } else if wide.starts_with(NT_PREFIX) {
-        NT_PREFIX.len()
+    let prefix_len = if wide.starts_with(EXTENDED_PATH_PREFIX) {
+        EXTENDED_PATH_PREFIX.len()
+    } else if wide.starts_with(NT_PATH_PREFIX) {
+        NT_PATH_PREFIX.len()
     } else {
         return path;
     };
     let remainder = &wide[prefix_len..];
-    if remainder.starts_with(UNC_PREFIX) {
+    if remainder.starts_with(UNC_PATH_REMAINDER_PREFIX) {
         let mut normalized = vec![92, 92];
-        normalized.extend_from_slice(&remainder[UNC_PREFIX.len()..]);
+        normalized
+            .extend_from_slice(&remainder[UNC_PATH_REMAINDER_PREFIX.len()..]);
         return PathBuf::from(OsString::from_wide(&normalized));
     }
     PathBuf::from(OsString::from_wide(remainder))
@@ -261,18 +297,13 @@ pub(crate) fn extended_find_path_with_current_dir(
     path: &Path,
     current_directory: Option<&Path>,
 ) -> Option<Vec<u16>> {
-    const EXTENDED_PREFIX: &[u16] = &[92, 92, 63, 92];
-    const NT_PREFIX: &[u16] = &[92, 63, 63, 92];
-    const UNC_PREFIX: &[u16] = &[92, 92];
-    const EXTENDED_UNC_PREFIX: &[u16] = &[92, 92, 63, 92, 85, 78, 67, 92];
-
     let wide = path.as_os_str().encode_wide().collect::<Vec<_>>();
-    if wide.starts_with(EXTENDED_PREFIX) {
+    if wide.starts_with(EXTENDED_PATH_PREFIX) {
         return Some(wide.into_iter().chain(std::iter::once(0)).collect());
     }
-    if wide.starts_with(NT_PREFIX) {
-        let mut converted = EXTENDED_PREFIX.to_vec();
-        converted.extend_from_slice(&wide[NT_PREFIX.len()..]);
+    if wide.starts_with(NT_PATH_PREFIX) {
+        let mut converted = EXTENDED_PATH_PREFIX.to_vec();
+        converted.extend_from_slice(&wide[NT_PATH_PREFIX.len()..]);
         converted.push(0);
         return Some(converted);
     }
@@ -284,13 +315,13 @@ pub(crate) fn extended_find_path_with_current_dir(
     };
     let wide = path.as_os_str().encode_wide().collect::<Vec<_>>();
 
-    let mut extended = if wide.starts_with(UNC_PREFIX) {
-        EXTENDED_UNC_PREFIX.to_vec()
+    let mut extended = if wide.starts_with(UNC_PATH_PREFIX) {
+        EXTENDED_UNC_PATH_PREFIX.to_vec()
     } else {
-        EXTENDED_PREFIX.to_vec()
+        EXTENDED_PATH_PREFIX.to_vec()
     };
-    let remainder = if wide.starts_with(UNC_PREFIX) {
-        &wide[UNC_PREFIX.len()..]
+    let remainder = if wide.starts_with(UNC_PATH_PREFIX) {
+        &wide[UNC_PATH_PREFIX.len()..]
     } else {
         &wide
     };
@@ -352,39 +383,13 @@ pub(crate) fn parse_pathext(value: &str) -> HashSet<String> {
 }
 
 pub(crate) fn attribute_text(attributes: u32) -> String {
-    let known = [
-        (FILE_ATTRIBUTE_READONLY, "ReadOnly"),
-        (FILE_ATTRIBUTE_HIDDEN, "Hidden"),
-        (FILE_ATTRIBUTE_SYSTEM, "System"),
-        (FILE_ATTRIBUTE_ARCHIVE, "Archive"),
-        (FILE_ATTRIBUTE_TEMPORARY, "Temporary"),
-        (FILE_ATTRIBUTE_SPARSE_FILE, "Sparse"),
-        (FILE_ATTRIBUTE_COMPRESSED, "Compressed"),
-        (FILE_ATTRIBUTE_OFFLINE, "Offline"),
-        (FILE_ATTRIBUTE_NOT_CONTENT_INDEXED, "NotIndexed"),
-        (FILE_ATTRIBUTE_ENCRYPTED, "Encrypted"),
-        (FILE_ATTRIBUTE_INTEGRITY_STREAM, "IntegrityStream"),
-        (FILE_ATTRIBUTE_VIRTUAL, "Virtual"),
-        (FILE_ATTRIBUTE_NO_SCRUB_DATA, "NoScrubData"),
-        (FILE_ATTRIBUTE_EA, "EA"),
-        (FILE_ATTRIBUTE_PINNED, "Pinned"),
-        (FILE_ATTRIBUTE_UNPINNED, "Unpinned"),
-        (FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS, "RecallOnDataAccess"),
-    ];
-    let mut values = known
+    let mut values = KNOWN_ATTRIBUTES
         .iter()
         .filter_map(|(flag, name)| {
             (attributes & flag != 0).then_some((*name).to_string())
         })
         .collect::<Vec<_>>();
-    let known_mask = known.iter().fold(
-        FILE_ATTRIBUTE_REPARSE_POINT
-            | FILE_ATTRIBUTE_DIRECTORY
-            | FILE_ATTRIBUTE_DEVICE
-            | FILE_ATTRIBUTE_NORMAL,
-        |mask, (flag, _)| mask | flag,
-    );
-    let unknown = attributes & !known_mask;
+    let unknown = attributes & !KNOWN_ATTRIBUTE_MASK;
     if unknown != 0 {
         values.push(format!("Unknown(0x{unknown:08X})"));
     }
