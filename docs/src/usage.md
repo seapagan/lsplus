@@ -212,6 +212,27 @@ alias ll='lsp -laph'
 This shows a long-format listing with hidden files, appends `/` to directories,
 and shows human-readable file sizes.
 
+On Windows, PowerShell users can add Linux-like commands to their PowerShell
+profile (`$PROFILE`):
+
+```powershell
+Set-Alias -Name ls -Value lsp -Force
+function ll { lsp -l @args }
+```
+
+Restart PowerShell or source the profile for the commands to take effect.
+
+Command Prompt users can create equivalent macros with `doskey`:
+
+```bat
+doskey ls=lsp $*
+doskey ll=lsp -l $*
+```
+
+To make these macros persistent, store them in a file such as
+`%USERPROFILE%\doskey.macros` and load it when Command Prompt starts with
+`doskey /macrofile=%USERPROFILE%\doskey.macros`.
+
 Set default options in the configuration file.
 
 ![lsp output](./images/screenshot.png)
