@@ -315,9 +315,27 @@ doskey ls=lsp $*
 doskey ll=lsp -l $*
 ```
 
-To make these macros persistent, store them in a file such as
-`%USERPROFILE%\doskey.macros` and load it when Command Prompt starts with
-`doskey /macrofile=%USERPROFILE%\doskey.macros`.
+To make these macros persistent, store them without the `doskey` prefix in
+`%USERPROFILE%\doskey.macros`:
+
+```text
+ls=lsp $*
+ll=lsp -l $*
+```
+
+Then configure Command Prompt to load the file automatically:
+
+```bat
+reg add "HKCU\Software\Microsoft\Command Processor" /v AutoRun /t REG_EXPAND_SZ /d "doskey /macrofile=\"%USERPROFILE%\doskey.macros\"" /f
+```
+
+This replaces any existing `AutoRun` command, so check it first:
+
+```bat
+reg query "HKCU\Software\Microsoft\Command Processor" /v AutoRun
+```
+
+Combine the commands if an `AutoRun` value already exists.
 
 ## Development
 
