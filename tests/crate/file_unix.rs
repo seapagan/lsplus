@@ -31,12 +31,15 @@ fn test_get_username_and_groupname_fall_back_to_ids() {
 }
 
 #[test]
-fn test_collect_file_names_errors_for_broken_directory_symlink() {
+fn test_collect_file_names_lists_broken_symlink_operand() {
     let temp_dir = tempdir().unwrap();
     let broken_dir_link = temp_dir.path().join("broken-dir");
     std::os::unix::fs::symlink("missing-target", &broken_dir_link).unwrap();
 
-    assert!(collect_file_names(&broken_dir_link, &Params::default()).is_err());
+    assert_eq!(
+        collect_file_names(&broken_dir_link, &Params::default()).unwrap(),
+        vec!["broken-dir"]
+    );
 }
 
 #[test]
