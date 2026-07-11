@@ -76,10 +76,6 @@ pub(crate) fn collect_visible_file_names(
     entries: Vec<Result<DirectoryEntryData, io::Error>>,
     params: &Params,
 ) -> Vec<String> {
-    if entries.is_empty() {
-        return Vec::new();
-    }
-
     let mut visible_entries = Vec::new();
 
     for entry_result in entries {
