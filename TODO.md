@@ -51,9 +51,13 @@
          Windows reparse and hidden-attribute classification path.
       6. Cache platform-native entry-name sort keys before sorting so Windows
          avoids repeated UTF-16 allocation and ordinal comparisons.
-      7. Reuse a single `GitignoreCache` across recursive and tree traversal
+      7. Carry `EntryClassification` from directory collection into `FileInfo`
+         construction so Windows reparse tags are not queried twice per entry.
+      8. Avoid `current_dir()` lookup for already-absolute Windows paths before
+         calling `FindFirstFileW` for reparse classification.
+      9. Reuse a single `GitignoreCache` across recursive and tree traversal
          so ancestor ignore files are not rediscovered for every directory.
-      8. Revisit `prettytable` for long recursive output; a custom row
+      10. Revisit `prettytable` for long recursive output; a custom row
          formatter may be leaner for hot paths.
 - [ ] better handle dotfiles?
 - [ ] option to list dotfiles (and folders) before non-dotfiles

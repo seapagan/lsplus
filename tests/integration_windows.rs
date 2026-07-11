@@ -135,6 +135,7 @@ fn test_windows_junction_listing_and_recursion_behavior() {
     fs::create_dir(&parent).unwrap();
     fs::write(target.join("inside.txt"), "target content").unwrap();
     create_junction(&junction, &target);
+    let junction_target = format!("linked-target -> {}", target.display());
 
     let mut direct = Command::cargo_bin("lsp").unwrap();
     direct
@@ -152,7 +153,9 @@ fn test_windows_junction_listing_and_recursion_behavior() {
         .assert()
         .success()
         .stdout(predicate::str::contains("linked-target"))
-        .stdout(predicate::str::contains("j"));
+        .stdout(predicate::str::contains("j"))
+        .stdout(predicate::str::contains(junction_target))
+        .stdout(predicate::str::contains("[Target Unavailable]").not());
 
     let mut slash = Command::cargo_bin("lsp").unwrap();
     slash
