@@ -33,7 +33,7 @@ ignore = "0.4.25"
 nix = { version = "0.31.0", features = ["user"] }
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.59.0", features = [
+windows-sys = { version = "0.61.0", features = [
   "Win32_Foundation",
   "Win32_Storage_FileSystem",
   "Win32_Globalization",
