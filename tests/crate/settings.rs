@@ -1,10 +1,15 @@
+use crate::Params;
 use crate::cli::CompatMode;
+#[cfg(unix)]
+use crate::settings::config_path_from_home;
 use crate::settings::{
-    StartupConfig, config_path_from_home, load_config, load_config_from_path,
+    StartupConfig, load_config, load_config_from_path,
     load_startup_config_from,
 };
-use crate::{IndicatorStyle, Params, structs::PermissionDisplay};
+#[cfg(unix)]
+use crate::{IndicatorStyle, structs::PermissionDisplay};
 use std::fs;
+#[cfg(unix)]
 use std::path::PathBuf;
 use tempfile::tempdir;
 
@@ -14,6 +19,7 @@ fn test_load_config_returns_default_when_path_is_missing() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_config_path_from_home_handles_some_and_none() {
     assert_eq!(config_path_from_home(None), None);
     assert_eq!(
@@ -57,6 +63,7 @@ fn test_load_config_returns_default_when_deserialization_fails() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_load_config_reads_boolean_settings_from_home_config() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().join(".config").join("lsplus");
@@ -123,6 +130,7 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_load_config_maps_append_slash_alias_to_indicator_style() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().join(".config").join("lsplus");
@@ -142,6 +150,7 @@ fn test_load_config_maps_append_slash_alias_to_indicator_style() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_load_config_prefers_indicator_style_over_append_slash_alias() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().join(".config").join("lsplus");

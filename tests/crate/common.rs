@@ -1,6 +1,7 @@
 use colored_text::{ColorMode, ColorizeConfig};
 use std::sync::{Mutex, MutexGuard};
 
+#[cfg(unix)]
 use crate::Params;
 
 static COLOR_MODE_LOCK: Mutex<()> = Mutex::new(());
@@ -30,6 +31,7 @@ impl Drop for ColorModeGuard {
     }
 }
 
+#[cfg(unix)]
 pub(crate) fn has_ansi(text: &str) -> bool {
     text.contains("\u{1b}[")
 }
@@ -41,6 +43,7 @@ pub(crate) fn with_color_output_enabled<T>(test: impl FnOnce() -> T) -> T {
     })
 }
 
+#[cfg(unix)]
 pub(crate) fn fixed_time_params() -> Params {
     Params {
         time_gradient: false,
@@ -48,6 +51,7 @@ pub(crate) fn fixed_time_params() -> Params {
     }
 }
 
+#[cfg(unix)]
 pub(crate) fn plain_permission_params() -> Params {
     Params {
         permission_colors: false,
@@ -56,6 +60,7 @@ pub(crate) fn plain_permission_params() -> Params {
     }
 }
 
+#[cfg(unix)]
 pub(crate) fn accentless_params() -> Params {
     Params {
         permission_colors: false,
@@ -65,6 +70,7 @@ pub(crate) fn accentless_params() -> Params {
     }
 }
 
+#[cfg(unix)]
 pub(crate) fn time_only_params() -> Params {
     Params {
         permission_colors: false,

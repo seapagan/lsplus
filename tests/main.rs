@@ -1,10 +1,14 @@
+#[cfg(unix)]
 use assert_cmd::Command;
 #[cfg(unix)]
 use nix::unistd::Uid;
+#[cfg(unix)]
 use predicates::str::contains;
+#[cfg(unix)]
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
+#[cfg(unix)]
 use tempfile::tempdir;
 
 #[cfg(unix)]

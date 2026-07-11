@@ -224,6 +224,23 @@ fn test_broken_symlink_argument_long_format() {
 }
 
 #[test]
+fn test_recursive_all_renders_synthetic_dot_names() {
+    let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join("visible"), "visible").unwrap();
+
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("-R")
+        .arg("-a")
+        .arg("-l")
+        .arg("--no-icons")
+        .arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.lines().any(|line| line.ends_with(" .")));
+    assert!(stdout.lines().any(|line| line.ends_with(" ..")));
+}
+
+#[test]
 fn test_native_file_type_and_classify_indicator_output() {
     let temp_dir = create_indicator_fixture();
 

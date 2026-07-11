@@ -629,6 +629,7 @@ fn test_collect_listing_sections_recursive_level_one_shows_only_root_entries()
 }
 
 #[test]
+#[cfg(unix)]
 fn test_collect_listing_sections_recursive_ignores_dot_entries() {
     let temp_dir = tempdir().unwrap();
     let nested = temp_dir.path().join("nested");
@@ -1181,85 +1182,72 @@ fn test_long_format_color_level_uses_none_when_color_is_disabled() {
     });
 }
 
+fn with_terminal_capability_env<T>(
+    colorterm: Option<&str>,
+    term: Option<&str>,
+    test: impl FnOnce() -> T,
+) -> T {
+    temp_env::with_vars(
+        [
+            ("COLORTERM", colorterm),
+            ("NO_COLOR", None),
+            ("TERM", term),
+            ("FORCE_COLOR", None),
+            ("CLICOLOR", None),
+            ("CLICOLOR_FORCE", None),
+            ("WT_SESSION", None),
+            ("ConEmuANSI", None),
+            ("ANSICON", None),
+            ("CI", None),
+        ],
+        test,
+    )
+}
+
 #[test]
 fn test_long_format_color_level_detects_terminal_capability() {
-    temp_env::with_vars(
-        [
-            ("COLORTERM", None::<&str>),
-            ("NO_COLOR", None::<&str>),
-            ("TERM", Some("dumb")),
-        ],
-        || {
-            let _guard = ColorModeGuard::set(ColorMode::Always);
+    with_terminal_capability_env(None, Some("dumb"), || {
+        let _guard = ColorModeGuard::set(ColorMode::Always);
 
-            assert_eq!(
-                long_format_color_level(&Params::default()),
-                ColorLevel::NoColor
-            );
-        },
-    );
+        assert_eq!(
+            long_format_color_level(&Params::default()),
+            ColorLevel::NoColor
+        );
+    });
 
-    temp_env::with_vars(
-        [
-            ("COLORTERM", Some("truecolor")),
-            ("NO_COLOR", None::<&str>),
-            ("TERM", None::<&str>),
-        ],
-        || {
-            let _guard = ColorModeGuard::set(ColorMode::Always);
+    with_terminal_capability_env(Some("truecolor"), None, || {
+        let _guard = ColorModeGuard::set(ColorMode::Always);
 
-            assert_eq!(
-                long_format_color_level(&Params::default()),
-                ColorLevel::TrueColor
-            );
-        },
-    );
+        assert_eq!(
+            long_format_color_level(&Params::default()),
+            ColorLevel::TrueColor
+        );
+    });
 
-    temp_env::with_vars(
-        [
-            ("COLORTERM", None::<&str>),
-            ("NO_COLOR", None::<&str>),
-            ("TERM", Some("xterm-256color")),
-        ],
-        || {
-            let _guard = ColorModeGuard::set(ColorMode::Always);
+    with_terminal_capability_env(None, Some("xterm-256color"), || {
+        let _guard = ColorModeGuard::set(ColorMode::Always);
 
-            assert_eq!(
-                long_format_color_level(&Params::default()),
-                ColorLevel::Ansi256
-            );
-        },
-    );
+        assert_eq!(
+            long_format_color_level(&Params::default()),
+            ColorLevel::Ansi256
+        );
+    });
 
-    temp_env::with_vars(
-        [
-            ("COLORTERM", None::<&str>),
-            ("NO_COLOR", None::<&str>),
-            ("TERM", Some("xterm")),
-        ],
-        || {
-            let _guard = ColorModeGuard::set(ColorMode::Always);
+    with_terminal_capability_env(None, Some("xterm"), || {
+        let _guard = ColorModeGuard::set(ColorMode::Always);
 
-            assert_eq!(
-                long_format_color_level(&Params::default()),
-                ColorLevel::Ansi16
-            );
-        },
-    );
+        assert_eq!(
+            long_format_color_level(&Params::default()),
+            ColorLevel::Ansi16
+        );
+    });
 
-    temp_env::with_vars(
-        [
-            ("COLORTERM", None::<&str>),
-            ("NO_COLOR", None::<&str>),
-            ("TERM", None::<&str>),
-        ],
-        || {
-            let _guard = ColorModeGuard::set(ColorMode::Always);
+    with_terminal_capability_env(None, None, || {
+        let _guard = ColorModeGuard::set(ColorMode::Always);
 
-            assert_eq!(
-                long_format_color_level(&Params::default()),
-                ColorLevel::Ansi16
-            );
-        },
-    );
+        assert_eq!(
+            long_format_color_level(&Params::default()),
+            ColorLevel::Ansi16
+        );
+    });
 }

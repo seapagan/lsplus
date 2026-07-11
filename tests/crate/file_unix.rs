@@ -6,7 +6,8 @@ use crate::platform::{
     name_style_for_file_type,
 };
 use crate::utils::file::{
-    collect_file_info, collect_file_names, create_file_info,
+    DirectoryEntryData, check_display_name, collect_file_info,
+    collect_file_names, collect_visible_file_names, create_file_info,
     file_type_indicator_suffix_for_type, format_symlink_display_name_with_dim,
 };
 use crate::utils::icons::Icon;
@@ -14,6 +15,7 @@ use crate::{IndicatorStyle, NameStyle, Params};
 use colored_text::ColorMode;
 use std::ffi::OsString;
 use std::fs::{self, File};
+use std::io;
 use std::os::unix::ffi::OsStringExt;
 use std::os::unix::fs::{FileTypeExt, PermissionsExt};
 use std::os::unix::net::UnixListener;
@@ -31,12 +33,69 @@ fn test_get_username_and_groupname_fall_back_to_ids() {
 }
 
 #[test]
-fn test_collect_file_names_errors_for_broken_directory_symlink() {
+fn test_collect_file_names_lists_broken_symlink_operand() {
     let temp_dir = tempdir().unwrap();
     let broken_dir_link = temp_dir.path().join("broken-dir");
     std::os::unix::fs::symlink("missing-target", &broken_dir_link).unwrap();
 
-    assert!(collect_file_names(&broken_dir_link, &Params::default()).is_err());
+    assert_eq!(
+        collect_file_names(&broken_dir_link, &Params::default()).unwrap(),
+        vec!["broken-dir"]
+    );
+}
+
+#[test]
+fn test_collect_visible_file_names_hides_dotfiles_after_metadata_failure() {
+    let entries = || {
+        vec![Ok(DirectoryEntryData {
+            file_name: OsString::from(".hidden"),
+            path: PathBuf::from("/tmp/.hidden"),
+            classification_result: Err(io::Error::other("metadata failure")),
+        })]
+    };
+
+    assert!(
+        collect_visible_file_names(
+            Path::new("/tmp"),
+            entries(),
+            &Params::default()
+        )
+        .is_empty()
+    );
+    assert_eq!(
+        collect_visible_file_names(
+            Path::new("/tmp"),
+            entries(),
+            &Params {
+                almost_all: true,
+                ..Params::default()
+            },
+        ),
+        vec![String::from(".hidden")]
+    );
+}
+
+#[test]
+fn test_collect_file_info_preserves_synthetic_dot_names() {
+    let temp_dir = tempdir().unwrap();
+    let info = collect_file_info(
+        temp_dir.path(),
+        &Params {
+            show_all: true,
+            ..Params::default()
+        },
+    )
+    .unwrap();
+
+    with_color_output_enabled(|| {
+        for name in [".", ".."] {
+            let entry =
+                info.iter().find(|entry| entry.short_name == name).unwrap();
+            let displayed = check_display_name(entry);
+            assert_eq!(strip_str(&displayed), name);
+            assert!(has_ansi(&displayed));
+        }
+    });
 }
 
 #[test]
@@ -416,6 +475,7 @@ fn test_format_symlink_display_name_colors_long_format_targets_by_type() {
             &temp_dir.path().join("dir-link"),
             Ok(PathBuf::from("dir-target")),
             &params,
+            NameStyle::Symlink,
             false,
         );
         assert!(dir_display.contains("-> \u{1b}[34m"));
@@ -425,6 +485,7 @@ fn test_format_symlink_display_name_colors_long_format_targets_by_type() {
             &temp_dir.path().join("file-link"),
             Ok(PathBuf::from("file-target.txt")),
             &params,
+            NameStyle::Symlink,
             false,
         );
         assert!(!file_display.contains("-> \u{1b}["));
@@ -434,6 +495,7 @@ fn test_format_symlink_display_name_colors_long_format_targets_by_type() {
             &temp_dir.path().join("symlink-link"),
             Ok(PathBuf::from("symlink-target")),
             &params,
+            NameStyle::Symlink,
             false,
         );
         assert!(symlink_display.contains("-> \u{1b}[36m"));
@@ -443,6 +505,7 @@ fn test_format_symlink_display_name_colors_long_format_targets_by_type() {
             &temp_dir.path().join("exec-link"),
             Ok(PathBuf::from("exec-target.sh")),
             &params,
+            NameStyle::Symlink,
             false,
         );
         assert!(exec_display.contains("-> \u{1b}[1;32m"));

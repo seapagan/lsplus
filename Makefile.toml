@@ -1,5 +1,10 @@
+[tasks.prepare-coverage]
+script_runner = "@duckscript"
+script = ["mkdir target/llvm-cov"]
+
 [tasks.test]
 # this needs the crates 'nextest' and 'cargo-llvm-cov' installed locally
+dependencies = ["prepare-coverage"]
 command = "cargo"
 args = [
   "llvm-cov",
@@ -20,3 +25,93 @@ args = ["audit"]
 [tasks.deny]
 command = "cargo"
 args = ["deny", "check"]
+
+[tasks.format]
+description = "Check Rust formatting"
+command = "cargo"
+args = ["fmt", "--check"]
+
+[tasks.unix-check]
+description = "Check all native Unix targets and features"
+command = "cargo"
+args = ["check", "--all-targets", "--all-features"]
+
+[tasks.unix-clippy]
+description = "Run Clippy for all native Unix targets and features"
+command = "cargo"
+args = ["clippy", "--all-targets", "--all-features", "--", "-D", "warnings"]
+
+[tasks.unix-test]
+description = "Run all native Unix tests"
+command = "cargo"
+args = ["test", "--all-targets", "--all-features"]
+
+[tasks.unix-build]
+description = "Build all native Unix targets and features"
+command = "cargo"
+args = ["build", "--all-targets", "--all-features"]
+
+[tasks.verify-unix]
+description = "Run all native Unix verification checks"
+dependencies = [
+    "format",
+    "unix-check",
+    "unix-clippy",
+    "unix-test",
+    "unix-build",
+]
+
+[tasks.windows-check]
+description = "Cross-check the Windows MSVC target from Linux"
+command = "cargo"
+args = [
+    "xwin",
+    "check",
+    "--target",
+    "x86_64-pc-windows-msvc",
+    "--all-targets",
+    "--all-features",
+]
+
+[tasks.windows-clippy]
+description = "Run Clippy for the Windows MSVC target from Linux"
+command = "cargo"
+args = [
+    "xwin",
+    "clippy",
+    "--target",
+    "x86_64-pc-windows-msvc",
+    "--all-targets",
+    "--all-features",
+    "--",
+    "-D",
+    "warnings",
+]
+
+[tasks.windows-build]
+description = "Cross-build the Windows MSVC target from Linux"
+command = "cargo"
+args = [
+    "xwin",
+    "build",
+    "--target",
+    "x86_64-pc-windows-msvc",
+    "--all-targets",
+    "--all-features",
+]
+
+[tasks.verify-windows]
+description = "Run all Linux-side Windows compatibility checks"
+dependencies = [
+    "windows-check",
+    "windows-clippy",
+    "windows-build",
+]
+
+[tasks.windows-verify]
+description = "Compatibility alias for verify-windows"
+dependencies = ["verify-windows"]
+
+[tasks.verify]
+description = "Run all Linux-host native Unix and Windows cross-target checks"
+dependencies = ["verify-unix", "verify-windows"]

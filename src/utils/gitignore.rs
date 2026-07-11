@@ -11,6 +11,8 @@ use std::path::{Path, PathBuf};
 use ignore::Match;
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
 
+use crate::platform;
+
 /// Cache of gitignore matchers keyed by listed directory.
 #[derive(Default)]
 pub struct GitignoreCache {
@@ -221,7 +223,7 @@ pub(crate) fn parse_commondir(git_dir: &Path) -> Option<PathBuf> {
 }
 
 fn normalize_path(path: PathBuf) -> PathBuf {
-    fs::canonicalize(&path).unwrap_or(path)
+    platform::normalize_path(fs::canonicalize(&path).unwrap_or(path))
 }
 
 #[cfg(test)]

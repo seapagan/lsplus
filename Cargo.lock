@@ -659,6 +659,7 @@ dependencies = [
  "tempfile",
  "terminal_size",
  "unicode-width",
+ "windows-sys",
 ]
 
 [[package]]

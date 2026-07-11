@@ -7,11 +7,11 @@
 use std::path::PathBuf;
 
 use config::{Config, File, FileFormat};
-use dirs_next::home_dir;
 use serde::Deserialize;
 
 use crate::Params;
 use crate::cli::CompatMode;
+use crate::platform;
 use crate::structs::RawParams;
 
 /// Environment variable that forces the startup compatibility mode.
@@ -37,10 +37,11 @@ struct ParsedConfig {
 }
 
 fn config_path() -> Option<PathBuf> {
-    config_path_from_home(home_dir())
+    platform::default_config_path()
 }
 
 /// Return the default config path for a home directory, when one is known.
+#[cfg(all(unix, test))]
 pub(crate) fn config_path_from_home(home: Option<PathBuf>) -> Option<PathBuf> {
     let mut path = home?;
     path.push(".config/lsplus/config.toml");

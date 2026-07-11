@@ -56,8 +56,8 @@ all my machines as standard, replacing GNU ls.
 
 ## Compatibility
 
-LSPlus supports Unix-like systems: Linux, macOS, and similar platforms. Windows
-support is on the roadmap.
+LSPlus supports Linux, macOS, and Windows. Windows uses native file attributes,
+`PATHEXT` command classification, and junction-aware traversal.
 
 ## Nerd Fonts
 
@@ -75,9 +75,10 @@ the program (or `no_icons=true` in the config file).
 
 ### Download a Binary
 
-Download the latest Linux or macOS archive from the [release
-page](https://github.com/seapagan/lsplus/releases/latest). Unpack it, move
-`lsp` into a directory on your `PATH`, and make it executable if needed.
+Download the latest Linux, macOS, or Windows archive from the [release
+page](https://github.com/seapagan/lsplus/releases/latest). Unpack it and move
+`lsp` (or `lsp.exe` on Windows) into a directory on your `PATH`. On Unix,
+make it executable if needed.
 
 These binaries are auto-generated for each release.
 
@@ -203,6 +204,10 @@ Long-format output shows symbolic permissions by default. Use
 `--permissions both` to add octal bits after the symbolic field, or
 `--permissions none` to omit permission fields.
 
+On Windows, symbolic permission display is replaced by a readable `Attributes`
+column. `--permissions octal` and `--permissions both` are unsupported with
+long output; use `symbolic` or `none` instead.
+
 Long-format output colors permission bits, timestamp freshness, and large file
 sizes by default. You can adjust those accents independently with
 `--no-permission-colors`, `--no-time-gradient`, `--no-size-colors`, or the
@@ -319,15 +324,50 @@ currently run:
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test` on `pre-push`
 
-`cargo-make` and `cargo-deny` are separate Cargo subcommands, so contributors
-who want the full local tooling workflow should install them explicitly. They
-are used for the repo's preferred task aliases such as `cargo make test`,
-`cargo make test-html`, `cargo make audit`, and `cargo make deny`. Install
-them with:
+Optional development tooling is provided through Cargo subcommands.
+
+For task aliases and dependency checks, install:
 
 ```bash
 cargo install cargo-make
+cargo install cargo-audit
 cargo install cargo-deny
+```
+
+The coverage aliases, `cargo make test` and `cargo make test-html`, also
+require:
+
+```bash
+cargo install cargo-nextest
+cargo install cargo-llvm-cov
+```
+
+On Linux, install `cargo-xwin` to cross-check the Windows MSVC target:
+
+```bash
+cargo install cargo-xwin
+rustup target add x86_64-pc-windows-msvc
+```
+
+Run all native Unix and Windows cross-target verification checks with:
+
+```bash
+cargo make verify
+```
+
+Use `cargo make verify-unix` or `cargo make verify-windows` to run either set
+of checks independently. These Cargo Make verification tasks are Linux-only:
+`verify-windows` depends on `cargo-xwin`, whose Windows SDK downloads are not
+supported on Windows hosts. The Windows checks compile, lint, and build only;
+Windows CI remains responsible for the native test suite.
+
+On Windows, run the native checks directly:
+
+```powershell
+cargo fmt --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all-targets --all-features
+cargo build --all-targets --all-features
 ```
 
 ## Future Plans

@@ -5,11 +5,11 @@
 
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fmt;
 use std::path::Path;
 use std::sync::OnceLock;
-use std::{fmt, fs};
 
-use crate::platform::{self, LongFormatFileType};
+use crate::platform::LongFormatFileType;
 
 /// Icon glyphs used for known file and directory categories.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -18,6 +18,7 @@ pub enum Icon {
     // list as we decode more file types.
     Folder = '\u{f07c}' as isize,
     Symlink = '\u{f1177}' as isize,
+    Junction = '\u{f0a0}' as isize,
     GenericFile = '\u{f15b}' as isize,
     SocketFile = '\u{f0318}' as isize,
     PipeFile = '\u{f07e5}' as isize,
@@ -279,18 +280,18 @@ fn get_filename_icon(file_name: &str) -> Option<Icon> {
     file_name_icons().get(file_name).cloned()
 }
 
-/// Select an icon for a filesystem entry from metadata and path name.
-pub fn get_item_icon(metadata: &fs::Metadata, file_path: &Path) -> Icon {
+/// Select an icon for a filesystem entry from its type and path name.
+pub(crate) fn get_item_icon(
+    file_type: LongFormatFileType,
+    file_path: &Path,
+) -> Icon {
     // Work from the final path segment and tolerate non-UTF-8 names.
     let file_name = file_path
         .file_name()
         .map(|name| name.to_string_lossy())
         .unwrap_or_default();
 
-    icon_for_file_type(
-        platform::metadata_file_type(metadata),
-        file_name.as_ref(),
-    )
+    icon_for_file_type(file_type, file_name.as_ref())
 }
 
 pub(crate) fn icon_for_file_type(
@@ -299,11 +300,14 @@ pub(crate) fn icon_for_file_type(
 ) -> Icon {
     match file_type {
         LongFormatFileType::Directory => get_folder_icon(file_name),
-        LongFormatFileType::Symlink => Icon::Symlink,
-        LongFormatFileType::Regular | LongFormatFileType::Unknown => {
-            get_filename_icon(file_name)
-                .unwrap_or_else(|| get_file_icon(file_name))
-        }
+        LongFormatFileType::Symlink
+        | LongFormatFileType::SymlinkFile
+        | LongFormatFileType::SymlinkDirectory => Icon::Symlink,
+        LongFormatFileType::Junction => Icon::Junction,
+        LongFormatFileType::Regular
+        | LongFormatFileType::ReparsePoint
+        | LongFormatFileType::Unknown => get_filename_icon(file_name)
+            .unwrap_or_else(|| get_file_icon(file_name)),
         LongFormatFileType::Socket => Icon::SocketFile,
         LongFormatFileType::Fifo => Icon::PipeFile,
         LongFormatFileType::CharDevice => Icon::CharDeviceFile,

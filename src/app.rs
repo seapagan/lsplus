@@ -10,13 +10,15 @@ use std::path::{Path, PathBuf};
 
 use crate::Params;
 use crate::cli;
+use crate::platform;
 use crate::settings;
 use crate::structs::FileInfo;
 use crate::utils;
 use crate::utils::file::{
     collect_file_info, create_file_info,
     create_file_info_from_metadata_with_gitignore,
-    create_file_info_with_gitignore, format_path_error, sanitize_for_terminal,
+    create_file_info_with_gitignore, format_path_error,
+    preserve_synthetic_dot_name, sanitize_for_terminal,
     sanitize_path_for_terminal as display_path,
 };
 use crate::utils::gitignore::GitignoreCache;
@@ -81,6 +83,7 @@ pub fn run_with_flags_and_config(
     config: &Params,
 ) -> io::Result<()> {
     let params = Params::merge(&args, config);
+    platform::validate_params(&params)?;
     if params.recursive && params.tree {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
@@ -624,19 +627,21 @@ fn collect_recursive_directory(
                 continue;
             }
         };
+        let classification = platform::classify_entry(&child_path, &metadata);
 
         if name_filter.is_none_or(|pattern| pattern.matches(&child_name)) {
-            entries.push(create_file_info_from_metadata_with_gitignore(
+            let mut info = create_file_info_from_metadata_with_gitignore(
                 &child_path,
                 &metadata,
                 params,
                 &mut gitignore_cache,
-            ));
+            );
+            preserve_synthetic_dot_name(&mut info, &child_name);
+            entries.push(info);
         }
 
         if is_traversable_child_name(&child_name)
-            && metadata.is_dir()
-            && !metadata.is_symlink()
+            && classification.may_recurse
             && !should_prune_directory(&child_path, params)
         {
             children.push(child_path);
@@ -777,13 +782,11 @@ fn is_traversable_child_name(name: &str) -> bool {
 /// This follows symlinks so a direct symlink-to-directory operand behaves like
 /// `ls`: it gets its own directory listing.
 fn is_display_directory(path: &Path) -> bool {
-    match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.is_symlink() => fs::metadata(path)
-            .map(|metadata| metadata.is_dir())
-            .unwrap_or(false),
-        Ok(metadata) => metadata.is_dir(),
-        Err(_) => false,
-    }
+    fs::symlink_metadata(path)
+        .map(|metadata| {
+            platform::classify_entry(path, &metadata).display_as_directory
+        })
+        .unwrap_or(false)
 }
 
 /// Return whether traversal may descend into a discovered child directory.
@@ -793,7 +796,7 @@ fn is_display_directory(path: &Path) -> bool {
 /// because that can loop back into an ancestor.
 fn is_recursable_directory(path: &Path) -> bool {
     fs::symlink_metadata(path)
-        .map(|metadata| metadata.is_dir() && !metadata.is_symlink())
+        .map(|metadata| platform::classify_entry(path, &metadata).may_recurse)
         .unwrap_or(false)
 }
 

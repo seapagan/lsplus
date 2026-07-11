@@ -1,9 +1,15 @@
+use crate::platform::normalize_path;
 use crate::utils::gitignore::{
     GitignoreCache, collect_gitignore_files, find_git_paths_parts,
     matcher_ignores_path, parse_commondir, parse_gitdir_file,
 };
 use std::fs;
+use std::path::{Path, PathBuf};
 use tempfile::tempdir;
+
+fn canonical_test_path(path: &Path) -> PathBuf {
+    normalize_path(fs::canonicalize(path).unwrap())
+}
 
 #[test]
 fn test_gitignore_cache_matches_parent_and_child_rules() {
@@ -109,7 +115,7 @@ fn test_find_git_paths_resolves_linked_worktree_common_dir() {
         find_git_paths_parts(&repo_root).unwrap();
 
     assert_eq!(root, repo_root);
-    assert_eq!(resolved_common_dir, common_dir);
+    assert_eq!(resolved_common_dir, canonical_test_path(&common_dir));
 }
 
 #[test]
@@ -148,7 +154,10 @@ fn test_parse_gitdir_file_handles_relative_paths() {
     fs::create_dir_all(&git_dir).unwrap();
     fs::write(repo_root.join(".git"), "gitdir: ../gitdir\n").unwrap();
 
-    assert_eq!(parse_gitdir_file(&repo_root.join(".git")), Some(git_dir));
+    assert_eq!(
+        parse_gitdir_file(&repo_root.join(".git")),
+        Some(canonical_test_path(&git_dir))
+    );
 }
 
 #[test]
@@ -177,7 +186,10 @@ fn test_parse_commondir_handles_absolute_paths() {
     )
     .unwrap();
 
-    assert_eq!(parse_commondir(&git_dir), Some(common_dir));
+    assert_eq!(
+        parse_commondir(&git_dir),
+        Some(canonical_test_path(&common_dir))
+    );
 }
 
 #[test]
@@ -238,7 +250,10 @@ fn test_find_git_paths_uses_git_dir_when_commondir_is_missing() {
     )
     .unwrap();
 
-    assert_eq!(find_git_paths_parts(&repo_root), Some((repo_root, git_dir)));
+    assert_eq!(
+        find_git_paths_parts(&repo_root),
+        Some((repo_root, canonical_test_path(&git_dir)))
+    );
 }
 
 #[test]
