@@ -249,7 +249,14 @@ This replaces any existing `AutoRun` command, so check it first:
 reg query "HKCU\Software\Microsoft\Command Processor" /v AutoRun
 ```
 
-Combine the commands if an `AutoRun` value already exists.
+If an `AutoRun` value already exists, copy only the command text after its type
+(`REG_EXPAND_SZ` or `REG_SZ`) from the `reg query` output, not the full output.
+Escape each `"` in that command as `\"`, then replace `existing command` below
+to chain the commands with `&`:
+
+```bat
+reg add "HKCU\Software\Microsoft\Command Processor" /v AutoRun /t REG_EXPAND_SZ /d "doskey /macrofile=\"%USERPROFILE%\doskey.macros\" & existing command" /f
+```
 
 Set default options in the configuration file.
 
