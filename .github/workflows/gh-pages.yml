@@ -8,6 +8,8 @@ on:
   #     - 'docs/**' # only need this to run if changes to the actual docs
   workflow_dispatch:
 
+permissions: {}
+
 concurrency:
   group: github-pages
   cancel-in-progress: false
