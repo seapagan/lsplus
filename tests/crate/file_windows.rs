@@ -189,29 +189,28 @@ fn test_windows_reparse_queries_use_extended_paths() {
 
     assert_eq!(
         extended_find_path(Path::new(r"C:\work\entry")),
-        to_wide(r"\\?\C:\work\entry")
+        Some(to_wide(r"\\?\C:\work\entry"))
     );
     assert_eq!(
         extended_find_path(Path::new(r"\\server\share\entry")),
-        to_wide(r"\\?\UNC\server\share\entry")
+        Some(to_wide(r"\\?\UNC\server\share\entry"))
     );
     assert_eq!(
         extended_find_path(Path::new(r"\\?\C:\work\entry")),
-        to_wide(r"\\?\C:\work\entry")
+        Some(to_wide(r"\\?\C:\work\entry"))
     );
     assert_eq!(
         extended_find_path(Path::new(r"\??\C:\work\entry")),
-        to_wide(r"\\?\C:\work\entry")
+        Some(to_wide(r"\\?\C:\work\entry"))
     );
 }
 
 #[test]
-fn test_windows_extended_path_keeps_relative_path_without_current_directory() {
-    let path =
-        extended_find_path_with_current_dir(Path::new("relative"), None);
+fn test_windows_extended_path_rejects_relative_path_without_current_directory()
+{
     assert_eq!(
-        String::from_utf16(&path[..path.len() - 1]).unwrap(),
-        r"\\?\relative"
+        extended_find_path_with_current_dir(Path::new("relative"), None),
+        None
     );
 }
 

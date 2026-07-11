@@ -87,7 +87,9 @@ pub(crate) fn collect_visible_file_names(
             Ok(entry) => {
                 let visible = match &entry.classification_result {
                     Ok(classification) => !classification.hidden,
-                    Err(_) => true,
+                    Err(_) => {
+                        !platform::entry_name_is_hidden(&entry.file_name)
+                    }
                 };
                 if params.show_all || params.almost_all || visible {
                     visible_entries.push(entry);
@@ -183,7 +185,13 @@ pub(crate) fn append_file_info_for_names(
             params,
             gitignore_cache,
         ) {
-            Ok(info) => file_info.push(info),
+            Ok(mut info) => {
+                if matches!(file_name.as_str(), "." | "..") {
+                    info.short_name.clone_from(file_name);
+                    info.display_name.clone_from(file_name);
+                }
+                file_info.push(info);
+            }
             Err(err) => report_path_error(&full_path, &err),
         }
     }
@@ -219,7 +227,7 @@ pub(crate) fn create_file_info_from_metadata_with_gitignore(
     let item_icon = if params.no_icons {
         None
     } else {
-        Some(utils::icons::get_item_icon(metadata, path))
+        Some(utils::icons::get_item_icon(classification.file_type, path))
     };
     let details = platform::file_details(path, metadata, classification);
 

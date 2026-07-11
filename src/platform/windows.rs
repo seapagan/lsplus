@@ -84,6 +84,10 @@ pub(crate) fn metadata_file_type(
     )
 }
 
+pub(crate) fn entry_name_is_hidden(_name: &OsStr) -> bool {
+    false
+}
+
 /// Classify a non-reparse entry from its link-object metadata state.
 pub(crate) fn non_reparse_file_type(
     is_directory: bool,
@@ -236,7 +240,7 @@ pub(crate) fn long_format_layout(
 }
 
 fn reparse_tag(path: &Path) -> Option<u32> {
-    let wide = extended_find_path(path);
+    let wide = extended_find_path(path)?;
     let mut data: WIN32_FIND_DATAW = unsafe { std::mem::zeroed() };
     let handle = unsafe { FindFirstFileW(wide.as_ptr(), &mut data) };
     if handle == INVALID_HANDLE_VALUE {
@@ -247,7 +251,7 @@ fn reparse_tag(path: &Path) -> Option<u32> {
 }
 
 /// Return an extended-length absolute path for Win32 file queries.
-pub(crate) fn extended_find_path(path: &Path) -> Vec<u16> {
+pub(crate) fn extended_find_path(path: &Path) -> Option<Vec<u16>> {
     let current_directory = std::env::current_dir().ok();
     extended_find_path_with_current_dir(path, current_directory.as_deref())
 }
@@ -256,7 +260,7 @@ pub(crate) fn extended_find_path(path: &Path) -> Vec<u16> {
 pub(crate) fn extended_find_path_with_current_dir(
     path: &Path,
     current_directory: Option<&Path>,
-) -> Vec<u16> {
+) -> Option<Vec<u16>> {
     const EXTENDED_PREFIX: &[u16] = &[92, 92, 63, 92];
     const NT_PREFIX: &[u16] = &[92, 63, 63, 92];
     const UNC_PREFIX: &[u16] = &[92, 92];
@@ -264,21 +268,19 @@ pub(crate) fn extended_find_path_with_current_dir(
 
     let wide = path.as_os_str().encode_wide().collect::<Vec<_>>();
     if wide.starts_with(EXTENDED_PREFIX) {
-        return wide.into_iter().chain(std::iter::once(0)).collect();
+        return Some(wide.into_iter().chain(std::iter::once(0)).collect());
     }
     if wide.starts_with(NT_PREFIX) {
         let mut converted = EXTENDED_PREFIX.to_vec();
         converted.extend_from_slice(&wide[NT_PREFIX.len()..]);
         converted.push(0);
-        return converted;
+        return Some(converted);
     }
 
     let path = if path.is_absolute() {
         path.to_path_buf()
     } else {
-        current_directory
-            .map(|directory| directory.join(path))
-            .unwrap_or_else(|| path.to_path_buf())
+        current_directory?.join(path)
     };
     let wide = path.as_os_str().encode_wide().collect::<Vec<_>>();
 
@@ -294,7 +296,7 @@ pub(crate) fn extended_find_path_with_current_dir(
     };
     extended.extend_from_slice(remainder);
     extended.push(0);
-    extended
+    Some(extended)
 }
 
 fn compare_wide(left: &[u16], right: &[u16], ignore_case: bool) -> Ordering {

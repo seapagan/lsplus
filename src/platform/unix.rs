@@ -70,6 +70,10 @@ pub(crate) fn classify_entry(
     }
 }
 
+pub(crate) fn entry_name_is_hidden(name: &OsStr) -> bool {
+    name.as_bytes().starts_with(b".")
+}
+
 pub(crate) fn metadata_file_type(
     _path: &Path,
     metadata: &fs::Metadata,

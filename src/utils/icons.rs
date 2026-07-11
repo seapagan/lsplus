@@ -5,11 +5,11 @@
 
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fmt;
 use std::path::Path;
 use std::sync::OnceLock;
-use std::{fmt, fs};
 
-use crate::platform::{self, LongFormatFileType};
+use crate::platform::LongFormatFileType;
 
 /// Icon glyphs used for known file and directory categories.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -280,18 +280,18 @@ fn get_filename_icon(file_name: &str) -> Option<Icon> {
     file_name_icons().get(file_name).cloned()
 }
 
-/// Select an icon for a filesystem entry from metadata and path name.
-pub fn get_item_icon(metadata: &fs::Metadata, file_path: &Path) -> Icon {
+/// Select an icon for a filesystem entry from its type and path name.
+pub(crate) fn get_item_icon(
+    file_type: LongFormatFileType,
+    file_path: &Path,
+) -> Icon {
     // Work from the final path segment and tolerate non-UTF-8 names.
     let file_name = file_path
         .file_name()
         .map(|name| name.to_string_lossy())
         .unwrap_or_default();
 
-    icon_for_file_type(
-        platform::metadata_file_type(file_path, metadata),
-        file_name.as_ref(),
-    )
+    icon_for_file_type(file_type, file_name.as_ref())
 }
 
 pub(crate) fn icon_for_file_type(
