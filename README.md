@@ -326,7 +326,7 @@ ll=lsp -l $*
 Then configure Command Prompt to load the file automatically:
 
 ```bat
-reg add "HKCU\Software\Microsoft\Command Processor" /v AutoRun /t REG_EXPAND_SZ /d "doskey /macrofile=\"%USERPROFILE%\doskey.macros\"" /f
+reg add "HKCU\Software\Microsoft\Command Processor" /v AutoRun /t REG_EXPAND_SZ /d "doskey /macrofile=\"^%USERPROFILE^%\doskey.macros\"" /f
 ```
 
 This replaces any existing `AutoRun` command, so check it first:
@@ -341,7 +341,7 @@ Escape each `"` in that command as `\"`, then replace `existing command` below
 to chain the commands with `&`:
 
 ```bat
-reg add "HKCU\Software\Microsoft\Command Processor" /v AutoRun /t REG_EXPAND_SZ /d "doskey /macrofile=\"%USERPROFILE%\doskey.macros\" & existing command" /f
+reg add "HKCU\Software\Microsoft\Command Processor" /v AutoRun /t REG_EXPAND_SZ /d "doskey /macrofile=\"^%USERPROFILE^%\doskey.macros\" & existing command" /f
 ```
 
 ## Development
