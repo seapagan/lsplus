@@ -9,6 +9,10 @@ on:
     - cron: "0 6 * * 1"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions: {}
 
 env:
@@ -16,6 +20,7 @@ env:
 
 jobs:
   unix:
+    name: Unix tests
     runs-on: ubuntu-latest
 
     steps:
@@ -45,6 +50,7 @@ jobs:
         run: cargo test --all-targets --all-features
 
   windows:
+    name: Windows tests
     runs-on: windows-latest
 
     steps:
@@ -74,6 +80,7 @@ jobs:
         run: cargo test --all-targets --all-features
 
   audit:
+    name: Dependency audit
     runs-on: ubuntu-latest
 
     steps:
@@ -101,6 +108,7 @@ jobs:
         run: cargo make audit
 
   deny:
+    name: Dependency policy
     runs-on: ubuntu-latest
 
     steps:

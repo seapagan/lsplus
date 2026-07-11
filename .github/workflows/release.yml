@@ -5,6 +5,10 @@ on:
     tags:
       - "*"
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     name: Build ${{ matrix.binary_target }}
@@ -65,11 +69,16 @@ jobs:
           echo 'export OPENSSL_DIR=$(brew --prefix openssl@3)' >> $GITHUB_ENV
 
       - name: Install target
-        run: rustup target add ${{ matrix.binary_target }}
+        shell: bash
+        env:
+          BINARY_TARGET: ${{ matrix.binary_target }}
+        run: rustup target add "$BINARY_TARGET"
 
       - name: Build binary
-        run: |
-          cargo build --release --target ${{ matrix.binary_target }}
+        shell: bash
+        env:
+          BINARY_TARGET: ${{ matrix.binary_target }}
+        run: cargo build --release --target "$BINARY_TARGET"
 
       - name: Set archive name
         id: archive

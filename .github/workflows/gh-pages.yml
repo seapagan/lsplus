@@ -8,11 +8,16 @@ on:
   #     - 'docs/**' # only need this to run if changes to the actual docs
   workflow_dispatch:
 
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
 jobs:
   build:
+    name: Build and deploy docs
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # Required to publish the gh-pages branch.
 
     steps:
       - name: Monitor GitHub token permissions

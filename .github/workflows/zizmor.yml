@@ -7,13 +7,18 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions: {}
 
 jobs:
   zizmor:
+    name: Run zizmor security analysis
     runs-on: ubuntu-latest
     permissions:
-      security-events: write
+      security-events: write # Required to upload SARIF results.
 
     steps:
       - name: Monitor GitHub token permissions
