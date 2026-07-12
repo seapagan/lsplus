@@ -40,10 +40,10 @@ fn long_column_header(
         | LongColumn::UnixOctalWithType => "Permissions",
         LongColumn::UnixOctal => "Octal",
         LongColumn::Type => "Type",
-        LongColumn::Attributes if attributes == AttributeDisplay::Minimal => {
-            "Attr"
-        }
-        LongColumn::Attributes => "Attributes",
+        LongColumn::Attributes => match attributes {
+            AttributeDisplay::Long | AttributeDisplay::Short => "Attributes",
+            AttributeDisplay::Minimal => "Attr",
+        },
         LongColumn::Links => "Links",
         LongColumn::User => "User",
         LongColumn::Group => "Group",
