@@ -6,10 +6,29 @@ use crate::render_tests::{
 };
 use crate::utils::format::mode_to_rwx;
 use crate::utils::icons::Icon;
-use crate::utils::render::build_long_format_table;
-use crate::{Params, structs::PermissionDisplay};
+use crate::utils::render::{
+    build_long_format_table, render_short_format_lines,
+};
+use crate::{NameStyle, Params, structs::PermissionDisplay};
 use std::time::{Duration, SystemTime};
 use strip_ansi_escapes::strip_str;
+
+#[test]
+fn test_render_short_format_lines_preserves_synthetic_dot_names() {
+    with_color_output_enabled(|| {
+        let mut dot = test_file_info(".", None, 0, SystemTime::now());
+        dot.name_style = NameStyle::Directory;
+        let mut dotdot = test_file_info("..", None, 0, SystemTime::now());
+        dotdot.name_style = NameStyle::Directory;
+
+        let rendered = render_short_format_lines(&[dot, dotdot], 80);
+
+        assert_eq!(rendered.len(), 1);
+        assert_eq!(strip_str(&rendered[0]), " .   ..  ");
+        assert!(rendered[0].contains("\u{1b}[34m.  \u{1b}[0m"));
+        assert!(rendered[0].contains("\u{1b}[34m..  \u{1b}[0m"));
+    });
+}
 
 #[test]
 fn test_build_long_format_table_adds_header_before_rows() {
