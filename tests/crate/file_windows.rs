@@ -7,7 +7,7 @@ use crate::platform::{
     long_format_layout, non_reparse_file_type, normalize_path, parse_pathext,
     reparse_file_type, validate_params,
 };
-use crate::structs::PermissionDisplay;
+use crate::structs::{AttributeDisplay, PermissionDisplay};
 use crate::utils::file::{
     DirectoryEntryData, collect_visible_file_names,
     format_symlink_display_name_with_dim, slash_indicator_suffix,
@@ -79,18 +79,95 @@ fn test_windows_permissions_validate_only_for_long_format() {
 
 #[test]
 fn test_windows_attribute_text_is_readable() {
-    assert_eq!(attribute_text(0), "Normal");
-    assert!(attribute_text(0x0000_0003).contains("ReadOnly, Hidden"));
-    assert!(attribute_text(0x8000_0000).contains("Unknown(0x80000000)"));
+    assert_eq!(attribute_text(0, AttributeDisplay::Long), "Normal");
+    assert_eq!(
+        attribute_text(0x0000_0003, AttributeDisplay::Long),
+        "ReadOnly, Hidden"
+    );
+    assert_eq!(
+        attribute_text(0x0000_2020, AttributeDisplay::Long),
+        "Archive, NotIndexed"
+    );
+    assert_eq!(
+        attribute_text(0x8000_0000, AttributeDisplay::Long),
+        "Unknown(0x80000000)"
+    );
 }
 
 #[test]
 fn test_windows_attribute_text_handles_recall_and_structural_bits() {
     assert_eq!(
-        attribute_text(0x0004_0000 | 0x0040_0000),
+        attribute_text(0x0004_0000 | 0x0040_0000, AttributeDisplay::Long,),
         "EA, RecallOnDataAccess"
     );
-    assert_eq!(attribute_text(0x0000_04D0), "Normal");
+    assert_eq!(
+        attribute_text(0x0000_04D0, AttributeDisplay::Long),
+        "Normal"
+    );
+}
+
+#[test]
+fn test_windows_short_attribute_text_maps_every_position() {
+    let cases = [
+        (0x0000_0001, 0, 'R'),
+        (0x0000_0002, 1, 'H'),
+        (0x0000_0004, 2, 'S'),
+        (0x0000_0020, 3, 'A'),
+        (0x0000_0100, 4, 'T'),
+        (0x0000_0200, 5, 'P'),
+        (0x0000_0800, 6, 'C'),
+        (0x0000_1000, 7, 'O'),
+        (0x0000_2000, 8, 'N'),
+        (0x0000_4000, 9, 'E'),
+        (0x0000_8000, 10, 'I'),
+        (0x0001_0000, 11, 'V'),
+        (0x0002_0000, 12, 'B'),
+        (0x0004_0000, 13, 'X'),
+        (0x0008_0000, 14, 'Q'),
+        (0x0010_0000, 15, 'G'),
+        (0x0040_0000, 16, 'F'),
+    ];
+
+    for (attribute, position, letter) in cases {
+        let mut expected = ['-'; 17];
+        expected[position] = letter;
+        assert_eq!(
+            attribute_text(attribute, AttributeDisplay::Short),
+            expected.iter().collect::<String>()
+        );
+    }
+}
+
+#[test]
+fn test_windows_short_attribute_text_combines_and_preserves_unknown_bits() {
+    assert_eq!(
+        attribute_text(0, AttributeDisplay::Short),
+        "-----------------"
+    );
+    assert_eq!(
+        attribute_text(0x0000_2020, AttributeDisplay::Short),
+        "---A----N--------"
+    );
+    assert_eq!(
+        attribute_text(0x8000_0000, AttributeDisplay::Short),
+        "----------------- Unknown(0x80000000)"
+    );
+}
+
+#[test]
+fn test_windows_short_attribute_text_ignores_structural_bits() {
+    assert_eq!(
+        attribute_text(0x0000_04D0, AttributeDisplay::Short),
+        "-----------------"
+    );
+    assert_eq!(
+        attribute_text(0x0004_0000, AttributeDisplay::Short),
+        "-------------X---"
+    );
+    assert_eq!(
+        attribute_text(0x0040_0000, AttributeDisplay::Short),
+        "----------------F"
+    );
 }
 
 #[test]

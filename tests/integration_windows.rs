@@ -126,6 +126,82 @@ fn test_windows_long_permissions_octal_is_rejected_only_in_long_mode() {
 }
 
 #[test]
+fn test_windows_long_short_attributes_uses_compact_field() {
+    let temp_dir = tempdir().unwrap();
+    let file = temp_dir.path().join("sample.txt");
+    fs::write(&file, "sample").unwrap();
+
+    let mut command = Command::cargo_bin("lsp").unwrap();
+    let output = command
+        .arg("--long")
+        .arg("--attributes")
+        .arg("short")
+        .arg("--no-icons")
+        .arg("--no-color")
+        .arg(&file)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let compact = stdout
+        .split_whitespace()
+        .find(|field| {
+            field.chars().count() == 17
+                && field
+                    .chars()
+                    .all(|character| "RHSATPCONEIVBXQGF-".contains(character))
+        })
+        .unwrap();
+
+    assert_eq!(compact.chars().count(), 17);
+    assert!(stdout.contains("sample.txt"));
+}
+
+#[test]
+fn test_windows_short_listing_ignores_attribute_display() {
+    let temp_dir = tempdir().unwrap();
+    let file = temp_dir.path().join("sample.txt");
+    fs::write(&file, "sample").unwrap();
+
+    let mut default = Command::cargo_bin("lsp").unwrap();
+    default.arg("--no-icons").arg("--no-color").arg(&file);
+    let default_output = default.output().unwrap();
+
+    let mut compact = Command::cargo_bin("lsp").unwrap();
+    compact
+        .arg("--attributes")
+        .arg("short")
+        .arg("--no-icons")
+        .arg("--no-color")
+        .arg(&file);
+    let compact_output = compact.output().unwrap();
+
+    assert_eq!(compact_output.stdout, default_output.stdout);
+}
+
+#[test]
+fn test_windows_permissions_none_omits_compact_attributes() {
+    let temp_dir = tempdir().unwrap();
+    let file = temp_dir.path().join("sample.txt");
+    fs::write(&file, "sample").unwrap();
+
+    let mut command = Command::cargo_bin("lsp").unwrap();
+    command
+        .arg("--long")
+        .arg("--header")
+        .arg("--permissions")
+        .arg("none")
+        .arg("--attributes")
+        .arg("short")
+        .arg("--no-icons")
+        .arg("--no-color")
+        .arg(&file)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Attributes").not());
+}
+
+#[test]
 fn test_windows_junction_listing_and_recursion_behavior() {
     let temp_dir = tempdir().unwrap();
     let target = temp_dir.path().join("target");

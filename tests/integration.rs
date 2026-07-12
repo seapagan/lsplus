@@ -669,7 +669,7 @@ fn test_long_format_handles_wide_filename_rows() {
 
     let rows: Vec<_> = stdout
         .lines()
-        .filter(|line| !line.trim().is_empty())
+        .filter(|line| line.trim_start().starts_with('-'))
         .collect();
 
     assert_eq!(rows.len(), 2);

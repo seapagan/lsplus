@@ -1,7 +1,10 @@
 use config::Config;
 use lsplus::cli::Flags;
 use lsplus::utils::format::SizeScale;
-use lsplus::{IndicatorStyle, Params, structs::PermissionDisplay};
+use lsplus::{
+    IndicatorStyle, Params,
+    structs::{AttributeDisplay, PermissionDisplay},
+};
 use std::fs;
 use tempfile::tempdir;
 
@@ -26,6 +29,7 @@ fn test_default_params() {
     assert!(!params.no_color);
     assert!(params.permission_colors);
     assert_eq!(params.permissions, PermissionDisplay::Symbolic);
+    assert_eq!(params.attributes, AttributeDisplay::Long);
     assert!(params.time_gradient);
     assert!(params.size_colors);
     assert!(!params.gitignore);
@@ -100,12 +104,31 @@ fn test_config_conversion() {
             no_color: true,
             permission_colors: false,
             permissions: PermissionDisplay::Octal,
+            attributes: AttributeDisplay::Long,
             time_gradient: false,
             size_colors: false,
             gitignore: true,
             fuzzy_time: true,
         }
     );
+}
+
+#[test]
+fn test_config_conversion_accepts_attribute_display_modes() {
+    for (value, expected) in [
+        ("long", AttributeDisplay::Long),
+        ("short", AttributeDisplay::Short),
+    ] {
+        let config = Config::builder()
+            .set_override("attributes", value)
+            .unwrap()
+            .build()
+            .unwrap();
+
+        let params: Params = config.into();
+
+        assert_eq!(params.attributes, expected);
+    }
 }
 
 #[test]
@@ -191,6 +214,7 @@ fn test_params_merge_prefers_true_from_either_source() {
         no_color: true,
         permission_colors: true,
         permissions: PermissionDisplay::Octal,
+        attributes: AttributeDisplay::Long,
         time_gradient: false,
         size_colors: true,
         gitignore: true,
@@ -217,6 +241,7 @@ fn test_params_merge_prefers_true_from_either_source() {
         no_color: false,
         no_permission_colors: true,
         permissions: Some(PermissionDisplay::Both),
+        attributes: None,
         no_time_gradient: false,
         no_size_colors: true,
         gitignore: false,
@@ -282,6 +307,7 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
         no_color: false,
         no_permission_colors: false,
         permissions: None,
+        attributes: None,
         no_time_gradient: false,
         no_size_colors: false,
         gitignore: false,
@@ -315,6 +341,7 @@ fn test_params_merge_header_prefers_true_from_either_source() {
         no_color: false,
         no_permission_colors: false,
         permissions: None,
+        attributes: None,
         no_time_gradient: false,
         no_size_colors: false,
         gitignore: false,
@@ -361,6 +388,7 @@ fn test_params_merge_uses_config_permissions_until_cli_overrides() {
         no_color: false,
         no_permission_colors: false,
         permissions: None,
+        attributes: None,
         no_time_gradient: false,
         no_size_colors: false,
         gitignore: false,
@@ -378,6 +406,27 @@ fn test_params_merge_uses_config_permissions_until_cli_overrides() {
     let params = Params::merge(&flags, &config);
 
     assert_eq!(params.permissions, PermissionDisplay::None);
+}
+
+#[test]
+fn test_params_merge_uses_config_attributes_until_cli_overrides() {
+    let config = Params {
+        attributes: AttributeDisplay::Short,
+        ..Params::default()
+    };
+    let flags = Flags::parse_from(["lsplus"]);
+
+    assert_eq!(
+        Params::merge(&flags, &config).attributes,
+        AttributeDisplay::Short
+    );
+
+    let flags = Flags::parse_from(["lsplus", "--attributes", "long"]);
+
+    assert_eq!(
+        Params::merge(&flags, &config).attributes,
+        AttributeDisplay::Long
+    );
 }
 
 #[test]
@@ -402,6 +451,7 @@ fn test_params_merge_si_enables_decimal_human_readable_output() {
         no_color: false,
         no_permission_colors: false,
         permissions: None,
+        attributes: None,
         no_time_gradient: false,
         no_size_colors: false,
         gitignore: false,
@@ -442,6 +492,7 @@ fn test_params_merge_config_si_overrides_config_human_readable() {
         no_color: false,
         no_permission_colors: false,
         permissions: None,
+        attributes: None,
         no_time_gradient: false,
         no_size_colors: false,
         gitignore: false,
@@ -481,6 +532,7 @@ fn test_params_merge_cli_prune_dirs_append_config_prune_dirs() {
         no_color: false,
         no_permission_colors: false,
         permissions: None,
+        attributes: None,
         no_time_gradient: false,
         no_size_colors: false,
         gitignore: false,
@@ -527,6 +579,7 @@ fn test_params_merge_deduplicates_prune_preset() {
         no_color: false,
         no_permission_colors: false,
         permissions: None,
+        attributes: None,
         no_time_gradient: false,
         no_size_colors: false,
         gitignore: false,

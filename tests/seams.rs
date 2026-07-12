@@ -56,6 +56,7 @@ fn test_public_run_with_flags_accepts_missing_patterns() {
         no_color: false,
         no_permission_colors: false,
         permissions: None,
+        attributes: None,
         no_time_gradient: false,
         no_size_colors: false,
         gitignore: false,

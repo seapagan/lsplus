@@ -117,6 +117,29 @@ fn test_long_format_permission_display_modes() {
 }
 
 #[test]
+fn test_unix_ignores_short_attribute_display() {
+    let home_dir = tempdir().unwrap();
+    let temp_dir = tempdir().unwrap();
+    let file_path = temp_dir.path().join("sample.txt");
+    fs::write(&file_path, "sample").unwrap();
+
+    let mut default = command_with_home(home_dir.path());
+    default.arg("--long").arg("--no-icons").arg(&file_path);
+    let default_output = run_and_capture_raw(&mut default);
+
+    let mut compact = command_with_home(home_dir.path());
+    compact
+        .arg("--long")
+        .arg("--attributes")
+        .arg("short")
+        .arg("--no-icons")
+        .arg(&file_path);
+    let compact_output = run_and_capture_raw(&mut compact);
+
+    assert_eq!(compact_output, default_output);
+}
+
+#[test]
 fn test_recursive_continues_after_unreadable_directory_operand() {
     if Uid::effective().is_root() {
         return;

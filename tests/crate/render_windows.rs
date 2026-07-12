@@ -1,5 +1,5 @@
 use crate::common_tests::ColorModeGuard;
-use crate::structs::PermissionDisplay;
+use crate::structs::{AttributeDisplay, PermissionDisplay};
 use crate::utils::icons::Icon;
 use crate::utils::render::build_long_format_table;
 use crate::{FileInfo, NameStyle, Params};
@@ -10,7 +10,7 @@ use std::time::SystemTime;
 fn windows_file_info() -> FileInfo {
     FileInfo {
         file_type: String::from("j"),
-        mode: String::from("Hidden, RecallOnOpen"),
+        mode: String::from("Hidden, EA"),
         mode_bits: 0,
         nlink: 0,
         user: String::new(),
@@ -50,7 +50,7 @@ fn test_windows_long_table_uses_native_columns() {
     assert!(rendered.contains("Size"));
     assert!(rendered.contains("Date Modified"));
     assert!(rendered.contains("Name"));
-    assert!(rendered.contains("Hidden, RecallOnOpen"));
+    assert!(rendered.contains("Hidden, EA"));
     assert!(rendered.contains("junction"));
     assert!(rendered.contains(&Icon::Junction.to_string()));
     assert!(!rendered.contains("Permissions"));
@@ -67,6 +67,7 @@ fn test_windows_long_table_omits_disabled_columns() {
         header: true,
         no_icons: true,
         permissions: PermissionDisplay::None,
+        attributes: AttributeDisplay::Short,
         ..Params::default()
     };
 
@@ -78,7 +79,40 @@ fn test_windows_long_table_omits_disabled_columns() {
     assert!(rendered.contains("Date Modified"));
     assert!(rendered.contains("Name"));
     assert!(!rendered.contains("Attributes"));
+    assert!(!rendered.contains("Hidden, EA"));
     assert!(!rendered.contains(&Icon::Junction.to_string()));
+}
+
+#[test]
+fn test_windows_compact_attributes_align_with_headers() {
+    let _guard = ColorModeGuard::set(ColorMode::Never);
+    let mut first = windows_file_info();
+    first.mode = String::from("---A----N--------");
+    first.display_name = String::from("first");
+    let mut second = windows_file_info();
+    second.mode = String::from("-----------------");
+    second.display_name = String::from("second");
+    let params = Params {
+        long_format: true,
+        header: true,
+        no_icons: true,
+        attributes: AttributeDisplay::Short,
+        ..Params::default()
+    };
+
+    let rendered =
+        build_long_format_table(&[first, second], &params).to_string();
+    let first_line = rendered
+        .lines()
+        .find(|line| line.contains("first"))
+        .unwrap();
+    let second_line = rendered
+        .lines()
+        .find(|line| line.contains("second"))
+        .unwrap();
+
+    assert!(rendered.contains("Attributes"));
+    assert_eq!(first_line.find("first"), second_line.find("second"));
 }
 
 #[test]
