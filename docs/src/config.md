@@ -9,8 +9,11 @@ Configure `lsplus` with a **`TOML`** file at:
 The configuration file is optional. `lsplus` uses default settings when the file
 does not exist.
 
+Set `LSP_CONFIG_FILE` to a non-empty path to use that file instead of the
+platform default. An unset or empty value keeps the normal platform path.
+
 `lsplus` also supports an `LSP_COMPAT_MODE` environment variable. When set, it
-overrides the `compat_mode` value from the config file.
+overrides the `compat_mode` value from the selected config file.
 
 ## Available Options
 

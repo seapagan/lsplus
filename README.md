@@ -282,6 +282,9 @@ Put options in the config file to apply them to each run instead of passing them
 on the command line. See the relevant section on the
 [website](https://seapagan.github.io/lsplus/config.html) for full details.
 
+Set `LSP_CONFIG_FILE` to use a specific config file instead of the platform
+default path. An unset or empty value keeps the normal platform default.
+
 ### Aliases
 
 The `lsp` command can be aliased to `ls` by adding the following line to your

@@ -116,6 +116,9 @@ piped, and redirected output is plain by default. You can also disable styled
 output explicitly with `--no-color`, `no_color = true` in the config file, or
 the `NO_COLOR` environment variable.
 
+Set `LSP_CONFIG_FILE` to a non-empty path to override the platform-default
+config file. An unset or empty value keeps the normal platform path.
+
 Long-format output shows symbolic permissions by default. Use
 `--permissions octal` to replace them with octal permission bits,
 `--permissions both` to add octal bits after the symbolic field, or
