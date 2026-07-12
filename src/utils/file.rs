@@ -237,7 +237,12 @@ pub(crate) fn create_file_info_from_metadata_with_gitignore(
     } else {
         Some(utils::icons::get_item_icon(classification.file_type, path))
     };
-    let details = platform::file_details(path, metadata, classification);
+    let details = platform::file_details(
+        path,
+        metadata,
+        classification,
+        params.attributes,
+    );
 
     let mut file_name = path
         .file_name()
