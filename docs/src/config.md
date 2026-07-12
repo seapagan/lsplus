@@ -234,6 +234,8 @@ The `X` position represents `EA`, including the aliased `RecallOnOpen` bit, and
 `F` represents `RecallOnDataAccess`. `permissions = "none"` omits the Windows
 attribute column regardless of this setting. The setting has no effect on
 short-format output and is accepted but ignored on Linux and macOS.
+See [Windows attribute characters](usage.md#windows-attribute-characters) for
+the complete short-field mapping.
 
 ### time_gradient
 

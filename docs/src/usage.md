@@ -132,6 +132,38 @@ On Windows, long format shows native file attributes for `symbolic` display.
 aliased `RecallOnOpen` bit, and `F` represents `RecallOnDataAccess`.
 `--attributes minimal` shows only the classic `RHSA` attributes and uses
 `Attr` as the column header.
+
+## Windows attribute characters
+
+In `short` and `minimal` modes, each position always represents the same
+attribute. A letter means that the attribute is set; `-` means that it is not
+set. Minimal mode uses the first four positions (`RHSA`) from the short field.
+
+| Character | Attribute | Meaning |
+|-----------|-----------|---------|
+| `R` | Read-only | The file should not normally be modified. |
+| `H` | Hidden | The file is hidden from ordinary directory listings. |
+| `S` | System | The file is used by the operating system. |
+| `A` | Archive | The file has changed since it was last backed up. |
+| `T` | Temporary | The file is intended for temporary storage. |
+| `P` | Sparse | The file uses sparse-file storage. |
+| `C` | Compressed | Filesystem compression is enabled. |
+| `O` | Offline | The file's contents are not immediately available. |
+| `N` | Not indexed | The file is excluded from content indexing. |
+| `E` | Encrypted | Filesystem encryption is enabled. |
+| `I` | Integrity stream | Integrity checking is enabled. |
+| `V` | Virtual | The file has the reserved virtual attribute. |
+| `B` | No scrub data | The file is excluded from integrity scrubbing. |
+| `X` | Extended attributes | The file contains extended attributes (`EA`). |
+| `Q` | Pinned | The file is kept locally available. |
+| `G` | Unpinned | The file is not kept locally available. |
+| `F` | Recall on data access | The contents may be recalled when accessed. |
+
+For example, `R--A-------------` means read-only and archive are set. The
+fixed positions make fields directly comparable even when attributes differ.
+In long mode, the `X` attribute is shown as `EA`. Unknown attribute bits are
+reported separately after the fixed field.
+
 `--permissions none` omits the column; `octal` and `both` remain unsupported
 with Windows long output.
 
