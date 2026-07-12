@@ -63,6 +63,12 @@ const KNOWN_ATTRIBUTES: &[(u32, &str, char)] = &[
         'F',
     ),
 ];
+const MINIMAL_ATTRIBUTES: &[(u32, char)] = &[
+    (FILE_ATTRIBUTE_READONLY, 'R'),
+    (FILE_ATTRIBUTE_HIDDEN, 'H'),
+    (FILE_ATTRIBUTE_SYSTEM, 'S'),
+    (FILE_ATTRIBUTE_ARCHIVE, 'A'),
+];
 const KNOWN_ATTRIBUTE_MASK: u32 = FILE_ATTRIBUTE_READONLY
     | FILE_ATTRIBUTE_HIDDEN
     | FILE_ATTRIBUTE_SYSTEM
@@ -394,6 +400,7 @@ pub(crate) fn attribute_text(
     match display {
         AttributeDisplay::Long => long_attribute_text(attributes),
         AttributeDisplay::Short => short_attribute_text(attributes),
+        AttributeDisplay::Minimal => minimal_attribute_text(attributes),
     }
 }
 
@@ -416,12 +423,24 @@ fn long_attribute_text(attributes: u32) -> String {
 }
 
 fn short_attribute_text(attributes: u32) -> String {
-    let mut value = KNOWN_ATTRIBUTES
+    let positions = KNOWN_ATTRIBUTES
         .iter()
+        .map(|(flag, _, letter)| (*flag, *letter));
+    compact_attribute_text(attributes, positions)
+}
+
+fn minimal_attribute_text(attributes: u32) -> String {
+    compact_attribute_text(attributes, MINIMAL_ATTRIBUTES.iter().copied())
+}
+
+fn compact_attribute_text(
+    attributes: u32,
+    positions: impl IntoIterator<Item = (u32, char)>,
+) -> String {
+    let mut value = positions
+        .into_iter()
         .map(
-            |(flag, _, letter)| {
-                if attributes & flag != 0 { *letter } else { '-' }
-            },
+            |(flag, letter)| if attributes & flag != 0 { letter } else { '-' },
         )
         .collect::<String>();
     let unknown = unknown_attribute_bits(attributes);

@@ -264,6 +264,42 @@ fn test_windows_short_attribute_text_ignores_structural_bits() {
 }
 
 #[test]
+fn test_windows_minimal_attribute_text_maps_every_position() {
+    for (attribute, expected) in [
+        (0x0000_0001, "R---"),
+        (0x0000_0002, "-H--"),
+        (0x0000_0004, "--S-"),
+        (0x0000_0020, "---A"),
+    ] {
+        assert_eq!(
+            attribute_text(attribute, AttributeDisplay::Minimal),
+            expected
+        );
+    }
+}
+
+#[test]
+fn test_windows_minimal_attribute_text_combines_common_attributes() {
+    assert_eq!(attribute_text(0, AttributeDisplay::Minimal), "----");
+    assert_eq!(
+        attribute_text(0x0000_0027, AttributeDisplay::Minimal),
+        "RHSA"
+    );
+}
+
+#[test]
+fn test_windows_minimal_attribute_text_ignores_other_known_bits() {
+    assert_eq!(
+        attribute_text(0x005F_FFD0, AttributeDisplay::Minimal),
+        "----"
+    );
+    assert_eq!(
+        attribute_text(0x8000_0000, AttributeDisplay::Minimal),
+        "---- Unknown(0x80000000)"
+    );
+}
+
+#[test]
 fn test_windows_pathext_parser_normalizes_extensions() {
     let extensions = parse_pathext(".exe; .Cmd;PS1");
     assert!(extensions.contains("EXE"));

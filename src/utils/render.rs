@@ -14,7 +14,7 @@ use terminal_size::{Height, Width, terminal_size};
 
 use crate::Params;
 use crate::platform::{self, LongColumn, LongFormatLayoutOptions};
-use crate::structs::{FileInfo, NameStyle};
+use crate::structs::{AttributeDisplay, FileInfo, NameStyle};
 use crate::utils;
 use crate::utils::color::long_format_color_level;
 use crate::utils::file::check_display_name;
@@ -31,12 +31,18 @@ const HUGE_SIZE_BYTES: u64 = 1024 * 1024 * 1024;
 const HEADER_SALMON_TRUECOLOR: (u8, u8, u8) = (250, 128, 114);
 const HEADER_SALMON_ANSI_256: u8 = 209;
 
-fn long_column_header(column: LongColumn) -> &'static str {
+fn long_column_header(
+    column: LongColumn,
+    attributes: AttributeDisplay,
+) -> &'static str {
     match column {
         LongColumn::UnixSymbolicPermissions
         | LongColumn::UnixOctalWithType => "Permissions",
         LongColumn::UnixOctal => "Octal",
         LongColumn::Type => "Type",
+        LongColumn::Attributes if attributes == AttributeDisplay::Minimal => {
+            "Attr"
+        }
         LongColumn::Attributes => "Attributes",
         LongColumn::Links => "Links",
         LongColumn::User => "User",
@@ -98,7 +104,11 @@ pub(crate) fn build_long_format_table_with_name_prefixes<'a>(
     apply_long_format_gaps(&mut table, &columns);
 
     if params.header && !entries.is_empty() {
-        table.set_header(long_format_header_row(&columns, color_level));
+        table.set_header(long_format_header_row(
+            &columns,
+            params.attributes,
+            color_level,
+        ));
     }
 
     for (info, name_prefix) in entries {
@@ -195,6 +205,7 @@ fn long_format_row(
 
 fn long_format_header_row(
     columns: &[LongColumn],
+    attributes: AttributeDisplay,
     color_level: ColorLevel,
 ) -> HeaderRow {
     let mut cells = Vec::with_capacity(columns.len());
@@ -205,10 +216,10 @@ fn long_format_header_row(
         if matches!(column, LongColumn::Size)
             && columns.get(index + 1) == Some(&LongColumn::Unit)
         {
-            cells.push(header_cell(column, color_level).span(2));
+            cells.push(header_cell(column, attributes, color_level).span(2));
             index += 2;
         } else {
-            cells.push(header_cell(column, color_level));
+            cells.push(header_cell(column, attributes, color_level));
             index += 1;
         }
     }
@@ -216,8 +227,13 @@ fn long_format_header_row(
     HeaderRow::new(cells)
 }
 
-fn header_cell(column: LongColumn, color_level: ColorLevel) -> HeaderCell {
-    let text = header_text(long_column_header(column), color_level);
+fn header_cell(
+    column: LongColumn,
+    attributes: AttributeDisplay,
+    color_level: ColorLevel,
+) -> HeaderCell {
+    let text =
+        header_text(long_column_header(column, attributes), color_level);
     if long_column_aligns_right(column) {
         HeaderCell::right(text)
     } else {

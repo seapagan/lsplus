@@ -118,6 +118,7 @@ fn test_config_conversion_accepts_attribute_display_modes() {
     for (value, expected) in [
         ("long", AttributeDisplay::Long),
         ("short", AttributeDisplay::Short),
+        ("minimal", AttributeDisplay::Minimal),
     ] {
         let config = Config::builder()
             .set_override("attributes", value)
@@ -411,21 +412,32 @@ fn test_params_merge_uses_config_permissions_until_cli_overrides() {
 #[test]
 fn test_params_merge_uses_config_attributes_until_cli_overrides() {
     let config = Params {
-        attributes: AttributeDisplay::Short,
+        attributes: AttributeDisplay::Minimal,
         ..Params::default()
     };
     let flags = Flags::parse_from(["lsplus"]);
 
     assert_eq!(
         Params::merge(&flags, &config).attributes,
-        AttributeDisplay::Short
+        AttributeDisplay::Minimal
     );
 
-    let flags = Flags::parse_from(["lsplus", "--attributes", "long"]);
+    let flags = Flags::parse_from(["lsplus", "--attributes", "short"]);
 
     assert_eq!(
         Params::merge(&flags, &config).attributes,
-        AttributeDisplay::Long
+        AttributeDisplay::Short
+    );
+
+    let config = Params {
+        attributes: AttributeDisplay::Short,
+        ..Params::default()
+    };
+    let flags = Flags::parse_from(["lsplus", "--attributes", "minimal"]);
+
+    assert_eq!(
+        Params::merge(&flags, &config).attributes,
+        AttributeDisplay::Minimal
     );
 }
 

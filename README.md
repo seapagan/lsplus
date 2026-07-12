@@ -130,7 +130,7 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `--header` - Show a title row in long-format output
 - `--permissions <MODE>` - Select long-format permission display:
   `symbolic`, `octal`, `both`, or `none`
-- `--attributes <MODE>` - Select `long` or `short` Windows attribute display
+- `--attributes <MODE>` - Select `long`, `short`, or `minimal` Windows attribute display
 - `-h` / `--human-readable` - Human readable file sizes using powers of 1024
 - `--si` - Human readable file sizes using powers of 1000
 - `-R` / `--recursive` - List subdirectories recursively
@@ -201,6 +201,8 @@ On Windows, symbolic permission display is replaced by an `Attributes` column.
 `RHSATPCONEIVBXQGF` order; residual unknown bits append an
 `Unknown(0xXXXXXXXX)` suffix. The `X` position represents `EA`, including the
 aliased `RecallOnOpen` bit, while `F` represents `RecallOnDataAccess`.
+`--attributes minimal` shows only the classic `RHSA` attributes and shortens
+the column header to `Attr`.
 `--permissions none` omits the column. `--permissions octal` and
 `--permissions both` are unsupported with long output.
 

@@ -165,6 +165,28 @@ fn test_windows_long_short_attributes_uses_compact_field() {
 }
 
 #[test]
+fn test_windows_long_minimal_attributes_uses_short_header() {
+    let temp_dir = tempdir().unwrap();
+    let file = temp_dir.path().join("sample.txt");
+    fs::write(&file, "sample").unwrap();
+
+    let mut command = Command::cargo_bin("lsp").unwrap();
+    command
+        .arg("--long")
+        .arg("--header")
+        .arg("--attributes")
+        .arg("minimal")
+        .arg("--no-icons")
+        .arg("--no-color")
+        .arg(&file)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Attr"))
+        .stdout(predicate::str::contains("Attributes").not())
+        .stdout(predicate::str::contains("sample.txt"));
+}
+
+#[test]
 fn test_windows_short_listing_ignores_attribute_display() {
     let temp_dir = tempdir().unwrap();
     let file = temp_dir.path().join("sample.txt");
@@ -187,7 +209,7 @@ fn test_windows_short_listing_ignores_attribute_display() {
 }
 
 #[test]
-fn test_windows_permissions_none_omits_compact_attributes() {
+fn test_windows_permissions_none_omits_minimal_attributes() {
     let temp_dir = tempdir().unwrap();
     let file = temp_dir.path().join("sample.txt");
     fs::write(&file, "sample").unwrap();
@@ -199,7 +221,7 @@ fn test_windows_permissions_none_omits_compact_attributes() {
         .arg("--permissions")
         .arg("none")
         .arg("--attributes")
-        .arg("short")
+        .arg("minimal")
         .arg("--no-icons")
         .arg("--no-color")
         .arg(&file)

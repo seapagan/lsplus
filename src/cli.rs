@@ -455,7 +455,7 @@ fn attributes_arg() -> Arg {
         .action(ArgAction::Set)
         .value_name("MODE")
         .value_parser(clap::value_parser!(AttributeDisplay))
-        .help("Select Windows attribute display: long or short")
+        .help("Select Windows attribute display: long, short, or minimal")
 }
 
 fn no_time_gradient_arg() -> Arg {

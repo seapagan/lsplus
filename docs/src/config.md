@@ -217,7 +217,7 @@ and `both` are unsupported when long format is active; use `symbolic` or
 
 ### attributes
 
-- Permitted values: `long` or `short`
+- Permitted values: `long`, `short`, or `minimal`
 - Default value: `long`
 
 This option corresponds to `--attributes` and controls text in the Windows
@@ -225,6 +225,10 @@ long-format `Attributes` column. `long` shows readable attribute names. `short`
 shows a fixed-position 17-character prefix in `RHSATPCONEIVBXQGF` order, with
 unset positions rendered as `-`. Residual unknown bits append an
 `Unknown(0xXXXXXXXX)` suffix.
+
+`minimal` shows the fixed four-character `RHSA` field and uses `Attr` as the
+column header. Other known attributes are omitted, while genuinely unknown
+bits still append the same suffix.
 
 The `X` position represents `EA`, including the aliased `RecallOnOpen` bit, and
 `F` represents `RecallOnDataAccess`. `permissions = "none"` omits the Windows

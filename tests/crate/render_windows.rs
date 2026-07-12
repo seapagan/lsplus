@@ -118,6 +118,39 @@ fn test_windows_compact_attributes_align_with_headers() {
 }
 
 #[test]
+fn test_windows_minimal_attributes_use_short_header_and_align() {
+    let _guard = ColorModeGuard::set(ColorMode::Never);
+    let mut first = windows_file_info();
+    first.mode = String::from("R--A");
+    first.display_name = String::from("first");
+    let mut second = windows_file_info();
+    second.mode = String::from("----");
+    second.display_name = String::from("second");
+    let params = Params {
+        long_format: true,
+        header: true,
+        no_icons: true,
+        attributes: AttributeDisplay::Minimal,
+        ..Params::default()
+    };
+
+    let rendered =
+        build_long_format_table(&[first, second], &params).to_string();
+    let first_line = rendered
+        .lines()
+        .find(|line| line.contains("first"))
+        .unwrap();
+    let second_line = rendered
+        .lines()
+        .find(|line| line.contains("second"))
+        .unwrap();
+
+    assert!(rendered.contains("Attr"));
+    assert!(!rendered.contains("Attributes"));
+    assert_eq!(first_line.find("first"), second_line.find("second"));
+}
+
+#[test]
 fn test_windows_long_table_colors_native_type_markers() {
     with_color_environment(None, None, ColorMode::Always, || {
         let params = Params {

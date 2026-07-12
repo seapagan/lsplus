@@ -63,6 +63,8 @@ pub enum AttributeDisplay {
     Long,
     /// Show a fixed-position compact Windows attribute field.
     Short,
+    /// Show the classic ReadOnly, Hidden, System, and Archive attributes.
+    Minimal,
 }
 
 /// Runtime options after CLI flags and config defaults have been merged.

@@ -337,6 +337,7 @@ fn test_parse_from_mode_accepts_attribute_display_modes() {
         for (value, expected) in [
             ("long", AttributeDisplay::Long),
             ("short", AttributeDisplay::Short),
+            ("minimal", AttributeDisplay::Minimal),
         ] {
             let args =
                 try_parse_from_mode(mode, ["lsplus", "--attributes", value])
