@@ -1,15 +1,14 @@
 use crate::common_tests::{
-    fixed_time_params, has_ansi, plain_permission_params,
-    with_color_output_enabled,
+    fixed_time_params, plain_permission_params, with_color_output_enabled,
 };
 use crate::render_tests::{
     normalized_table, test_file_info, visible_column_end, visible_column_start,
 };
 use crate::utils::format::mode_to_rwx;
+use crate::utils::icons::Icon;
 use crate::utils::render::build_long_format_table;
 use crate::{Params, structs::PermissionDisplay};
-use colored_text::{ColorMode, Colorize};
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 use strip_ansi_escapes::strip_str;
 
 #[test]
