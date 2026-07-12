@@ -1,4 +1,4 @@
-use crate::common_tests::ColorModeGuard;
+use crate::common_tests::{ColorModeGuard, with_color_environment};
 use crate::structs::{AttributeDisplay, PermissionDisplay};
 use crate::utils::icons::Icon;
 use crate::utils::render::{
@@ -119,36 +119,37 @@ fn test_windows_compact_attributes_align_with_headers() {
 
 #[test]
 fn test_windows_long_table_colors_native_type_markers() {
-    let _guard = ColorModeGuard::set(ColorMode::Always);
-    let params = Params {
-        long_format: true,
-        no_icons: true,
-        ..Params::default()
-    };
-    let rendered = build_long_format_table(
-        &[
-            windows_file_info_with_type("j"),
-            windows_file_info_with_type("L"),
-            windows_file_info_with_type("r"),
-        ],
-        &params,
-    )
-    .to_string();
+    with_color_environment(None, None, ColorMode::Always, || {
+        let params = Params {
+            long_format: true,
+            no_icons: true,
+            ..Params::default()
+        };
+        let rendered = build_long_format_table(
+            &[
+                windows_file_info_with_type("j"),
+                windows_file_info_with_type("L"),
+                windows_file_info_with_type("r"),
+            ],
+            &params,
+        )
+        .to_string();
 
-    assert!(rendered.contains("\u{1b}[35mj"));
-    assert!(rendered.contains("\u{1b}[36mL"));
-    assert!(rendered.contains("\u{1b}[2mr"));
+        assert!(rendered.contains("\u{1b}[35mj"));
+        assert!(rendered.contains("\u{1b}[36mL"));
+        assert!(rendered.contains("\u{1b}[2mr"));
+    });
 }
 
 #[test]
 fn test_windows_short_format_colors_and_pads_junction_name() {
-    let _guard = ColorModeGuard::set(ColorMode::Always);
+    with_color_environment(None, None, ColorMode::Always, || {
+        let rendered = render_short_format_lines(&[windows_file_info()], 80);
 
-    let rendered = render_short_format_lines(&[windows_file_info()], 80);
-
-    assert_eq!(rendered.len(), 1);
-    assert_eq!(
-        rendered[0],
-        format!(" {} \u{1b}[35mjunction  \u{1b}[0m", Icon::Junction)
-    );
+        assert_eq!(rendered.len(), 1);
+        assert_eq!(
+            rendered[0],
+            format!(" {} \u{1b}[35mjunction  \u{1b}[0m", Icon::Junction)
+        );
+    });
 }

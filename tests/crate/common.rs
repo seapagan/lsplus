@@ -44,8 +44,6 @@ pub(crate) fn with_color_environment<T>(
     mode: ColorMode,
     test: impl FnOnce() -> T,
 ) -> T {
-    let _guard = ColorModeGuard::set(mode);
-
     temp_env::with_vars(
         [
             ("NO_COLOR", None),
@@ -59,7 +57,10 @@ pub(crate) fn with_color_environment<T>(
             ("ANSICON", None),
             ("CI", None),
         ],
-        test,
+        || {
+            let _guard = ColorModeGuard::set(mode);
+            test()
+        },
     )
 }
 
