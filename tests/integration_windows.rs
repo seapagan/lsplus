@@ -1,6 +1,7 @@
 #![cfg(windows)]
 
 use assert_cmd::Command;
+use lsplus::settings::CONFIG_FILE_ENV_VAR;
 use predicates::prelude::*;
 use std::fs;
 use std::process::Command as ProcessCommand;
@@ -32,6 +33,12 @@ fn command_path(path: &std::path::Path) -> String {
     path.strip_prefix(r"\\?\").unwrap_or(&path).to_string()
 }
 
+fn command_without_config(root: &std::path::Path) -> Command {
+    let mut command = Command::cargo_bin("lsp").unwrap();
+    command.env(CONFIG_FILE_ENV_VAR, root.join("missing-config.toml"));
+    command
+}
+
 #[test]
 fn test_windows_all_does_not_synthesize_dot_entries() {
     let temp_dir = tempdir().unwrap();
@@ -60,7 +67,7 @@ fn test_windows_hidden_attribute_requires_all() {
             .success()
     );
 
-    let mut default_listing = Command::cargo_bin("lsp").unwrap();
+    let mut default_listing = command_without_config(temp_dir.path());
     default_listing
         .arg("--no-icons")
         .arg(temp_dir.path())
@@ -68,7 +75,7 @@ fn test_windows_hidden_attribute_requires_all() {
         .success()
         .stdout(predicate::str::contains("hidden.txt").not());
 
-    let mut all_listing = Command::cargo_bin("lsp").unwrap();
+    let mut all_listing = command_without_config(temp_dir.path());
     all_listing
         .arg("--all")
         .arg("--no-icons")

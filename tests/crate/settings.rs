@@ -6,20 +6,42 @@ use crate::settings::config_path_from_home;
 use crate::settings::load_config;
 use crate::settings::{
     StartupConfig, load_config_from_path, load_startup_config_from,
+    resolve_config_path,
 };
 #[cfg(unix)]
 use crate::{
     IndicatorStyle,
     structs::{AttributeDisplay, PermissionDisplay},
 };
+use std::ffi::OsString;
 use std::fs;
-#[cfg(unix)]
 use std::path::PathBuf;
 use tempfile::tempdir;
 
 #[test]
 fn test_load_config_returns_default_when_path_is_missing() {
     assert_eq!(load_config_from_path(None), Params::default());
+}
+
+#[test]
+fn test_config_path_override_precedes_default() {
+    let default = PathBuf::from("default.toml");
+
+    assert_eq!(
+        resolve_config_path(
+            Some(OsString::from("override.toml")),
+            Some(default.clone()),
+        ),
+        Some(PathBuf::from("override.toml"))
+    );
+    assert_eq!(
+        resolve_config_path(None, Some(default.clone())),
+        Some(default.clone())
+    );
+    assert_eq!(
+        resolve_config_path(Some(OsString::new()), Some(default.clone())),
+        Some(default)
+    );
 }
 
 #[test]
