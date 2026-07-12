@@ -10,7 +10,7 @@ use crate::platform::{
 };
 use crate::structs::{AttributeDisplay, PermissionDisplay};
 use crate::utils::file::{
-    DirectoryEntryData, collect_visible_file_names,
+    DirectoryEntryData, collect_visible_file_names, colorize_name,
     file_type_indicator_suffix_for_type, format_symlink_display_name_with_dim,
     slash_indicator_suffix,
 };
@@ -128,6 +128,30 @@ fn test_windows_shared_indicator_suffixes_cover_special_types() {
 #[test]
 fn test_windows_name_fallback_is_never_hidden() {
     assert!(!entry_name_is_hidden(OsStr::new(".dotfile")));
+}
+
+#[test]
+fn test_windows_colorizes_every_resolved_name_style() {
+    with_color_output_enabled(|| {
+        for (style, expected) in [
+            (NameStyle::Plain, "name"),
+            (NameStyle::Directory, "\u{1b}[34mname\u{1b}[0m"),
+            (NameStyle::Symlink, "\u{1b}[36mname\u{1b}[0m"),
+            (NameStyle::Junction, "\u{1b}[35mname\u{1b}[0m"),
+            (NameStyle::Executable, "\u{1b}[1;32mname\u{1b}[0m"),
+            (NameStyle::Socket, "\u{1b}[1;35mname\u{1b}[0m"),
+            (NameStyle::Fifo, "\u{1b}[33mname\u{1b}[0m"),
+            (NameStyle::CharDevice, "\u{1b}[1;33mname\u{1b}[0m"),
+            (NameStyle::BlockDevice, "\u{1b}[1;33mname\u{1b}[0m"),
+        ] {
+            assert_eq!(colorize_name("name", style, false), expected);
+        }
+
+        assert_eq!(
+            colorize_name("name", NameStyle::Junction, true),
+            "\u{1b}[2;35mname\u{1b}[0m"
+        );
+    });
 }
 
 #[test]

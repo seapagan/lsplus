@@ -1,7 +1,9 @@
 use crate::common_tests::ColorModeGuard;
 use crate::structs::{AttributeDisplay, PermissionDisplay};
 use crate::utils::icons::Icon;
-use crate::utils::render::build_long_format_table;
+use crate::utils::render::{
+    build_long_format_table, render_short_format_lines,
+};
 use crate::{FileInfo, NameStyle, Params};
 use colored_text::ColorMode;
 use std::path::PathBuf;
@@ -136,4 +138,17 @@ fn test_windows_long_table_colors_native_type_markers() {
     assert!(rendered.contains("\u{1b}[35mj"));
     assert!(rendered.contains("\u{1b}[36mL"));
     assert!(rendered.contains("\u{1b}[2mr"));
+}
+
+#[test]
+fn test_windows_short_format_colors_and_pads_junction_name() {
+    let _guard = ColorModeGuard::set(ColorMode::Always);
+
+    let rendered = render_short_format_lines(&[windows_file_info()], 80);
+
+    assert_eq!(rendered.len(), 1);
+    assert_eq!(
+        rendered[0],
+        format!(" {} \u{1b}[35mjunction  \u{1b}[0m", Icon::Junction)
+    );
 }
