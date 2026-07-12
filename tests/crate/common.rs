@@ -35,10 +35,32 @@ pub(crate) fn has_ansi(text: &str) -> bool {
 }
 
 pub(crate) fn with_color_output_enabled<T>(test: impl FnOnce() -> T) -> T {
-    temp_env::with_var("NO_COLOR", None::<&str>, || {
-        let _guard = ColorModeGuard::set(ColorMode::Always);
-        test()
-    })
+    with_color_environment(None, None, ColorMode::Always, test)
+}
+
+pub(crate) fn with_color_environment<T>(
+    term: Option<&str>,
+    colorterm: Option<&str>,
+    mode: ColorMode,
+    test: impl FnOnce() -> T,
+) -> T {
+    let _guard = ColorModeGuard::set(mode);
+
+    temp_env::with_vars(
+        [
+            ("NO_COLOR", None),
+            ("FORCE_COLOR", None),
+            ("CLICOLOR", None),
+            ("CLICOLOR_FORCE", None),
+            ("TERM", term),
+            ("COLORTERM", colorterm),
+            ("WT_SESSION", None),
+            ("ConEmuANSI", None),
+            ("ANSICON", None),
+            ("CI", None),
+        ],
+        test,
+    )
 }
 
 pub(crate) fn fixed_time_params() -> Params {

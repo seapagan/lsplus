@@ -1,5 +1,6 @@
 use crate::common_tests::{
-    fixed_time_params, plain_permission_params, with_color_output_enabled,
+    fixed_time_params, plain_permission_params, with_color_environment,
+    with_color_output_enabled,
 };
 use crate::render_tests::{
     normalized_table, test_file_info, visible_column_end, visible_column_start,
@@ -10,6 +11,7 @@ use crate::utils::render::{
     build_long_format_table, render_short_format_lines,
 };
 use crate::{NameStyle, Params, structs::PermissionDisplay};
+use colored_text::ColorMode;
 use std::time::{Duration, SystemTime};
 use strip_ansi_escapes::strip_str;
 
@@ -105,82 +107,66 @@ fn test_build_long_format_table_colors_columns_when_enabled() {
 
 #[test]
 fn test_build_long_format_table_colors_header_when_enabled() {
-    for (env, expected) in [
+    for (term, colorterm, expected) in [
         (
-            [("COLORTERM", Some("truecolor")), ("TERM", None::<&str>)],
+            None,
+            Some("truecolor"),
             "\u{1b}[4;38;2;250;128;114mPermissions\u{1b}[0m",
         ),
         (
-            [
-                ("COLORTERM", None::<&str>),
-                ("TERM", Some("xterm-256color")),
-            ],
+            Some("xterm-256color"),
+            None,
             "\u{1b}[4;38;5;209mPermissions\u{1b}[0m",
         ),
-        (
-            [("COLORTERM", None::<&str>), ("TERM", Some("xterm"))],
-            "\u{1b}[4;31mPermissions\u{1b}[0m",
-        ),
+        (Some("xterm"), None, "\u{1b}[4;31mPermissions\u{1b}[0m"),
     ] {
-        temp_env::with_vars(env, || {
-            with_color_output_enabled(|| {
-                let info =
-                    test_file_info("plain.txt", None, 12, SystemTime::now());
-                let params = Params {
-                    header: true,
-                    no_icons: true,
-                    ..fixed_time_params()
-                };
+        with_color_environment(term, colorterm, ColorMode::Always, || {
+            let info =
+                test_file_info("plain.txt", None, 12, SystemTime::now());
+            let params = Params {
+                header: true,
+                no_icons: true,
+                ..fixed_time_params()
+            };
 
-                let rendered = normalized_table(build_long_format_table(
-                    &[info],
-                    &params,
-                ));
+            let rendered =
+                normalized_table(build_long_format_table(&[info], &params));
 
-                assert!(rendered.contains(expected));
-            });
+            assert!(rendered.contains(expected));
         });
     }
 }
 
 #[test]
 fn test_build_long_format_table_colors_octal_permissions_subtly() {
-    for (env, expected) in [
+    for (term, colorterm, expected) in [
         (
-            [("COLORTERM", Some("truecolor")), ("TERM", None::<&str>)],
+            None,
+            Some("truecolor"),
             "\u{1b}[38;2;238;204;92m0755\u{1b}[0m",
         ),
         (
-            [
-                ("COLORTERM", None::<&str>),
-                ("TERM", Some("xterm-256color")),
-            ],
+            Some("xterm-256color"),
+            None,
             "\u{1b}[38;5;221m0755\u{1b}[0m",
         ),
-        (
-            [("COLORTERM", None::<&str>), ("TERM", Some("xterm"))],
-            "\u{1b}[2;33m0755\u{1b}[0m",
-        ),
+        (Some("xterm"), None, "\u{1b}[2;33m0755\u{1b}[0m"),
     ] {
-        temp_env::with_vars(env, || {
-            with_color_output_enabled(|| {
-                let mut info =
-                    test_file_info("script.sh", None, 12, SystemTime::now());
-                info.file_type = String::from("-");
-                info.mode_bits = 0o755;
-                let params = Params {
-                    permissions: PermissionDisplay::Octal,
-                    ..fixed_time_params()
-                };
+        with_color_environment(term, colorterm, ColorMode::Always, || {
+            let mut info =
+                test_file_info("script.sh", None, 12, SystemTime::now());
+            info.file_type = String::from("-");
+            info.mode_bits = 0o755;
+            let params = Params {
+                permissions: PermissionDisplay::Octal,
+                ..fixed_time_params()
+            };
 
-                let rendered = normalized_table(build_long_format_table(
-                    &[info],
-                    &params,
-                ));
+            let rendered =
+                normalized_table(build_long_format_table(&[info], &params));
 
-                assert!(rendered.contains(expected));
-                assert!(rendered.contains("\u{1b}[2m-\u{1b}[0m"));
-            });
+            assert!(rendered.contains(expected));
+            assert!(rendered.contains("\u{1b}[2m-\u{1b}[0m"));
         });
     }
 }
@@ -231,62 +217,57 @@ fn test_build_long_format_table_colors_symlink_and_fallback_mode_chars() {
 
 #[test]
 fn test_build_long_format_table_header_aligns_with_colored_rows() {
-    temp_env::with_vars(
-        [("COLORTERM", Some("truecolor")), ("TERM", None::<&str>)],
-        || {
-            with_color_output_enabled(|| {
-                let mut first =
-                    test_file_info("first.txt", None, 12, SystemTime::now());
-                first.file_type = String::from("d");
-                first.mode = String::from("rwsr-tS-T");
-                first.nlink = 1;
+    with_color_environment(None, Some("truecolor"), ColorMode::Always, || {
+        let mut first =
+            test_file_info("first.txt", None, 12, SystemTime::now());
+        first.file_type = String::from("d");
+        first.mode = String::from("rwsr-tS-T");
+        first.nlink = 1;
 
-                let mut second = test_file_info(
-                    "second.txt",
-                    Some(Icon::RustFile),
-                    12,
-                    SystemTime::now(),
-                );
-                second.file_type = String::from("-");
-                second.mode = String::from("rwxrwxrwx");
-                second.nlink = 123_456;
+        let mut second = test_file_info(
+            "second.txt",
+            Some(Icon::RustFile),
+            12,
+            SystemTime::now(),
+        );
+        second.file_type = String::from("-");
+        second.mode = String::from("rwxrwxrwx");
+        second.nlink = 123_456;
 
-                let params = Params {
-                    header: true,
-                    human_readable: true,
-                    ..fixed_time_params()
-                };
-                let rendered = normalized_table(build_long_format_table(
-                    &[first, second],
-                    &params,
-                ));
-                let rows: Vec<_> = rendered.lines().collect();
+        let params = Params {
+            header: true,
+            human_readable: true,
+            ..fixed_time_params()
+        };
+        let rendered = normalized_table(build_long_format_table(
+            &[first, second],
+            &params,
+        ));
+        let rows: Vec<_> = rendered.lines().collect();
 
-                assert!(rows[0].contains("Permissions"));
-                assert!(rows[1].contains("\u{1b}["));
-                assert!(
-                    visible_column_start(rows[0], "User")
-                        < visible_column_start(rows[0], "Group")
-                );
-                assert!(
-                    visible_column_start(rows[0], "Group")
-                        < visible_column_start(rows[0], "Name")
-                );
-                assert_eq!(
-                    visible_column_start(rows[1], "user"),
-                    visible_column_start(rows[2], "user")
-                );
-                assert_eq!(
-                    visible_column_start(rows[1], "group"),
-                    visible_column_start(rows[2], "group")
-                );
-                assert_eq!(
-                    visible_column_start(rows[1], "first.txt"),
-                    visible_column_start(rows[2], "second.txt")
-                );
-            });
-        },
-    );
+        assert!(rows[0].contains("Permissions"));
+        assert!(rows[1].contains("\u{1b}["));
+        assert!(
+            visible_column_start(rows[0], "User")
+                < visible_column_start(rows[0], "Group")
+        );
+        assert!(
+            visible_column_start(rows[0], "Group")
+                < visible_column_start(rows[0], "Name")
+        );
+        assert_eq!(
+            visible_column_start(rows[1], "user"),
+            visible_column_start(rows[2], "user")
+        );
+        assert_eq!(
+            visible_column_start(rows[1], "group"),
+            visible_column_start(rows[2], "group")
+        );
+        assert_eq!(
+            visible_column_start(rows[1], "first.txt"),
+            visible_column_start(rows[2], "second.txt")
+        );
+    });
 }
 
 #[test]
