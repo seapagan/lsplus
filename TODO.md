@@ -5,6 +5,8 @@
 - [ ] add `zizmor` linting to the GitHub actions - both local and as an action
       itself. Use `https://github.com/GitHubSecurityLab/actions-permission` to
       help.
+- [ ] after hardening the release workflow permissions, switch both local and
+      CI `zizmor` runs to the `pedantic` persona
 - [ ] add colorization for different file types, folders and symlinks. Make it
       customizable and theme-able. Make it default but allow an option to
       disable it (or vice-versa). Files that have a known extension should all

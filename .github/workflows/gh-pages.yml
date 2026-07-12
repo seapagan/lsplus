@@ -8,24 +8,67 @@ on:
   #     - 'docs/**' # only need this to run if changes to the actual docs
   workflow_dispatch:
 
+permissions: {}
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
 jobs:
   build:
+    name: Build docs
     runs-on: ubuntu-latest
+    env:
+      # renovate: datasource=crate depName=mdbook versioning=cargo
+      MDBOOK_VERSION: "0.5.4"
+    permissions:
+      contents: read # Required to check out the repository.
+      pages: read # Required to read the Pages site configuration.
 
     steps:
+      - name: Monitor GitHub token permissions
+        if: runner.os != 'Windows'
+        uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Install mdBook
-        run: cargo install mdbook
+        run: cargo install --locked --version "$MDBOOK_VERSION" mdbook
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       - name: Build the book
         run: mdbook build docs
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          github_token: ${{ secrets.GH_PAT }}
-          publish_dir: ./docs/book
-          publish_branch: gh-pages
+          path: ./docs/book
 
+  deploy:
+    name: Deploy docs
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write # Required to create the Pages deployment.
+      id-token: write # Required to authenticate the deployment with OIDC.
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Monitor GitHub token permissions
+        if: runner.os != 'Windows'
+        uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0

@@ -9,20 +9,35 @@ on:
     - cron: "0 6 * * 1"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   unix:
+    name: Unix tests
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - name: Monitor GitHub token permissions
+        if: runner.os != 'Windows'
+        uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: ./.github/actions/setup-rust
         with:
-          components: rustfmt, clippy
+          components: rustfmt clippy
 
       - name: Check formatting
         run: cargo fmt --check
@@ -34,15 +49,18 @@ jobs:
         run: cargo test --all-targets --all-features
 
   windows:
+    name: Windows tests
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: ./.github/actions/setup-rust
         with:
-          components: rustfmt, clippy
+          components: rustfmt clippy
 
       - name: Check formatting
         run: cargo fmt --check
@@ -54,16 +72,25 @@ jobs:
         run: cargo test --all-targets --all-features
 
   audit:
+    name: Dependency audit
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - name: Monitor GitHub token permissions
+        if: runner.os != 'Windows'
+        uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: ./.github/actions/setup-rust
 
       - name: Install cargo tools
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@2ca9b94c269419b7b0c711c09d0b21c4e1d51145 # v2
         with:
           tool: cargo-make,cargo-audit
 
@@ -71,16 +98,25 @@ jobs:
         run: cargo make audit
 
   deny:
+    name: Dependency policy
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - name: Monitor GitHub token permissions
+        if: runner.os != 'Windows'
+        uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: ./.github/actions/setup-rust
 
       - name: Install cargo tools
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@2ca9b94c269419b7b0c711c09d0b21c4e1d51145 # v2
         with:
           tool: cargo-make,cargo-deny
 
