@@ -372,9 +372,10 @@ cargo install --locked --version 1.26.1 zizmor
 ```
 
 Audit the GitHub Actions workflows locally with `cargo make zizmor`. The
-command runs offline by default; set a supported GitHub token environment
-variable to enable online audits. Keep the installed zizmor version aligned
-with the version configured in the GitHub Actions security workflow.
+command runs offline by default; set `GH_TOKEN`, `GITHUB_TOKEN`, or
+`ZIZMOR_GITHUB_TOKEN` to enable online audits. Keep the installed zizmor
+version aligned with the version configured in the GitHub Actions security
+workflow.
 
 The coverage aliases, `cargo make test` and `cargo make test-html`, also
 require:
