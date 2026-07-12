@@ -4,6 +4,7 @@
 //! `~/.config/lsplus/config.toml`; [`COMPAT_MODE_ENV_VAR`] overrides config
 //! compatibility mode.
 
+use std::ffi::OsString;
 use std::path::PathBuf;
 
 use config::{Config, File, FileFormat};
@@ -19,6 +20,12 @@ use crate::structs::RawParams;
 /// When set, this takes precedence over the `compat_mode` value in the config
 /// file.
 pub const COMPAT_MODE_ENV_VAR: &str = "LSP_COMPAT_MODE";
+
+/// Environment variable that overrides the config-file path.
+///
+/// When set to a non-empty value, this takes precedence over the platform
+/// default config path.
+pub const CONFIG_FILE_ENV_VAR: &str = "LSP_CONFIG_FILE";
 
 /// Startup-time settings needed before parsing the main CLI.
 #[derive(Debug, PartialEq)]
@@ -37,7 +44,20 @@ struct ParsedConfig {
 }
 
 fn config_path() -> Option<PathBuf> {
-    platform::default_config_path()
+    resolve_config_path(
+        std::env::var_os(CONFIG_FILE_ENV_VAR),
+        platform::default_config_path(),
+    )
+}
+
+pub(crate) fn resolve_config_path(
+    override_path: Option<OsString>,
+    default_path: Option<PathBuf>,
+) -> Option<PathBuf> {
+    override_path
+        .filter(|path| !path.is_empty())
+        .map(PathBuf::from)
+        .or(default_path)
 }
 
 /// Return the default config path for a home directory, when one is known.
