@@ -18,6 +18,9 @@ jobs:
   build:
     name: Build docs
     runs-on: ubuntu-latest
+    env:
+      # renovate: datasource=crate depName=mdbook versioning=cargo
+      MDBOOK_VERSION: "0.5.4"
     permissions:
       contents: read # Required to check out the repository.
       pages: read # Required to read the Pages site configuration.
@@ -35,7 +38,7 @@ jobs:
           persist-credentials: false
 
       - name: Install mdBook
-        run: cargo install mdbook
+        run: cargo install --locked --version "$MDBOOK_VERSION" mdbook
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
