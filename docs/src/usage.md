@@ -21,6 +21,7 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `--header` - Show a title row in long-format output
 - `--permissions <MODE>` - Select long-format permission display:
   `symbolic`, `octal`, `both`, or `none`
+- `--attributes <MODE>` - Select `long` or `short` Windows attribute display
 - `-h` / `--human-readable` - Human readable file sizes using powers of 1024
 - `--si` - Human readable file sizes using powers of 1000
 - `-R` / `--recursive` - List subdirectories recursively
@@ -121,7 +122,16 @@ Long-format output shows symbolic permissions by default. Use
 `--permissions none` to omit permission fields.
 
 On Windows, long format shows native file attributes for `symbolic` display.
-`octal` and `both` are unsupported with long output; use `symbolic` or `none`.
+`--attributes long` is the default and shows readable names.
+`--attributes short` uses a fixed-position 17-character prefix in
+`RHSATPCONEIVBXQGF` order. Residual unknown bits append an
+`Unknown(0xXXXXXXXX)` suffix. The `X` position represents `EA`, including the
+aliased `RecallOnOpen` bit, and `F` represents `RecallOnDataAccess`.
+`--permissions none` omits the column; `octal` and `both` remain unsupported
+with Windows long output.
+
+The attribute setting has no effect on short-format output. It is accepted but
+ignored on Linux and macOS, where permission rendering remains unchanged.
 
 Use `--header` with long-format output to add a title row for the active
 columns. It has no effect on short output. In the config file, set
