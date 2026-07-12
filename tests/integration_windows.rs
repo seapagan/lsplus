@@ -138,7 +138,7 @@ fn test_windows_long_short_attributes_uses_compact_field() {
     let file = temp_dir.path().join("sample.txt");
     fs::write(&file, "sample").unwrap();
 
-    let mut command = Command::cargo_bin("lsp").unwrap();
+    let mut command = command_without_config(temp_dir.path());
     let output = command
         .arg("--long")
         .arg("--attributes")
@@ -158,7 +158,9 @@ fn test_windows_long_short_attributes_uses_compact_field() {
                     .chars()
                     .all(|character| "RHSATPCONEIVBXQGF-".contains(character))
         })
-        .unwrap();
+        .unwrap_or_else(|| {
+            panic!("missing compact attribute field in output: {stdout}")
+        });
 
     assert_eq!(compact.chars().count(), 17);
     assert!(stdout.contains("sample.txt"));
@@ -170,7 +172,7 @@ fn test_windows_long_minimal_attributes_uses_short_header() {
     let file = temp_dir.path().join("sample.txt");
     fs::write(&file, "sample").unwrap();
 
-    let mut command = Command::cargo_bin("lsp").unwrap();
+    let mut command = command_without_config(temp_dir.path());
     command
         .arg("--long")
         .arg("--header")
@@ -192,11 +194,11 @@ fn test_windows_short_listing_ignores_attribute_display() {
     let file = temp_dir.path().join("sample.txt");
     fs::write(&file, "sample").unwrap();
 
-    let mut default = Command::cargo_bin("lsp").unwrap();
+    let mut default = command_without_config(temp_dir.path());
     default.arg("--no-icons").arg("--no-color").arg(&file);
     let default_output = default.output().unwrap();
 
-    let mut compact = Command::cargo_bin("lsp").unwrap();
+    let mut compact = command_without_config(temp_dir.path());
     compact
         .arg("--attributes")
         .arg("short")
@@ -214,7 +216,7 @@ fn test_windows_permissions_none_omits_minimal_attributes() {
     let file = temp_dir.path().join("sample.txt");
     fs::write(&file, "sample").unwrap();
 
-    let mut command = Command::cargo_bin("lsp").unwrap();
+    let mut command = command_without_config(temp_dir.path());
     command
         .arg("--long")
         .arg("--header")
