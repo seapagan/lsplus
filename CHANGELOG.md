@@ -5,6 +5,37 @@ project since the first release.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0](https://github.com/seapagan/lsplus/releases/tag/0.12.0) (2026-07-12)
+
+Now with **100% more Windows Compatibility!** Free!!
+
+**New Features**
+
+- Feat: add native Windows platform support ([#150](https://github.com/seapagan/lsplus/pull/150)) by [seapagan](https://github.com/seapagan)
+
+**Refactoring**
+
+- Refactor: isolate unix metadata handling ([#148](https://github.com/seapagan/lsplus/pull/148)) by [seapagan](https://github.com/seapagan)
+
+**Documentation**
+
+- Docs: add Windows alias setup ([#152](https://github.com/seapagan/lsplus/pull/152)) by [seapagan](https://github.com/seapagan)
+
+**Automatic Testing**
+
+- Improve test coverage ([#147](https://github.com/seapagan/lsplus/pull/147)) by [seapagan](https://github.com/seapagan)
+
+**CI / CD Pipeline**
+
+- Ci: harden GitHub Actions security ([#153](https://github.com/seapagan/lsplus/pull/153)) by [seapagan](https://github.com/seapagan)
+
+**Dependency Updates**
+
+- Fix(deps): update rust crate windows-sys to 0.61.0 ([#151](https://github.com/seapagan/lsplus/pull/151)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update rust crate ignore to v0.4.28 ([#149](https://github.com/seapagan/lsplus/pull/149)) by [renovate[bot]](https://github.com/apps/renovate)
+
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.11.0...0.12.0) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.11.0...0.12.0.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.11.0...0.12.0.patch)
+
 ## [0.11.0](https://github.com/seapagan/lsplus/releases/tag/0.11.0) (2026-07-05)
 
 **New Features**
