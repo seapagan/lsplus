@@ -3,19 +3,22 @@ use crate::platform::{
     EntryClassification, LongColumn, LongFormatFileType,
     LongFormatLayoutOptions, attribute_text, classify_entry,
     compare_entry_names, compare_result_ordering, default_config_path,
-    extended_find_path, extended_find_path_with_current_dir,
-    long_format_layout, non_reparse_file_type, normalize_path, parse_pathext,
-    reparse_file_type, validate_params,
+    entry_name_is_hidden, extended_find_path,
+    extended_find_path_with_current_dir, long_format_layout,
+    name_style_for_file_type, non_reparse_file_type, normalize_path,
+    parse_pathext, reparse_file_type, validate_params,
 };
 use crate::structs::{AttributeDisplay, PermissionDisplay};
 use crate::utils::file::{
     DirectoryEntryData, collect_visible_file_names,
-    format_symlink_display_name_with_dim, slash_indicator_suffix,
+    file_type_indicator_suffix_for_type, format_symlink_display_name_with_dim,
+    slash_indicator_suffix,
 };
 use crate::{Params, structs::NameStyle};
 use std::cmp::Ordering;
 use std::ffi::{OsStr, OsString};
 use std::fs;
+use std::io;
 use std::os::windows::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use tempfile::tempdir;
@@ -59,6 +62,72 @@ fn test_windows_layout_omits_optional_columns() {
             LongColumn::Name
         ]
     );
+}
+
+#[test]
+fn test_windows_shared_file_type_mappings_cover_every_variant() {
+    let cases = [
+        (LongFormatFileType::Directory, 'd', NameStyle::Directory),
+        (LongFormatFileType::Regular, '-', NameStyle::Executable),
+        (LongFormatFileType::Symlink, 'l', NameStyle::Symlink),
+        (LongFormatFileType::SymlinkFile, 'l', NameStyle::Symlink),
+        (
+            LongFormatFileType::SymlinkDirectory,
+            'L',
+            NameStyle::Symlink,
+        ),
+        (LongFormatFileType::Junction, 'j', NameStyle::Junction),
+        (LongFormatFileType::ReparsePoint, 'r', NameStyle::Plain),
+        (LongFormatFileType::Socket, 's', NameStyle::Socket),
+        (LongFormatFileType::Fifo, 'p', NameStyle::Fifo),
+        (LongFormatFileType::CharDevice, 'c', NameStyle::CharDevice),
+        (LongFormatFileType::BlockDevice, 'b', NameStyle::BlockDevice),
+        (LongFormatFileType::Unknown, '?', NameStyle::Plain),
+    ];
+
+    for (file_type, marker, style) in cases {
+        assert_eq!(file_type.as_char(), marker);
+        assert_eq!(name_style_for_file_type(file_type, true), style);
+    }
+    assert_eq!(
+        name_style_for_file_type(LongFormatFileType::Regular, false),
+        NameStyle::Plain
+    );
+}
+
+#[test]
+fn test_windows_shared_indicator_suffixes_cover_special_types() {
+    for (file_type, expected) in [
+        (LongFormatFileType::Directory, "/"),
+        (LongFormatFileType::Symlink, "@"),
+        (LongFormatFileType::SymlinkFile, "@"),
+        (LongFormatFileType::SymlinkDirectory, "@"),
+        (LongFormatFileType::Junction, "@"),
+        (LongFormatFileType::Fifo, "|"),
+        (LongFormatFileType::Socket, "="),
+        (LongFormatFileType::CharDevice, ""),
+        (LongFormatFileType::BlockDevice, ""),
+        (LongFormatFileType::ReparsePoint, ""),
+        (LongFormatFileType::Unknown, ""),
+    ] {
+        assert_eq!(
+            file_type_indicator_suffix_for_type(file_type, true, false),
+            expected
+        );
+    }
+    assert_eq!(
+        file_type_indicator_suffix_for_type(
+            LongFormatFileType::Regular,
+            true,
+            true,
+        ),
+        "*"
+    );
+}
+
+#[test]
+fn test_windows_name_fallback_is_never_hidden() {
+    assert!(!entry_name_is_hidden(OsStr::new(".dotfile")));
 }
 
 #[test]
@@ -307,6 +376,35 @@ fn test_windows_junction_source_uses_junction_style() {
 }
 
 #[test]
+fn test_windows_long_link_text_marks_missing_and_invalid_targets() {
+    let temp_dir = tempdir().unwrap();
+    let source = temp_dir.path().join("link");
+    let params = Params {
+        long_format: true,
+        ..Params::default()
+    };
+    let broken = format_symlink_display_name_with_dim(
+        "link",
+        &source,
+        Ok(PathBuf::from("missing")),
+        &params,
+        NameStyle::Symlink,
+        false,
+    );
+    let unresolved = format_symlink_display_name_with_dim(
+        "link",
+        &source,
+        Ok(PathBuf::from("invalid\0target")),
+        &params,
+        NameStyle::Symlink,
+        false,
+    );
+
+    assert!(broken.contains("[Broken Link]"));
+    assert!(unresolved.contains("[Target Unresolved]"));
+}
+
+#[test]
 fn test_windows_directory_symlink_uses_symlink_style() {
     let temp_dir = tempdir().unwrap();
     let file = temp_dir.path().join("file.txt");
@@ -383,6 +481,38 @@ fn test_windows_collection_filters_hidden_and_groups_directories() {
             String::from("hidden"),
             String::from("visible"),
         ]
+    );
+}
+
+#[test]
+fn test_windows_collection_handles_entry_and_classification_errors() {
+    let fallback = DirectoryEntryData {
+        file_name: OsString::from("fallback"),
+        path: PathBuf::from("fallback"),
+        classification_result: Err(io::Error::other("metadata")),
+    };
+    let entries = vec![Ok(fallback), Err(io::Error::other("directory entry"))];
+    let params = Params {
+        dirs_first: true,
+        ..Params::default()
+    };
+
+    assert_eq!(
+        collect_visible_file_names(Path::new("."), entries, &params),
+        vec![String::from("fallback")]
+    );
+}
+
+#[test]
+fn test_windows_collects_a_direct_file_name() {
+    let temp_dir = tempdir().unwrap();
+    let file = temp_dir.path().join("direct.txt");
+    fs::write(&file, "direct").unwrap();
+
+    assert_eq!(
+        crate::utils::file::collect_file_names(&file, &Params::default())
+            .unwrap(),
+        vec![String::from("direct.txt")]
     );
 }
 

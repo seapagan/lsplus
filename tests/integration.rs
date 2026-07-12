@@ -1117,7 +1117,6 @@ fn test_invalid_env_compat_mode_fails_startup() {
 }
 
 #[test]
-#[cfg(unix)]
 fn test_invalid_config_compat_mode_fails_startup() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().join(".config").join("lsplus");

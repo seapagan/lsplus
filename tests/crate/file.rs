@@ -7,7 +7,7 @@ use crate::utils::file::{
     append_file_info_for_names, check_display_name, collect_file_info,
     collect_file_names, collect_visible_file_names, create_file_info,
     format_path_error, format_symlink_display_name_with_dim,
-    sanitize_for_terminal,
+    preserve_synthetic_dot_name, sanitize_for_terminal,
 };
 use crate::{FileInfo, IndicatorStyle, NameStyle, Params};
 #[cfg(unix)]
@@ -54,6 +54,19 @@ fn test_check_display_name_handles_regular_and_special_entries() {
         let dotdot = basic_info("..", PathBuf::from("/tmp/.."));
         assert_eq!(check_display_name(&dotdot), BLUE_DOTDOT);
     });
+}
+
+#[test]
+fn test_preserve_synthetic_dot_name_updates_only_dot_entries() {
+    let mut dot = basic_info("normalized", PathBuf::from("."));
+    preserve_synthetic_dot_name(&mut dot, ".");
+    assert_eq!(dot.short_name, ".");
+    assert_eq!(dot.display_name, ".");
+
+    let mut regular = basic_info("regular", PathBuf::from("regular"));
+    preserve_synthetic_dot_name(&mut regular, "other");
+    assert_eq!(regular.short_name, "regular");
+    assert_eq!(regular.display_name, "regular");
 }
 
 #[test]
