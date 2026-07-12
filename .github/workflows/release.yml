@@ -9,10 +9,14 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+permissions: {}
+
 jobs:
   build:
     name: Build ${{ matrix.binary_target }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write # Required to create releases and upload assets.
     env:
       BINARY_NAME: lsp
     strategy:
@@ -31,12 +35,6 @@ jobs:
             binary_target: aarch64-apple-darwin
 
     steps:
-      - name: Monitor GitHub token permissions
-        if: runner.os != 'Windows'
-        uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
-        with:
-          config: ${{ vars.PERMISSIONS_CONFIG }}
-
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:

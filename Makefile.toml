@@ -29,7 +29,7 @@ args = ["deny", "check"]
 [tasks.zizmor]
 description = "Audit GitHub Actions workflows"
 command = "zizmor"
-args = ["--persona=regular", "."]
+args = ["--persona=pedantic", "."]
 
 [tasks.format]
 description = "Check Rust formatting"
