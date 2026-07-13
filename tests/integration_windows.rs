@@ -197,6 +197,7 @@ fn test_windows_short_listing_ignores_attribute_display() {
     let mut default = command_without_config(temp_dir.path());
     default.arg("--no-icons").arg("--no-color").arg(&file);
     let default_output = default.output().unwrap();
+    assert!(default_output.status.success());
 
     let mut compact = command_without_config(temp_dir.path());
     compact
@@ -206,6 +207,7 @@ fn test_windows_short_listing_ignores_attribute_display() {
         .arg("--no-color")
         .arg(&file);
     let compact_output = compact.output().unwrap();
+    assert!(compact_output.status.success());
 
     assert_eq!(compact_output.stdout, default_output.stdout);
 }
