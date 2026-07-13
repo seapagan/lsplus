@@ -857,16 +857,18 @@ fn test_vertical_short_format_options_force_grid_when_redirected() {
 fn test_configured_vertical_short_format_forces_grid_when_redirected() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().join(".config").join("lsplus");
+    let listing_dir = temp_dir.path().join("listing");
     fs::create_dir_all(&config_dir).unwrap();
+    fs::create_dir(&listing_dir).unwrap();
     fs::write(
         config_dir.join("config.toml"),
         "short_format = \"vertical\"\nno_icons = true\nno_color = true\n",
     )
     .unwrap();
-    write_short_grid_fixture(temp_dir.path());
+    write_short_grid_fixture(&listing_dir);
 
     let mut cmd = command_with_home(temp_dir.path());
-    cmd.arg(temp_dir.path());
+    cmd.arg(&listing_dir);
     let (stdout, _stderr) = run_and_capture(&mut cmd);
 
     assert_eq!(stdout.lines().count(), 2);
