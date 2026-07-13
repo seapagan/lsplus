@@ -96,6 +96,17 @@ fn test_load_config_reads_vertical_short_format() {
 }
 
 #[test]
+fn test_load_config_reads_icon_display() {
+    let temp_dir = tempdir().unwrap();
+    let config_path = temp_dir.path().join("config.toml");
+    fs::write(&config_path, "icons = \"always\"\n").unwrap();
+
+    let params = load_config_from_path(Some(config_path));
+
+    assert_eq!(params.icons, crate::IconDisplay::Always);
+}
+
+#[test]
 #[cfg(unix)]
 fn test_load_config_reads_boolean_settings_from_home_config() {
     let temp_dir = tempdir().unwrap();
@@ -150,6 +161,7 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
                     String::from("node_modules"),
                     String::from("__pycache__"),
                 ],
+                icons: crate::IconDisplay::Auto,
                 no_icons: true,
                 no_color: true,
                 permission_colors: false,

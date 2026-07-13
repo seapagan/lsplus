@@ -615,22 +615,61 @@ fn test_tree_prune_dir_keeps_parent_entry_only() {
 }
 
 #[test]
-fn test_no_icons_omits_file_icons() {
+fn test_redirected_short_output_uses_configured_icon_display() {
     let temp_dir = tempdir().unwrap();
     let rust_file = temp_dir.path().join("example.rs");
     fs::write(&rust_file, "fn main() {}").unwrap();
 
-    let mut with_icons = command_with_home(temp_dir.path());
-    with_icons.arg(&rust_file);
-    let (stdout_with_icons, _stderr) = run_and_capture(&mut with_icons);
+    let mut automatic = command_with_home(temp_dir.path());
+    automatic.arg(&rust_file);
+    let (automatic_stdout, _stderr) = run_and_capture(&mut automatic);
 
-    let mut without_icons = command_with_home(temp_dir.path());
-    without_icons.arg("--no-icons").arg(&rust_file);
-    let (stdout_without_icons, _stderr) = run_and_capture(&mut without_icons);
+    let mut always = command_with_home(temp_dir.path());
+    always.arg("--icons=always").arg(&rust_file);
+    let (always_stdout, _stderr) = run_and_capture(&mut always);
 
-    assert!(stdout_with_icons.contains(""));
-    assert!(!stdout_without_icons.contains(""));
-    assert!(stdout_without_icons.contains("example.rs"));
+    let mut never = command_with_home(temp_dir.path());
+    never.arg("--no-icons").arg(&rust_file);
+    let (never_stdout, _stderr) = run_and_capture(&mut never);
+
+    assert!(!automatic_stdout.contains(""));
+    assert!(always_stdout.contains(""));
+    assert!(!never_stdout.contains(""));
+    assert!(never_stdout.contains("example.rs"));
+}
+
+#[test]
+fn test_redirected_long_output_uses_configured_icon_display() {
+    let temp_dir = tempdir().unwrap();
+    let rust_file = temp_dir.path().join("example.rs");
+    fs::write(&rust_file, "fn main() {}").unwrap();
+
+    let mut automatic = command_with_home(temp_dir.path());
+    automatic.arg("-l").arg(&rust_file);
+    let (automatic_stdout, _stderr) = run_and_capture(&mut automatic);
+
+    let mut always = command_with_home(temp_dir.path());
+    always.arg("-l").arg("--icons=always").arg(&rust_file);
+    let (always_stdout, _stderr) = run_and_capture(&mut always);
+
+    assert!(!automatic_stdout.contains(""));
+    assert!(always_stdout.contains(""));
+}
+
+#[test]
+fn test_configured_icons_always_applies_to_redirected_output() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+    let rust_file = temp_dir.path().join("example.rs");
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(config_dir.join("config.toml"), "icons = \"always\"\n").unwrap();
+    fs::write(&rust_file, "fn main() {}").unwrap();
+
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg(&rust_file);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(""));
 }
 
 #[test]
@@ -883,7 +922,10 @@ fn test_long_format_renders_hidden_git_icons() {
     fs::write(&gitignore, "*.log\n").unwrap();
 
     let mut cmd = command_with_home(temp_dir.path());
-    cmd.arg("-l").arg("-a").arg(temp_dir.path());
+    cmd.arg("-l")
+        .arg("-a")
+        .arg("--icons=always")
+        .arg(temp_dir.path());
     let (stdout, _stderr) = run_and_capture(&mut cmd);
 
     let rows: Vec<_> = stdout

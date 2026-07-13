@@ -76,6 +76,32 @@ pub enum ShortFormat {
     Vertical,
 }
 
+/// Controls when file and directory icons are displayed.
+#[derive(
+    Debug, Clone, Copy, Default, Deserialize, PartialEq, Eq, ValueEnum,
+)]
+#[serde(rename_all = "kebab-case")]
+#[value(rename_all = "kebab-case")]
+pub enum IconDisplay {
+    /// Display icons only when stdout is a terminal.
+    #[default]
+    Auto,
+    /// Display icons even when stdout is redirected.
+    Always,
+    /// Never display icons.
+    Never,
+}
+
+impl IconDisplay {
+    fn is_enabled(self, is_terminal: bool) -> bool {
+        match self {
+            Self::Auto => is_terminal,
+            Self::Always => true,
+            Self::Never => false,
+        }
+    }
+}
+
 /// Runtime options after CLI flags and config defaults have been merged.
 #[derive(Debug, PartialEq)]
 pub struct Params {
@@ -107,6 +133,8 @@ pub struct Params {
     pub recursive_level: Option<usize>,
     /// Directory basenames to skip while traversing recursive/tree output.
     pub prune_dirs: Vec<String>,
+    /// Select when file and directory icons are displayed.
+    pub icons: IconDisplay,
     /// Disable file and directory icons.
     pub no_icons: bool,
     /// Disable colored or styled output.
@@ -144,6 +172,7 @@ impl Default for Params {
             tree_level: 2,
             recursive_level: None,
             prune_dirs: Vec::new(),
+            icons: IconDisplay::Auto,
             no_icons: false,
             no_color: false,
             permission_colors: true,
@@ -174,6 +203,7 @@ pub(crate) struct RawParams {
     tree_level: Option<usize>,
     prune_noisy_dirs: bool,
     prune_dirs: Vec<String>,
+    icons: Option<IconDisplay>,
     no_icons: bool,
     no_color: bool,
     permission_colors: Option<bool>,
@@ -246,6 +276,7 @@ impl From<RawParams> for Params {
                 raw.prune_noisy_dirs,
                 raw.prune_dirs,
             ),
+            icons: raw.icons.unwrap_or_default(),
             no_icons: raw.no_icons,
             no_color: raw.no_color,
             permission_colors: raw.permission_colors.unwrap_or(true),
@@ -267,6 +298,13 @@ impl Params {
     /// CLI `--no-*` flags disable long-format accent defaults from config.
     /// Explicit CLI indicator flags override the config indicator style.
     pub fn merge(flags: &cli::Flags, config: &Self) -> Self {
+        let icons = flags.icons.unwrap_or(config.icons);
+        let no_icons = if flags.icons.is_some() {
+            false
+        } else {
+            flags.no_icons || config.no_icons
+        };
+
         Self {
             show_all: flags.show_all || config.show_all,
             indicator_style: flags
@@ -290,7 +328,8 @@ impl Params {
             tree_level: flags.tree_level.unwrap_or(config.tree_level),
             recursive_level: flags.tree_level.or(config.recursive_level),
             prune_dirs: merged_prune_dirs(flags, config),
-            no_icons: flags.no_icons || config.no_icons,
+            icons,
+            no_icons,
             no_color: flags.no_color || config.no_color,
             permission_colors: config.permission_colors
                 && !flags.no_permission_colors,
@@ -301,6 +340,11 @@ impl Params {
             gitignore: flags.gitignore || config.gitignore,
             fuzzy_time: flags.fuzzy_time || config.fuzzy_time,
         }
+    }
+
+    /// Resolve automatic icon display for the active stdout destination.
+    pub(crate) fn resolve_icon_output(&mut self, is_terminal: bool) {
+        self.no_icons = self.no_icons || !self.icons.is_enabled(is_terminal);
     }
 
     /// Return the size scaling mode for long-format output.

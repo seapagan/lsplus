@@ -220,7 +220,7 @@ fn test_long_format_renders_symlink_icon() {
     std::os::unix::fs::symlink(&target, &link).unwrap();
 
     let mut cmd = command_with_home(temp_dir.path());
-    cmd.arg("-l").arg(&link);
+    cmd.arg("-l").arg("--icons=always").arg(&link);
     let (stdout_raw, _stderr) = run_and_capture_raw(&mut cmd);
     let stdout = strip_str(&stdout_raw).to_string();
 

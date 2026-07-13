@@ -37,6 +37,7 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
   permission colors
 - `--no-time-gradient` - Use the fixed long-format timestamp color
 - `--no-size-colors` - Disable long-format large-size colors
+- `--icons=<WHEN>` - Display icons `auto`, `always`, or `never`
 - `--no-icons` - don't show file or folder icons
 - `-V` / `--version` - Print version information and exit
 - `-Z` / `--fuzzy-time` - Show fuzzy time for file modification times
@@ -238,10 +239,13 @@ The `-Z` option shows file modification times in a human-readable format, e.g.
 
 ## Icons
 
-`lsp` shows icons for folders, files, and links. The current mappings cover
-common names and extensions. Open an issue or PR if you want another icon.
+`lsp` shows icons for folders, files, and links when stdout is a terminal. The
+current mappings cover common names and extensions. Open an issue or PR if you
+want another icon.
 
-Disable icons with the `--no-icons` option.
+Redirected output omits icons by default. Use `--icons=always` with a
+Unicode-aware pipe, or disable icons completely with `--icons=never` or
+`--no-icons`.
 
 ## Aliases
 

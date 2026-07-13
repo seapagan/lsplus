@@ -2,7 +2,7 @@ use crate::cli::{
     CompatMode, Flags, format_version_info, try_parse_from_mode, version_info,
 };
 use crate::{
-    IndicatorStyle, ShortFormat,
+    IconDisplay, IndicatorStyle, ShortFormat,
     structs::{AttributeDisplay, PermissionDisplay},
 };
 use clap::error::ErrorKind;
@@ -24,6 +24,7 @@ fn test_default_flags() {
     assert!(args.prune_dirs.is_empty());
     assert_eq!(args.indicator_style, None);
     assert!(!args.dirs_first);
+    assert_eq!(args.icons, None);
     assert!(!args.no_icons);
     assert!(!args.no_color);
     assert!(!args.no_permission_colors);
@@ -269,6 +270,38 @@ fn test_parse_from_mode_accepts_vertical_short_format_options() {
             try_parse_from_mode(mode, ["lsplus", "--format", "vertical"])
                 .unwrap();
         assert_eq!(long.short_format, Some(ShortFormat::Vertical));
+    }
+}
+
+#[test]
+fn test_parse_from_mode_accepts_icon_display_modes() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        for (value, expected) in [
+            ("auto", IconDisplay::Auto),
+            ("always", IconDisplay::Always),
+            ("never", IconDisplay::Never),
+        ] {
+            let flags = try_parse_from_mode(
+                mode,
+                ["lsplus", &format!("--icons={value}")],
+            )
+            .unwrap();
+
+            assert_eq!(flags.icons, Some(expected));
+        }
+    }
+}
+
+#[test]
+fn test_parse_from_mode_rejects_conflicting_icon_options() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let err = try_parse_from_mode(
+            mode,
+            ["lsplus", "--icons=always", "--no-icons"],
+        )
+        .unwrap_err();
+
+        assert_eq!(err.kind(), ErrorKind::ArgumentConflict);
     }
 }
 

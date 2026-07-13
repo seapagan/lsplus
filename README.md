@@ -58,8 +58,10 @@ for your terminal. You can find a great selection of Nerd Fonts from the
 My personal favourite is `MesoLG Nerd Font`, but there are many others to choose
 from. You will also need to set up your terminal to use that font.
 
-If you **DO NOT** want to install a Nerd Font, pass the `--no-icons` switch to
-the program (or `no_icons=true` in the config file).
+Icons are displayed automatically when stdout is a terminal and omitted from
+redirected output. Use `--icons=always` to retain them through a Unicode-aware
+pipe, or `--no-icons` to disable them completely. The equivalent configuration
+values are `icons = "always"` and `icons = "never"`.
 
 ## Installation
 
@@ -142,6 +144,7 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
   permission colors
 - `--no-time-gradient` - Use the fixed long-format timestamp color
 - `--no-size-colors` - Disable long-format large-size colors
+- `--icons=<WHEN>` - Display icons `auto`, `always`, or `never`
 - `--no-icons` - don't show file or folder icons
 - `-V` / `--version` - Print version information and exit
 - `-Z` / `--fuzzy-time` - Show fuzzy time for file modification times
@@ -238,10 +241,13 @@ show the time in a human-readable format, e.g. '2 hours ago', 'yesterday', etc.
 
 ### Icons
 
-`lsp` shows icons for folders, files, and links. The current mappings cover
-common names and extensions. Open an issue or PR if you want another icon.
+`lsp` shows icons for folders, files, and links when stdout is a terminal. The
+current mappings cover common names and extensions. Open an issue or PR if you
+want another icon.
 
-You can disable the icons by using the `--no-icons` option.
+Redirected output omits icons by default. Use `--icons=always` with a
+Unicode-aware pipe, or disable icons completely with `--icons=never` or
+`--no-icons`.
 
 ### Compatibility Mode
 

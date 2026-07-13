@@ -186,12 +186,24 @@ For example:
 prune_dirs = ["target", "dist"]
 ```
 
+### icons
+
+- Permitted values: `"auto"`, `"always"`, or `"never"`
+- Default value: `"auto"`
+
+This option controls icons in short, long, recursive, and tree output. `auto`
+shows icons only when stdout is a terminal, `always` retains them through pipes
+and redirection, and `never` disables them. It corresponds to
+`--icons=auto|always|never`.
+
 ### no_icons
 
 - Permitted values: `true` or `false`
 - Default value: `false`
 
-This option corresponds to `--no-icons` and hides icons when set to `true`.
+This compatibility option corresponds to `--no-icons` and is equivalent to
+`icons = "never"` when set to `true`. An explicit CLI `--icons` value overrides
+the configured `no_icons` value.
 
 ### no_color
 
@@ -307,6 +319,7 @@ human_readable = true
 # tree_level = 2
 # prune_noisy_dirs = true
 # prune_dirs = ["target", "dist"]
+icons = "auto"
 no_color = true
 permission_colors = false
 permissions = "symbolic"
