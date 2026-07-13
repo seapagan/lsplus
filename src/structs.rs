@@ -67,6 +67,15 @@ pub enum AttributeDisplay {
     Minimal,
 }
 
+/// Short-format layouts that can be forced for terminal or redirected output.
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+#[value(rename_all = "kebab-case")]
+pub enum ShortFormat {
+    /// Fill entries down variable-width columns.
+    Vertical,
+}
+
 /// Runtime options after CLI flags and config defaults have been merged.
 #[derive(Debug, PartialEq)]
 pub struct Params {
@@ -80,6 +89,8 @@ pub struct Params {
     pub almost_all: bool,
     /// Render long-format output.
     pub long_format: bool,
+    /// Force a short-format layout instead of selecting one from stdout.
+    pub short_format: Option<ShortFormat>,
     /// Show a title row in long-format output.
     pub header: bool,
     /// Render human-readable file sizes in long format.
@@ -124,6 +135,7 @@ impl Default for Params {
             dirs_first: false,
             almost_all: false,
             long_format: false,
+            short_format: None,
             header: false,
             human_readable: false,
             si: false,
@@ -153,6 +165,7 @@ pub(crate) struct RawParams {
     dirs_first: bool,
     almost_all: bool,
     long_format: bool,
+    short_format: Option<ShortFormat>,
     header: bool,
     human_readable: bool,
     si: bool,
@@ -221,6 +234,7 @@ impl From<RawParams> for Params {
             dirs_first: raw.dirs_first,
             almost_all: raw.almost_all,
             long_format: raw.long_format,
+            short_format: raw.short_format,
             header: raw.header,
             human_readable: raw.human_readable,
             si: raw.si,
@@ -264,6 +278,7 @@ impl Params {
                 || flags.tree
                 || config.long_format
                 || config.tree,
+            short_format: flags.short_format.or(config.short_format),
             header: flags.header || config.header,
             human_readable: flags.si
                 || flags.human_readable

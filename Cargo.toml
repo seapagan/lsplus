@@ -28,6 +28,7 @@ dirs-next = "2.0.0"
 strip-ansi-escapes = "0.2.1"
 unicode-width = "0.2.0"
 ignore = "0.4.25"
+uutils_term_grid = "0.8.0"
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.31.0", features = ["user"] }

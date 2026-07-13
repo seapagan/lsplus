@@ -11,12 +11,14 @@ use std::ffi::OsString;
 
 use crate::{
     IndicatorStyle,
-    structs::{AttributeDisplay, PermissionDisplay},
+    structs::{AttributeDisplay, PermissionDisplay, ShortFormat},
 };
 
 const ARG_SHOW_ALL: &str = "show_all";
 const ARG_ALMOST_ALL: &str = "almost_all";
 const ARG_LONG: &str = "long";
+const ARG_VERTICAL: &str = "vertical";
+const ARG_FORMAT: &str = "format";
 const ARG_HEADER: &str = "header";
 const ARG_HUMAN_READABLE: &str = "human_readable";
 const ARG_SI: &str = "si";
@@ -80,6 +82,8 @@ pub struct Flags {
     pub almost_all: bool,
     /// Render long-format output.
     pub long: bool,
+    /// Force a short-format layout.
+    pub short_format: Option<ShortFormat>,
     /// Show a title row in long-format output.
     pub header: bool,
     /// Render human-readable file sizes in long format.
@@ -183,6 +187,8 @@ fn build_command(mode: CompatMode) -> Command {
         .arg(show_all_arg())
         .arg(almost_all_arg())
         .arg(long_arg())
+        .arg(vertical_arg())
+        .arg(format_arg())
         .arg(header_arg())
         .arg(human_readable_arg())
         .arg(si_arg())
@@ -266,6 +272,21 @@ fn long_arg() -> Arg {
         .long("long")
         .action(ArgAction::SetTrue)
         .help("Display detailed information")
+}
+
+fn vertical_arg() -> Arg {
+    Arg::new(ARG_VERTICAL)
+        .short('C')
+        .action(ArgAction::SetTrue)
+        .help("List entries in columns sorted vertically")
+}
+
+fn format_arg() -> Arg {
+    Arg::new(ARG_FORMAT)
+        .long("format")
+        .value_name("FORMAT")
+        .value_parser(clap::value_parser!(ShortFormat))
+        .help("Select short output format: vertical")
 }
 
 fn header_arg() -> Arg {
@@ -514,6 +535,14 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
         show_all: matches.get_flag(ARG_SHOW_ALL),
         almost_all: matches.get_flag(ARG_ALMOST_ALL),
         long: matches.get_flag(ARG_LONG),
+        short_format: matches
+            .get_one::<ShortFormat>(ARG_FORMAT)
+            .copied()
+            .or_else(|| {
+                matches
+                    .get_flag(ARG_VERTICAL)
+                    .then_some(ShortFormat::Vertical)
+            }),
         header: matches.get_flag(ARG_HEADER),
         human_readable: matches.get_flag(ARG_HUMAN_READABLE),
         si: matches.get_flag(ARG_SI),

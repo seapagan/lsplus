@@ -142,7 +142,7 @@ fn render_listing_sections(
         if params.long_format {
             utils::render::display_long_format(&section.entries, params)?;
         } else {
-            utils::render::display_short_format(&section.entries)?;
+            utils::render::display_short_format(&section.entries, params)?;
         }
     }
 
@@ -261,7 +261,7 @@ fn render_listing_section(
     if params.long_format {
         utils::render::display_long_format(&section.entries, params)?;
     } else {
-        utils::render::display_short_format(&section.entries)?;
+        utils::render::display_short_format(&section.entries, params)?;
     }
 
     *rendered_section = true;
