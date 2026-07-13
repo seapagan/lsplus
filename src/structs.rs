@@ -93,9 +93,9 @@ pub enum IconDisplay {
 }
 
 impl IconDisplay {
-    fn is_enabled(self, is_terminal: bool) -> bool {
+    fn is_enabled(self, is_terminal: bool, is_regular_file: bool) -> bool {
         match self {
-            Self::Auto => is_terminal,
+            Self::Auto => is_terminal || is_regular_file,
             Self::Always => true,
             Self::Never => false,
         }
@@ -343,8 +343,13 @@ impl Params {
     }
 
     /// Resolve automatic icon display for the active stdout destination.
-    pub(crate) fn resolve_icon_output(&mut self, is_terminal: bool) {
-        self.no_icons = self.no_icons || !self.icons.is_enabled(is_terminal);
+    pub(crate) fn resolve_icon_output(
+        &mut self,
+        is_terminal: bool,
+        is_regular_file: bool,
+    ) {
+        self.no_icons = self.no_icons
+            || !self.icons.is_enabled(is_terminal, is_regular_file);
     }
 
     /// Return the size scaling mode for long-format output.

@@ -90,7 +90,10 @@ pub fn run_with_flags_and_config(
             "--tree and --recursive cannot be used together",
         ));
     }
-    params.resolve_icon_output(io::stdout().is_terminal());
+    params.resolve_icon_output(
+        io::stdout().is_terminal(),
+        platform::stdout_is_regular_file(),
+    );
     utils::color::configure_color_output(&params);
     let patterns = patterns_from_args(args.paths);
 

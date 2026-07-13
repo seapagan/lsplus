@@ -17,11 +17,32 @@ use crate::platform::{
 use crate::structs::{AttributeDisplay, NameStyle, Params, PermissionDisplay};
 use crate::utils::format;
 
+/// Return whether stdout currently refers to a regular file.
+pub(crate) fn stdout_is_regular_file() -> bool {
+    let mut metadata = std::mem::MaybeUninit::<nix::libc::stat>::uninit();
+    // SAFETY: `metadata` points to writable storage for `fstat`, and stdout's
+    // process-wide file descriptor may be queried without taking ownership.
+    if unsafe {
+        nix::libc::fstat(nix::libc::STDOUT_FILENO, metadata.as_mut_ptr())
+    } != 0
+    {
+        return false;
+    }
+
+    // SAFETY: a successful `fstat` initialized the complete structure.
+    let mode = mode_bits::as_u32(unsafe { metadata.assume_init() }.st_mode);
+    mode & mode_bits::FILE_TYPE_MASK == mode_bits::REGULAR
+}
+
 #[allow(
     clippy::unnecessary_cast,
     reason = "libc::mode_t is u16 on Apple targets"
 )]
 mod mode_bits {
+    pub(super) fn as_u32(mode: nix::libc::mode_t) -> u32 {
+        mode as u32
+    }
+
     pub(super) const FILE_TYPE_MASK: u32 = nix::libc::S_IFMT as u32;
     pub(super) const FIFO: u32 = nix::libc::S_IFIFO as u32;
     pub(super) const CHAR_DEVICE: u32 = nix::libc::S_IFCHR as u32;

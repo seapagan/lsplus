@@ -3,6 +3,7 @@ use filetime::FileTime;
 use lsplus::settings::CONFIG_FILE_ENV_VAR;
 use lsplus::utils::icons::Icon;
 use std::fs;
+use std::process::Stdio;
 use std::time::{Duration, SystemTime};
 use strip_ansi_escapes::strip_str;
 use tempfile::tempdir;
@@ -11,6 +12,7 @@ mod common;
 
 use common::{
     command_with_home, has_ansi, run_and_capture, run_and_capture_raw,
+    std_command_with_home,
 };
 
 const SHORT_GRID_NAMES: [&str; 6] = [
@@ -654,6 +656,27 @@ fn test_redirected_long_output_uses_configured_icon_display() {
 
     assert!(!automatic_stdout.contains(""));
     assert!(always_stdout.contains(""));
+}
+
+#[test]
+fn test_regular_file_redirection_preserves_icons_in_auto_mode() {
+    let temp_dir = tempdir().unwrap();
+    let rust_file = temp_dir.path().join("example.rs");
+    fs::write(&rust_file, "fn main() {}").unwrap();
+
+    for long_format in [false, true] {
+        let output_path =
+            temp_dir.path().join(format!("output-{long_format}"));
+        let output_file = fs::File::create(&output_path).unwrap();
+        let mut cmd = std_command_with_home(temp_dir.path());
+        if long_format {
+            cmd.arg("-l");
+        }
+        cmd.arg(&rust_file).stdout(Stdio::from(output_file));
+
+        assert!(cmd.status().unwrap().success());
+        assert!(fs::read_to_string(output_path).unwrap().contains(""));
+    }
 }
 
 #[test]

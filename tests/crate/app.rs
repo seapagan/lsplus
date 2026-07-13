@@ -42,19 +42,20 @@ fn default_flags_with_paths(paths: Vec<String>) -> Flags {
 }
 
 #[test]
-fn test_resolve_icon_output_uses_policy_and_terminal_state() {
-    for (icons, is_terminal, expected_no_icons) in [
-        (IconDisplay::Auto, true, false),
-        (IconDisplay::Auto, false, true),
-        (IconDisplay::Always, false, false),
-        (IconDisplay::Never, true, true),
+fn test_resolve_icon_output_uses_policy_and_destination() {
+    for (icons, is_terminal, is_regular_file, expected_no_icons) in [
+        (IconDisplay::Auto, true, false, false),
+        (IconDisplay::Auto, false, true, false),
+        (IconDisplay::Auto, false, false, true),
+        (IconDisplay::Always, false, false, false),
+        (IconDisplay::Never, true, true, true),
     ] {
         let mut params = Params {
             icons,
             ..Params::default()
         };
 
-        params.resolve_icon_output(is_terminal);
+        params.resolve_icon_output(is_terminal, is_regular_file);
 
         assert_eq!(params.no_icons, expected_no_icons);
     }

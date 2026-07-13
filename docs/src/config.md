@@ -192,9 +192,9 @@ prune_dirs = ["target", "dist"]
 - Default value: `"auto"`
 
 This option controls icons in short, long, recursive, and tree output. `auto`
-shows icons only when stdout is a terminal, `always` retains them through pipes
-and redirection, and `never` disables them. It corresponds to
-`--icons=auto|always|never`.
+shows icons when stdout is a terminal or regular file but omits them from
+pipes, `always` retains them everywhere, and `never` disables them. It
+corresponds to `--icons=auto|always|never`.
 
 ### no_icons
 

@@ -58,10 +58,10 @@ for your terminal. You can find a great selection of Nerd Fonts from the
 My personal favourite is `MesoLG Nerd Font`, but there are many others to choose
 from. You will also need to set up your terminal to use that font.
 
-Icons are displayed automatically when stdout is a terminal and omitted from
-redirected output. Use `--icons=always` to retain them through a Unicode-aware
-pipe, or `--no-icons` to disable them completely. The equivalent configuration
-values are `icons = "always"` and `icons = "never"`.
+Icons are displayed automatically when stdout is a terminal or a regular file,
+and omitted from pipes. Use `--icons=always` to retain them through a
+Unicode-aware pipe, or `--no-icons` to disable them completely. The equivalent
+configuration values are `icons = "always"` and `icons = "never"`.
 
 ## Installation
 
@@ -245,9 +245,9 @@ show the time in a human-readable format, e.g. '2 hours ago', 'yesterday', etc.
 current mappings cover common names and extensions. Open an issue or PR if you
 want another icon.
 
-Redirected output omits icons by default. Use `--icons=always` with a
-Unicode-aware pipe, or disable icons completely with `--icons=never` or
-`--no-icons`.
+Piped output omits icons by default, while redirection to a regular file keeps
+them. Use `--icons=always` with a Unicode-aware pipe, or disable icons
+completely with `--icons=never` or `--no-icons`.
 
 ### Compatibility Mode
 

@@ -243,9 +243,9 @@ The `-Z` option shows file modification times in a human-readable format, e.g.
 current mappings cover common names and extensions. Open an issue or PR if you
 want another icon.
 
-Redirected output omits icons by default. Use `--icons=always` with a
-Unicode-aware pipe, or disable icons completely with `--icons=never` or
-`--no-icons`.
+Piped output omits icons by default, while redirection to a regular file keeps
+them. Use `--icons=always` with a Unicode-aware pipe, or disable icons
+completely with `--icons=never` or `--no-icons`.
 
 ## Aliases
 

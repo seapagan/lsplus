@@ -1,7 +1,7 @@
 use assert_cmd::Command;
 use lsplus::settings::CONFIG_FILE_ENV_VAR;
 use std::path::Path;
-use std::process::Output;
+use std::process::{Command as StdCommand, Output};
 use strip_ansi_escapes::strip_str;
 
 fn run_and_assert(cmd: &mut Command) -> Output {
@@ -30,7 +30,11 @@ pub(crate) fn run_and_capture_raw(cmd: &mut Command) -> (String, String) {
 }
 
 pub(crate) fn command_with_home(home: &Path) -> Command {
-    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    Command::from_std(std_command_with_home(home))
+}
+
+pub(crate) fn std_command_with_home(home: &Path) -> StdCommand {
+    let mut cmd = StdCommand::new(assert_cmd::cargo::cargo_bin("lsp"));
     cmd.env("HOME", home).env(
         CONFIG_FILE_ENV_VAR,
         home.join(".config").join("lsplus").join("config.toml"),

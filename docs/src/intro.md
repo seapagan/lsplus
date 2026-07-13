@@ -19,6 +19,6 @@ Install a Nerd Font in your terminal to display folder and file icons. The
 My personal favourite is `MesoLG Nerd Font`. Configure your terminal to use the
 font after installing it.
 
-Icons are displayed automatically when stdout is a terminal and omitted from
-redirected output. Use `--icons=always` to retain them through a Unicode-aware
-pipe, or `--no-icons` to disable them completely.
+Icons are displayed automatically when stdout is a terminal or a regular file,
+and omitted from pipes. Use `--icons=always` to retain them through a
+Unicode-aware pipe, or `--no-icons` to disable them completely.

@@ -7,6 +7,7 @@ use std::fs;
 use std::io;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::os::windows::fs::{FileTypeExt, MetadataExt};
+use std::os::windows::io::AsRawHandle;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::time::SystemTime;
@@ -21,7 +22,8 @@ use windows_sys::Win32::Storage::FileSystem::{
     FILE_ATTRIBUTE_PINNED, FILE_ATTRIBUTE_READONLY,
     FILE_ATTRIBUTE_REPARSE_POINT, FILE_ATTRIBUTE_SPARSE_FILE,
     FILE_ATTRIBUTE_SYSTEM, FILE_ATTRIBUTE_TEMPORARY, FILE_ATTRIBUTE_UNPINNED,
-    FILE_ATTRIBUTE_VIRTUAL, FindClose, FindFirstFileW, WIN32_FIND_DATAW,
+    FILE_ATTRIBUTE_VIRTUAL, FILE_TYPE_DISK, FindClose, FindFirstFileW,
+    GetFileType, WIN32_FIND_DATAW,
 };
 
 use crate::platform::{
@@ -29,6 +31,14 @@ use crate::platform::{
     LongFormatLayout, LongFormatLayoutOptions,
 };
 use crate::structs::{AttributeDisplay, NameStyle, Params, PermissionDisplay};
+
+/// Return whether stdout currently refers to a regular disk file.
+pub(crate) fn stdout_is_regular_file() -> bool {
+    let handle = io::stdout().as_raw_handle();
+    // SAFETY: the borrowed stdout handle remains valid for the duration of the
+    // call, and `GetFileType` does not take ownership of it.
+    unsafe { GetFileType(handle) == FILE_TYPE_DISK }
+}
 
 const FILE_ATTRIBUTE_NO_SCRUB_DATA: u32 = 0x0002_0000;
 const FILE_ATTRIBUTE_EA: u32 = 0x0004_0000;
