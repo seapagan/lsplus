@@ -1,5 +1,6 @@
 use assert_cmd::Command;
 use filetime::FileTime;
+use lsplus::settings::CONFIG_FILE_ENV_VAR;
 use lsplus::utils::icons::Icon;
 use std::fs;
 use std::time::{Duration, SystemTime};
@@ -67,6 +68,24 @@ fn test_config_file() {
 
     let mut cmd = command_with_home(temp_dir.path());
     cmd.assert().success(); // Should use default params when config is invalid
+}
+
+#[test]
+fn test_config_file_env_override_loads_explicit_path() {
+    let temp_dir = tempdir().unwrap();
+    let config_path = temp_dir.path().join("override.toml");
+    let file_path = temp_dir.path().join("configured.txt");
+    fs::write(&config_path, "long_format = true\nheader = true\n").unwrap();
+    fs::write(&file_path, "configured").unwrap();
+
+    let mut cmd = Command::cargo_bin("lsp").unwrap();
+    cmd.env(CONFIG_FILE_ENV_VAR, &config_path)
+        .arg("--no-icons")
+        .arg(&file_path);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.lines().next().unwrap().contains("Name"));
+    assert!(stdout.contains("configured.txt"));
 }
 
 #[test]
@@ -1098,7 +1117,6 @@ fn test_invalid_env_compat_mode_fails_startup() {
 }
 
 #[test]
-#[cfg(unix)]
 fn test_invalid_config_compat_mode_fails_startup() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().join(".config").join("lsplus");

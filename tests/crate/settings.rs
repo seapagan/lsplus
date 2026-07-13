@@ -2,20 +2,46 @@ use crate::Params;
 use crate::cli::CompatMode;
 #[cfg(unix)]
 use crate::settings::config_path_from_home;
+#[cfg(unix)]
+use crate::settings::load_config;
 use crate::settings::{
-    StartupConfig, load_config, load_config_from_path,
-    load_startup_config_from,
+    StartupConfig, load_config_from_path, load_startup_config_from,
+    resolve_config_path,
 };
 #[cfg(unix)]
-use crate::{IndicatorStyle, structs::PermissionDisplay};
+use crate::{
+    IndicatorStyle,
+    structs::{AttributeDisplay, PermissionDisplay},
+};
+use std::ffi::OsString;
 use std::fs;
-#[cfg(unix)]
 use std::path::PathBuf;
 use tempfile::tempdir;
 
 #[test]
 fn test_load_config_returns_default_when_path_is_missing() {
     assert_eq!(load_config_from_path(None), Params::default());
+}
+
+#[test]
+fn test_config_path_override_precedes_default() {
+    let default = PathBuf::from("default.toml");
+
+    assert_eq!(
+        resolve_config_path(
+            Some(OsString::from("override.toml")),
+            Some(default.clone()),
+        ),
+        Some(PathBuf::from("override.toml"))
+    );
+    assert_eq!(
+        resolve_config_path(None, Some(default.clone())),
+        Some(default.clone())
+    );
+    assert_eq!(
+        resolve_config_path(Some(OsString::new()), Some(default.clone())),
+        Some(default)
+    );
 }
 
 #[test]
@@ -31,10 +57,9 @@ fn test_config_path_from_home_handles_some_and_none() {
 #[test]
 fn test_load_config_returns_default_when_config_is_missing() {
     let temp_dir = tempdir().unwrap();
+    let config_path = temp_dir.path().join("config.toml");
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        assert_eq!(load_config(), Params::default());
-    });
+    assert_eq!(load_config_from_path(Some(config_path)), Params::default());
 }
 
 #[test]
@@ -42,12 +67,10 @@ fn test_load_config_returns_default_when_config_is_invalid() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().join(".config").join("lsplus");
     fs::create_dir_all(&config_dir).unwrap();
-    fs::write(config_dir.join("config.toml"), "invalid = toml [ content")
-        .unwrap();
+    let config_path = config_dir.join("config.toml");
+    fs::write(&config_path, "invalid = toml [ content").unwrap();
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        assert_eq!(load_config(), Params::default());
-    });
+    assert_eq!(load_config_from_path(Some(config_path)), Params::default());
 }
 
 #[test]
@@ -55,11 +78,10 @@ fn test_load_config_returns_default_when_deserialization_fails() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().join(".config").join("lsplus");
     fs::create_dir_all(&config_dir).unwrap();
-    fs::write(config_dir.join("config.toml"), "show_all = \"yes\"\n").unwrap();
+    let config_path = config_dir.join("config.toml");
+    fs::write(&config_path, "show_all = \"yes\"\n").unwrap();
 
-    temp_env::with_var("HOME", Some(temp_dir.path()), || {
-        assert_eq!(load_config(), Params::default());
-    });
+    assert_eq!(load_config_from_path(Some(config_path)), Params::default());
 }
 
 #[test]
@@ -120,6 +142,7 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
                 no_color: true,
                 permission_colors: false,
                 permissions: PermissionDisplay::Symbolic,
+                attributes: AttributeDisplay::Long,
                 time_gradient: false,
                 size_colors: false,
                 gitignore: true,

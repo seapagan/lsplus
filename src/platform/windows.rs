@@ -28,7 +28,7 @@ use crate::platform::{
     EntryClassification, FileDetails, LongColumn, LongFormatFileType,
     LongFormatLayout, LongFormatLayoutOptions,
 };
-use crate::structs::{NameStyle, Params, PermissionDisplay};
+use crate::structs::{AttributeDisplay, NameStyle, Params, PermissionDisplay};
 
 const FILE_ATTRIBUTE_NO_SCRUB_DATA: u32 = 0x0002_0000;
 const FILE_ATTRIBUTE_EA: u32 = 0x0004_0000;
@@ -40,24 +40,34 @@ const NT_PATH_PREFIX: &[u16] = &[92, 63, 63, 92];
 const UNC_PATH_PREFIX: &[u16] = &[92, 92];
 const UNC_PATH_REMAINDER_PREFIX: &[u16] = &[85, 78, 67, 92];
 const EXTENDED_UNC_PATH_PREFIX: &[u16] = &[92, 92, 63, 92, 85, 78, 67, 92];
-const KNOWN_ATTRIBUTES: &[(u32, &str)] = &[
-    (FILE_ATTRIBUTE_READONLY, "ReadOnly"),
-    (FILE_ATTRIBUTE_HIDDEN, "Hidden"),
-    (FILE_ATTRIBUTE_SYSTEM, "System"),
-    (FILE_ATTRIBUTE_ARCHIVE, "Archive"),
-    (FILE_ATTRIBUTE_TEMPORARY, "Temporary"),
-    (FILE_ATTRIBUTE_SPARSE_FILE, "Sparse"),
-    (FILE_ATTRIBUTE_COMPRESSED, "Compressed"),
-    (FILE_ATTRIBUTE_OFFLINE, "Offline"),
-    (FILE_ATTRIBUTE_NOT_CONTENT_INDEXED, "NotIndexed"),
-    (FILE_ATTRIBUTE_ENCRYPTED, "Encrypted"),
-    (FILE_ATTRIBUTE_INTEGRITY_STREAM, "IntegrityStream"),
-    (FILE_ATTRIBUTE_VIRTUAL, "Virtual"),
-    (FILE_ATTRIBUTE_NO_SCRUB_DATA, "NoScrubData"),
-    (FILE_ATTRIBUTE_EA, "EA"),
-    (FILE_ATTRIBUTE_PINNED, "Pinned"),
-    (FILE_ATTRIBUTE_UNPINNED, "Unpinned"),
-    (FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS, "RecallOnDataAccess"),
+const KNOWN_ATTRIBUTES: &[(u32, &str, char)] = &[
+    (FILE_ATTRIBUTE_READONLY, "ReadOnly", 'R'),
+    (FILE_ATTRIBUTE_HIDDEN, "Hidden", 'H'),
+    (FILE_ATTRIBUTE_SYSTEM, "System", 'S'),
+    (FILE_ATTRIBUTE_ARCHIVE, "Archive", 'A'),
+    (FILE_ATTRIBUTE_TEMPORARY, "Temporary", 'T'),
+    (FILE_ATTRIBUTE_SPARSE_FILE, "Sparse", 'P'),
+    (FILE_ATTRIBUTE_COMPRESSED, "Compressed", 'C'),
+    (FILE_ATTRIBUTE_OFFLINE, "Offline", 'O'),
+    (FILE_ATTRIBUTE_NOT_CONTENT_INDEXED, "NotIndexed", 'N'),
+    (FILE_ATTRIBUTE_ENCRYPTED, "Encrypted", 'E'),
+    (FILE_ATTRIBUTE_INTEGRITY_STREAM, "IntegrityStream", 'I'),
+    (FILE_ATTRIBUTE_VIRTUAL, "Virtual", 'V'),
+    (FILE_ATTRIBUTE_NO_SCRUB_DATA, "NoScrubData", 'B'),
+    (FILE_ATTRIBUTE_EA, "EA", 'X'),
+    (FILE_ATTRIBUTE_PINNED, "Pinned", 'Q'),
+    (FILE_ATTRIBUTE_UNPINNED, "Unpinned", 'G'),
+    (
+        FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS,
+        "RecallOnDataAccess",
+        'F',
+    ),
+];
+const MINIMAL_ATTRIBUTES: &[(u32, char)] = &[
+    (FILE_ATTRIBUTE_READONLY, 'R'),
+    (FILE_ATTRIBUTE_HIDDEN, 'H'),
+    (FILE_ATTRIBUTE_SYSTEM, 'S'),
+    (FILE_ATTRIBUTE_ARCHIVE, 'A'),
 ];
 const KNOWN_ATTRIBUTE_MASK: u32 = FILE_ATTRIBUTE_READONLY
     | FILE_ATTRIBUTE_HIDDEN
@@ -169,10 +179,11 @@ pub(crate) fn file_details(
     _path: &Path,
     metadata: &fs::Metadata,
     classification: EntryClassification,
+    attribute_display: AttributeDisplay,
 ) -> FileDetails {
     FileDetails {
         file_type: classification.file_type.as_char().to_string(),
-        mode: attribute_text(metadata.file_attributes()),
+        mode: attribute_text(metadata.file_attributes(), attribute_display),
         mode_bits: 0,
         nlink: 0,
         size: metadata.len(),
@@ -382,14 +393,25 @@ pub(crate) fn parse_pathext(value: &str) -> HashSet<String> {
         .collect()
 }
 
-pub(crate) fn attribute_text(attributes: u32) -> String {
+pub(crate) fn attribute_text(
+    attributes: u32,
+    display: AttributeDisplay,
+) -> String {
+    match display {
+        AttributeDisplay::Long => long_attribute_text(attributes),
+        AttributeDisplay::Short => short_attribute_text(attributes),
+        AttributeDisplay::Minimal => minimal_attribute_text(attributes),
+    }
+}
+
+fn long_attribute_text(attributes: u32) -> String {
     let mut values = KNOWN_ATTRIBUTES
         .iter()
-        .filter_map(|(flag, name)| {
+        .filter_map(|(flag, name, _)| {
             (attributes & flag != 0).then_some((*name).to_string())
         })
         .collect::<Vec<_>>();
-    let unknown = attributes & !KNOWN_ATTRIBUTE_MASK;
+    let unknown = unknown_attribute_bits(attributes);
     if unknown != 0 {
         values.push(format!("Unknown(0x{unknown:08X})"));
     }
@@ -398,6 +420,38 @@ pub(crate) fn attribute_text(attributes: u32) -> String {
     } else {
         values.join(", ")
     }
+}
+
+fn short_attribute_text(attributes: u32) -> String {
+    let positions = KNOWN_ATTRIBUTES
+        .iter()
+        .map(|(flag, _, letter)| (*flag, *letter));
+    compact_attribute_text(attributes, positions)
+}
+
+fn minimal_attribute_text(attributes: u32) -> String {
+    compact_attribute_text(attributes, MINIMAL_ATTRIBUTES.iter().copied())
+}
+
+fn compact_attribute_text(
+    attributes: u32,
+    positions: impl IntoIterator<Item = (u32, char)>,
+) -> String {
+    let mut value = positions
+        .into_iter()
+        .map(
+            |(flag, letter)| if attributes & flag != 0 { letter } else { '-' },
+        )
+        .collect::<String>();
+    let unknown = unknown_attribute_bits(attributes);
+    if unknown != 0 {
+        value.push_str(&format!(" Unknown(0x{unknown:08X})"));
+    }
+    value
+}
+
+fn unknown_attribute_bits(attributes: u32) -> u32 {
+    attributes & !KNOWN_ATTRIBUTE_MASK
 }
 
 #[cfg(test)]

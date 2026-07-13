@@ -1,7 +1,10 @@
 use crate::cli::{
     CompatMode, Flags, format_version_info, try_parse_from_mode, version_info,
 };
-use crate::{IndicatorStyle, structs::PermissionDisplay};
+use crate::{
+    IndicatorStyle,
+    structs::{AttributeDisplay, PermissionDisplay},
+};
 use clap::error::ErrorKind;
 
 #[test]
@@ -24,6 +27,7 @@ fn test_default_flags() {
     assert!(!args.no_color);
     assert!(!args.no_permission_colors);
     assert_eq!(args.permissions, None);
+    assert_eq!(args.attributes, None);
     assert!(!args.no_time_gradient);
     assert!(!args.no_size_colors);
     assert!(!args.gitignore);
@@ -321,6 +325,34 @@ fn test_parse_from_mode_rejects_invalid_permission_display_mode() {
     for mode in [CompatMode::Native, CompatMode::Gnu] {
         let err =
             try_parse_from_mode(mode, ["lsplus", "--permissions", "wide"])
+                .unwrap_err();
+
+        assert_eq!(err.kind(), ErrorKind::InvalidValue);
+    }
+}
+
+#[test]
+fn test_parse_from_mode_accepts_attribute_display_modes() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        for (value, expected) in [
+            ("long", AttributeDisplay::Long),
+            ("short", AttributeDisplay::Short),
+            ("minimal", AttributeDisplay::Minimal),
+        ] {
+            let args =
+                try_parse_from_mode(mode, ["lsplus", "--attributes", value])
+                    .unwrap();
+
+            assert_eq!(args.attributes, Some(expected));
+        }
+    }
+}
+
+#[test]
+fn test_parse_from_mode_rejects_invalid_attribute_display_mode() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let err =
+            try_parse_from_mode(mode, ["lsplus", "--attributes", "wide"])
                 .unwrap_err();
 
         assert_eq!(err.kind(), ErrorKind::InvalidValue);

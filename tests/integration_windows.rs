@@ -1,6 +1,7 @@
 #![cfg(windows)]
 
 use assert_cmd::Command;
+use lsplus::settings::CONFIG_FILE_ENV_VAR;
 use predicates::prelude::*;
 use std::fs;
 use std::process::Command as ProcessCommand;
@@ -32,6 +33,12 @@ fn command_path(path: &std::path::Path) -> String {
     path.strip_prefix(r"\\?\").unwrap_or(&path).to_string()
 }
 
+fn command_without_config(root: &std::path::Path) -> Command {
+    let mut command = Command::cargo_bin("lsp").unwrap();
+    command.env(CONFIG_FILE_ENV_VAR, root.join("missing-config.toml"));
+    command
+}
+
 #[test]
 fn test_windows_all_does_not_synthesize_dot_entries() {
     let temp_dir = tempdir().unwrap();
@@ -60,7 +67,7 @@ fn test_windows_hidden_attribute_requires_all() {
             .success()
     );
 
-    let mut default_listing = Command::cargo_bin("lsp").unwrap();
+    let mut default_listing = command_without_config(temp_dir.path());
     default_listing
         .arg("--no-icons")
         .arg(temp_dir.path())
@@ -68,7 +75,7 @@ fn test_windows_hidden_attribute_requires_all() {
         .success()
         .stdout(predicate::str::contains("hidden.txt").not());
 
-    let mut all_listing = Command::cargo_bin("lsp").unwrap();
+    let mut all_listing = command_without_config(temp_dir.path());
     all_listing
         .arg("--all")
         .arg("--no-icons")
@@ -123,6 +130,108 @@ fn test_windows_long_permissions_octal_is_rejected_only_in_long_mode() {
         .stderr(predicate::str::contains(
             "Windows does not support octal permission display",
         ));
+}
+
+#[test]
+fn test_windows_long_short_attributes_uses_compact_field() {
+    let temp_dir = tempdir().unwrap();
+    let file = temp_dir.path().join("sample.txt");
+    fs::write(&file, "sample").unwrap();
+
+    let mut command = command_without_config(temp_dir.path());
+    let output = command
+        .arg("--long")
+        .arg("--attributes")
+        .arg("short")
+        .arg("--no-icons")
+        .arg("--no-color")
+        .arg(&file)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let compact = stdout
+        .split_whitespace()
+        .find(|field| {
+            field.chars().count() == 17
+                && field
+                    .chars()
+                    .all(|character| "RHSATPCONEIVBXQGF-".contains(character))
+        })
+        .unwrap_or_else(|| {
+            panic!("missing compact attribute field in output: {stdout}")
+        });
+
+    assert_eq!(compact.chars().count(), 17);
+    assert!(stdout.contains("sample.txt"));
+}
+
+#[test]
+fn test_windows_long_minimal_attributes_uses_short_header() {
+    let temp_dir = tempdir().unwrap();
+    let file = temp_dir.path().join("sample.txt");
+    fs::write(&file, "sample").unwrap();
+
+    let mut command = command_without_config(temp_dir.path());
+    command
+        .arg("--long")
+        .arg("--header")
+        .arg("--attributes")
+        .arg("minimal")
+        .arg("--no-icons")
+        .arg("--no-color")
+        .arg(&file)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Attr"))
+        .stdout(predicate::str::contains("Attributes").not())
+        .stdout(predicate::str::contains("sample.txt"));
+}
+
+#[test]
+fn test_windows_short_listing_ignores_attribute_display() {
+    let temp_dir = tempdir().unwrap();
+    let file = temp_dir.path().join("sample.txt");
+    fs::write(&file, "sample").unwrap();
+
+    let mut default = command_without_config(temp_dir.path());
+    default.arg("--no-icons").arg("--no-color").arg(&file);
+    let default_output = default.output().unwrap();
+    assert!(default_output.status.success());
+
+    let mut compact = command_without_config(temp_dir.path());
+    compact
+        .arg("--attributes")
+        .arg("short")
+        .arg("--no-icons")
+        .arg("--no-color")
+        .arg(&file);
+    let compact_output = compact.output().unwrap();
+    assert!(compact_output.status.success());
+
+    assert_eq!(compact_output.stdout, default_output.stdout);
+}
+
+#[test]
+fn test_windows_permissions_none_omits_minimal_attributes() {
+    let temp_dir = tempdir().unwrap();
+    let file = temp_dir.path().join("sample.txt");
+    fs::write(&file, "sample").unwrap();
+
+    let mut command = command_without_config(temp_dir.path());
+    command
+        .arg("--long")
+        .arg("--header")
+        .arg("--permissions")
+        .arg("none")
+        .arg("--attributes")
+        .arg("minimal")
+        .arg("--no-icons")
+        .arg("--no-color")
+        .arg(&file)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Attr").not());
 }
 
 #[test]

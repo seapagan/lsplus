@@ -9,8 +9,11 @@ Configure `lsplus` with a **`TOML`** file at:
 The configuration file is optional. `lsplus` uses default settings when the file
 does not exist.
 
+Set `LSP_CONFIG_FILE` to a non-empty path to use that file instead of the
+platform default. An unset or empty value keeps the normal platform path.
+
 `lsplus` also supports an `LSP_COMPAT_MODE` environment variable. When set, it
-overrides the `compat_mode` value from the config file.
+overrides the `compat_mode` value from the selected config file.
 
 ## Available Options
 
@@ -212,6 +215,28 @@ On Windows, `symbolic` shows a readable file-attribute column instead. `octal`
 and `both` are unsupported when long format is active; use `symbolic` or
 `none`.
 
+### attributes
+
+- Permitted values: `long`, `short`, or `minimal`
+- Default value: `long`
+
+This option corresponds to `--attributes` and controls text in the Windows
+long-format `Attributes` column. `long` shows readable attribute names. `short`
+shows a fixed-position 17-character prefix in `RHSATPCONEIVBXQGF` order, with
+unset positions rendered as `-`. Residual unknown bits append an
+`Unknown(0xXXXXXXXX)` suffix.
+
+`minimal` shows the fixed four-character `RHSA` field and uses `Attr` as the
+column header. Other known attributes are omitted, while genuinely unknown
+bits still append the same suffix.
+
+The `X` position represents `EA`, including the aliased `RecallOnOpen` bit, and
+`F` represents `RecallOnDataAccess`. `permissions = "none"` omits the Windows
+attribute column regardless of this setting. The setting has no effect on
+short-format output and is accepted but ignored on Linux and macOS.
+See [Windows attribute characters](usage.md#windows-attribute-characters) for
+the complete short-field mapping.
+
 ### time_gradient
 
 - Permitted values: `true` or `false`
@@ -274,6 +299,7 @@ human_readable = true
 no_color = true
 permission_colors = false
 permissions = "symbolic"
+attributes = "long"
 time_gradient = false
 size_colors = false
 fuzzy_time = true

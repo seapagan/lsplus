@@ -21,6 +21,7 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `--header` - Show a title row in long-format output
 - `--permissions <MODE>` - Select long-format permission display:
   `symbolic`, `octal`, `both`, or `none`
+- `--attributes <MODE>` - Select `long`, `short`, or `minimal` Windows attribute display
 - `-h` / `--human-readable` - Human readable file sizes using powers of 1024
 - `--si` - Human readable file sizes using powers of 1000
 - `-R` / `--recursive` - List subdirectories recursively
@@ -115,13 +116,59 @@ piped, and redirected output is plain by default. You can also disable styled
 output explicitly with `--no-color`, `no_color = true` in the config file, or
 the `NO_COLOR` environment variable.
 
+Set `LSP_CONFIG_FILE` to a non-empty path to override the platform-default
+config file. An unset or empty value keeps the normal platform path.
+
 Long-format output shows symbolic permissions by default. Use
 `--permissions octal` to replace them with octal permission bits,
 `--permissions both` to add octal bits after the symbolic field, or
 `--permissions none` to omit permission fields.
 
 On Windows, long format shows native file attributes for `symbolic` display.
-`octal` and `both` are unsupported with long output; use `symbolic` or `none`.
+`--attributes long` is the default and shows readable names.
+`--attributes short` uses a fixed-position 17-character prefix in
+`RHSATPCONEIVBXQGF` order. Residual unknown bits append an
+`Unknown(0xXXXXXXXX)` suffix. The `X` position represents `EA`, including the
+aliased `RecallOnOpen` bit, and `F` represents `RecallOnDataAccess`.
+`--attributes minimal` shows only the classic `RHSA` attributes and uses
+`Attr` as the column header.
+
+## Windows attribute characters
+
+In `short` and `minimal` modes, each position always represents the same
+attribute. A letter means that the attribute is set; `-` means that it is not
+set. Minimal mode uses the first four positions (`RHSA`) from the short field.
+
+| Character | Attribute | Meaning |
+|-----------|-----------|---------|
+| `R` | Read-only | The file should not normally be modified. |
+| `H` | Hidden | The file is hidden from ordinary directory listings. |
+| `S` | System | The file is used by the operating system. |
+| `A` | Archive | The file has changed since it was last backed up. |
+| `T` | Temporary | The file is intended for temporary storage. |
+| `P` | Sparse | The file uses sparse-file storage. |
+| `C` | Compressed | Filesystem compression is enabled. |
+| `O` | Offline | The file's contents are not immediately available. |
+| `N` | Not indexed | The file is excluded from content indexing. |
+| `E` | Encrypted | Filesystem encryption is enabled. |
+| `I` | Integrity stream | Integrity checking is enabled. |
+| `V` | Virtual | The file has the reserved virtual attribute. |
+| `B` | No scrub data | The file is excluded from integrity scrubbing. |
+| `X` | Extended attributes | The file contains extended attributes (`EA`). |
+| `Q` | Pinned | The file is kept locally available. |
+| `G` | Unpinned | The file is not kept locally available. |
+| `F` | Recall on data access | The contents may be recalled when accessed. |
+
+For example, `R--A-------------` means read-only and archive are set. The
+fixed positions make fields directly comparable even when attributes differ.
+In long mode, the `X` attribute is shown as `EA`. Unknown attribute bits are
+reported separately after the fixed field.
+
+`--permissions none` omits the column; `octal` and `both` remain unsupported
+with Windows long output.
+
+The attribute setting has no effect on short-format output. It is accepted but
+ignored on Linux and macOS, where permission rendering remains unchanged.
 
 Use `--header` with long-format output to add a title row for the active
 columns. It has no effect on short output. In the config file, set

@@ -14,7 +14,7 @@ use crate::platform::{
     EntryClassification, FileDetails, LongColumn, LongFormatFileType,
     LongFormatLayout, LongFormatLayoutOptions,
 };
-use crate::structs::{NameStyle, Params, PermissionDisplay};
+use crate::structs::{AttributeDisplay, NameStyle, Params, PermissionDisplay};
 use crate::utils::format;
 
 #[allow(
@@ -85,6 +85,7 @@ pub(crate) fn file_details(
     _path: &Path,
     metadata: &fs::Metadata,
     classification: EntryClassification,
+    _attribute_display: AttributeDisplay,
 ) -> FileDetails {
     let file_type = classification.file_type.as_char().to_string();
 

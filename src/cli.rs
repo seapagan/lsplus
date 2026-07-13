@@ -9,7 +9,10 @@ use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::env;
 use std::ffi::OsString;
 
-use crate::{IndicatorStyle, structs::PermissionDisplay};
+use crate::{
+    IndicatorStyle,
+    structs::{AttributeDisplay, PermissionDisplay},
+};
 
 const ARG_SHOW_ALL: &str = "show_all";
 const ARG_ALMOST_ALL: &str = "almost_all";
@@ -33,6 +36,7 @@ const ARG_NO_ICONS: &str = "no_icons";
 const ARG_NO_COLOR: &str = "no_color";
 const ARG_NO_PERMISSION_COLORS: &str = "no_permission_colors";
 const ARG_PERMISSIONS: &str = "permissions";
+const ARG_ATTRIBUTES: &str = "attributes";
 const ARG_NO_TIME_GRADIENT: &str = "no_time_gradient";
 const ARG_NO_SIZE_COLORS: &str = "no_size_colors";
 const ARG_GITIGNORE: &str = "gitignore";
@@ -106,6 +110,8 @@ pub struct Flags {
     pub no_permission_colors: bool,
     /// Override long-format permission display mode.
     pub permissions: Option<PermissionDisplay>,
+    /// Override the Windows file-attribute display mode.
+    pub attributes: Option<AttributeDisplay>,
     /// Use the fixed timestamp color instead of age-based colors.
     pub no_time_gradient: bool,
     /// Disable large-size colors in long-format output.
@@ -194,6 +200,7 @@ fn build_command(mode: CompatMode) -> Command {
         .arg(no_color_arg(mode))
         .arg(no_permission_colors_arg())
         .arg(permissions_arg())
+        .arg(attributes_arg())
         .arg(no_time_gradient_arg())
         .arg(no_size_colors_arg())
         .arg(gitignore_arg(mode))
@@ -442,6 +449,15 @@ fn permissions_arg() -> Arg {
         .help("Select long-format permission display: symbolic, octal, both, or none")
 }
 
+fn attributes_arg() -> Arg {
+    Arg::new(ARG_ATTRIBUTES)
+        .long("attributes")
+        .action(ArgAction::Set)
+        .value_name("MODE")
+        .value_parser(clap::value_parser!(AttributeDisplay))
+        .help("Select Windows attribute display: long, short, or minimal")
+}
+
 fn no_time_gradient_arg() -> Arg {
     Arg::new(ARG_NO_TIME_GRADIENT)
         .long("no-time-gradient")
@@ -520,6 +536,9 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
         no_permission_colors: matches.get_flag(ARG_NO_PERMISSION_COLORS),
         permissions: matches
             .get_one::<PermissionDisplay>(ARG_PERMISSIONS)
+            .copied(),
+        attributes: matches
+            .get_one::<AttributeDisplay>(ARG_ATTRIBUTES)
             .copied(),
         no_time_gradient: matches.get_flag(ARG_NO_TIME_GRADIENT),
         no_size_colors: matches.get_flag(ARG_NO_SIZE_COLORS),

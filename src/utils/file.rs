@@ -237,7 +237,12 @@ pub(crate) fn create_file_info_from_metadata_with_gitignore(
     } else {
         Some(utils::icons::get_item_icon(classification.file_type, path))
     };
-    let details = platform::file_details(path, metadata, classification);
+    let details = platform::file_details(
+        path,
+        metadata,
+        classification,
+        params.attributes,
+    );
 
     let mut file_name = path
         .file_name()
@@ -439,7 +444,19 @@ fn colorize_name_by_metadata(
     classification: EntryClassification,
     dimmed: bool,
 ) -> String {
-    match platform::name_style(path, metadata, classification) {
+    colorize_name(
+        safe_name,
+        platform::name_style(path, metadata, classification),
+        dimmed,
+    )
+}
+
+pub(crate) fn colorize_name(
+    safe_name: &str,
+    style: NameStyle,
+    dimmed: bool,
+) -> String {
+    match style {
         NameStyle::Symlink => apply_dim(safe_name.cyan(), dimmed).to_string(),
         NameStyle::Junction => {
             apply_dim(safe_name.magenta(), dimmed).to_string()

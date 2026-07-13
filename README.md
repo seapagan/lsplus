@@ -130,6 +130,7 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `--header` - Show a title row in long-format output
 - `--permissions <MODE>` - Select long-format permission display:
   `symbolic`, `octal`, `both`, or `none`
+- `--attributes <MODE>` - Select `long`, `short`, or `minimal` Windows attribute display
 - `-h` / `--human-readable` - Human readable file sizes using powers of 1024
 - `--si` - Human readable file sizes using powers of 1000
 - `-R` / `--recursive` - List subdirectories recursively
@@ -194,9 +195,19 @@ Long-format output shows symbolic permissions by default. Use
 `--permissions both` to add octal bits after the symbolic field, or
 `--permissions none` to omit permission fields.
 
-On Windows, symbolic permission display is replaced by a readable `Attributes`
-column. `--permissions octal` and `--permissions both` are unsupported with
-long output; use `symbolic` or `none` instead.
+On Windows, symbolic permission display is replaced by an `Attributes` column.
+`--attributes long` is the default and shows readable names.
+`--attributes short` uses a fixed-position 17-character prefix in
+`RHSATPCONEIVBXQGF` order; residual unknown bits append an
+`Unknown(0xXXXXXXXX)` suffix. The `X` position represents `EA`, including the
+aliased `RecallOnOpen` bit, while `F` represents `RecallOnDataAccess`.
+`--attributes minimal` shows only the classic `RHSA` attributes and shortens
+the column header to `Attr`.
+`--permissions none` omits the column. `--permissions octal` and
+`--permissions both` are unsupported with long output.
+
+The attribute setting has no effect on short-format output. It is accepted but
+ignored on Linux and macOS, where permission rendering remains unchanged.
 
 Long-format output colors permission bits, timestamp freshness, and large file
 sizes by default. You can adjust those accents independently with
@@ -272,6 +283,9 @@ GNU indicator options are also available in `gnu` mode:
 Put options in the config file to apply them to each run instead of passing them
 on the command line. See the relevant section on the
 [website](https://seapagan.github.io/lsplus/config.html) for full details.
+
+Set `LSP_CONFIG_FILE` to use a specific config file instead of the platform
+default path. An unset or empty value keeps the normal platform default.
 
 ### Aliases
 

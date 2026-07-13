@@ -51,6 +51,22 @@ pub enum PermissionDisplay {
     None,
 }
 
+/// Windows file-attribute display modes.
+#[derive(
+    Debug, Clone, Copy, Deserialize, PartialEq, Eq, Default, ValueEnum,
+)]
+#[serde(rename_all = "kebab-case")]
+#[value(rename_all = "kebab-case")]
+pub enum AttributeDisplay {
+    /// Show readable Windows attribute names.
+    #[default]
+    Long,
+    /// Show a fixed-position compact Windows attribute field.
+    Short,
+    /// Show the classic ReadOnly, Hidden, System, and Archive attributes.
+    Minimal,
+}
+
 /// Runtime options after CLI flags and config defaults have been merged.
 #[derive(Debug, PartialEq)]
 pub struct Params {
@@ -88,6 +104,8 @@ pub struct Params {
     pub permission_colors: bool,
     /// Select which permission fields to show in long-format output.
     pub permissions: PermissionDisplay,
+    /// Select how Windows file attributes appear in long-format output.
+    pub attributes: AttributeDisplay,
     /// Color timestamps by age in long-format output.
     pub time_gradient: bool,
     /// Color large sizes in long-format output.
@@ -118,6 +136,7 @@ impl Default for Params {
             no_color: false,
             permission_colors: true,
             permissions: PermissionDisplay::Symbolic,
+            attributes: AttributeDisplay::Long,
             time_gradient: true,
             size_colors: true,
             gitignore: false,
@@ -146,6 +165,7 @@ pub(crate) struct RawParams {
     no_color: bool,
     permission_colors: Option<bool>,
     permissions: PermissionDisplay,
+    attributes: AttributeDisplay,
     time_gradient: Option<bool>,
     size_colors: Option<bool>,
     gitignore: bool,
@@ -216,6 +236,7 @@ impl From<RawParams> for Params {
             no_color: raw.no_color,
             permission_colors: raw.permission_colors.unwrap_or(true),
             permissions: raw.permissions,
+            attributes: raw.attributes,
             time_gradient: raw.time_gradient.unwrap_or(true),
             size_colors: raw.size_colors.unwrap_or(true),
             gitignore: raw.gitignore,
@@ -259,6 +280,7 @@ impl Params {
             permission_colors: config.permission_colors
                 && !flags.no_permission_colors,
             permissions: flags.permissions.unwrap_or(config.permissions),
+            attributes: flags.attributes.unwrap_or(config.attributes),
             time_gradient: config.time_gradient && !flags.no_time_gradient,
             size_colors: config.size_colors && !flags.no_size_colors,
             gitignore: flags.gitignore || config.gitignore,

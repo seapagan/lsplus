@@ -1,7 +1,6 @@
 use colored_text::{ColorMode, ColorizeConfig};
 use std::sync::{Mutex, MutexGuard};
 
-#[cfg(unix)]
 use crate::Params;
 
 static COLOR_MODE_LOCK: Mutex<()> = Mutex::new(());
@@ -31,19 +30,40 @@ impl Drop for ColorModeGuard {
     }
 }
 
-#[cfg(unix)]
 pub(crate) fn has_ansi(text: &str) -> bool {
     text.contains("\u{1b}[")
 }
 
 pub(crate) fn with_color_output_enabled<T>(test: impl FnOnce() -> T) -> T {
-    temp_env::with_var("NO_COLOR", None::<&str>, || {
-        let _guard = ColorModeGuard::set(ColorMode::Always);
-        test()
-    })
+    with_color_environment(None, None, ColorMode::Always, test)
 }
 
-#[cfg(unix)]
+pub(crate) fn with_color_environment<T>(
+    term: Option<&str>,
+    colorterm: Option<&str>,
+    mode: ColorMode,
+    test: impl FnOnce() -> T,
+) -> T {
+    temp_env::with_vars(
+        [
+            ("NO_COLOR", None),
+            ("FORCE_COLOR", None),
+            ("CLICOLOR", None),
+            ("CLICOLOR_FORCE", None),
+            ("TERM", term),
+            ("COLORTERM", colorterm),
+            ("WT_SESSION", None),
+            ("ConEmuANSI", None),
+            ("ANSICON", None),
+            ("CI", None),
+        ],
+        || {
+            let _guard = ColorModeGuard::set(mode);
+            test()
+        },
+    )
+}
+
 pub(crate) fn fixed_time_params() -> Params {
     Params {
         time_gradient: false,
@@ -51,7 +71,6 @@ pub(crate) fn fixed_time_params() -> Params {
     }
 }
 
-#[cfg(unix)]
 pub(crate) fn plain_permission_params() -> Params {
     Params {
         permission_colors: false,
@@ -60,7 +79,6 @@ pub(crate) fn plain_permission_params() -> Params {
     }
 }
 
-#[cfg(unix)]
 pub(crate) fn accentless_params() -> Params {
     Params {
         permission_colors: false,
@@ -70,7 +88,6 @@ pub(crate) fn accentless_params() -> Params {
     }
 }
 
-#[cfg(unix)]
 pub(crate) fn time_only_params() -> Params {
     Params {
         permission_colors: false,
