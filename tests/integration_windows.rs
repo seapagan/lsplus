@@ -231,7 +231,7 @@ fn test_windows_permissions_none_omits_minimal_attributes() {
         .arg(&file)
         .assert()
         .success()
-        .stdout(predicate::str::contains("Attributes").not());
+        .stdout(predicate::str::contains("Attr").not());
 }
 
 #[test]
