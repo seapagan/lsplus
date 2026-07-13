@@ -2,7 +2,7 @@ use crate::cli::{
     CompatMode, Flags, format_version_info, try_parse_from_mode, version_info,
 };
 use crate::{
-    IndicatorStyle,
+    IndicatorStyle, ShortFormat,
     structs::{AttributeDisplay, PermissionDisplay},
 };
 use clap::error::ErrorKind;
@@ -13,6 +13,7 @@ fn test_default_flags() {
     assert!(!args.show_all);
     assert!(!args.almost_all);
     assert!(!args.long);
+    assert_eq!(args.short_format, None);
     assert!(!args.header);
     assert!(!args.human_readable);
     assert!(!args.si);
@@ -255,6 +256,30 @@ fn test_parse_from_mode_accepts_header_option() {
         let args = try_parse_from_mode(mode, ["lsplus", "--header"]).unwrap();
 
         assert!(args.header);
+    }
+}
+
+#[test]
+fn test_parse_from_mode_accepts_vertical_short_format_options() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let short = try_parse_from_mode(mode, ["lsplus", "-C"]).unwrap();
+        assert_eq!(short.short_format, Some(ShortFormat::Vertical));
+
+        let long =
+            try_parse_from_mode(mode, ["lsplus", "--format", "vertical"])
+                .unwrap();
+        assert_eq!(long.short_format, Some(ShortFormat::Vertical));
+    }
+}
+
+#[test]
+fn test_parse_from_mode_rejects_invalid_short_format() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let err =
+            try_parse_from_mode(mode, ["lsplus", "--format", "horizontal"])
+                .unwrap_err();
+
+        assert_eq!(err.kind(), ErrorKind::InvalidValue);
     }
 }
 

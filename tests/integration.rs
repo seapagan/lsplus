@@ -13,6 +13,21 @@ use common::{
     command_with_home, has_ansi, run_and_capture, run_and_capture_raw,
 };
 
+const SHORT_GRID_NAMES: [&str; 6] = [
+    "alpha-000000000.txt",
+    "bravo-000000000.txt",
+    "charlie-000000000.txt",
+    "delta-000000000.txt",
+    "echo-000000000.txt",
+    "foxtrot-000000000.txt",
+];
+
+fn write_short_grid_fixture(root: &std::path::Path) {
+    for name in SHORT_GRID_NAMES {
+        fs::write(root.join(name), name).unwrap();
+    }
+}
+
 #[test]
 fn test_version_flag() {
     let temp_dir = tempdir().unwrap();
@@ -788,7 +803,73 @@ fn test_short_format_does_not_pad_short_rows_to_longest_filename() {
         .find(|line| line.contains(short_name))
         .unwrap();
 
-    assert_eq!(short_row, " plain.txt  ");
+    assert_eq!(short_row, "plain.txt");
+}
+
+#[test]
+fn test_redirected_short_format_uses_one_unpadded_entry_per_line() {
+    let temp_dir = tempdir().unwrap();
+    write_short_grid_fixture(temp_dir.path());
+
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("--no-icons").arg("--no-color").arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+    let lines: Vec<_> = stdout.lines().collect();
+
+    assert_eq!(lines, SHORT_GRID_NAMES);
+    assert!(lines.iter().all(|line| *line == line.trim()));
+}
+
+#[test]
+fn test_vertical_short_format_options_force_grid_when_redirected() {
+    let temp_dir = tempdir().unwrap();
+    write_short_grid_fixture(temp_dir.path());
+
+    let mut short = command_with_home(temp_dir.path());
+    short
+        .arg("-C")
+        .arg("--no-icons")
+        .arg("--no-color")
+        .arg(temp_dir.path());
+    let (short_stdout, _stderr) = run_and_capture(&mut short);
+
+    let mut long = command_with_home(temp_dir.path());
+    long.arg("--format")
+        .arg("vertical")
+        .arg("--no-icons")
+        .arg("--no-color")
+        .arg(temp_dir.path());
+    let (long_stdout, _stderr) = run_and_capture(&mut long);
+
+    assert_eq!(short_stdout, long_stdout);
+    let lines: Vec<_> = short_stdout.lines().collect();
+    assert_eq!(lines.len(), 2);
+    assert!(lines[0].contains(SHORT_GRID_NAMES[0]));
+    assert!(lines[0].contains(SHORT_GRID_NAMES[2]));
+    assert!(lines[0].contains(SHORT_GRID_NAMES[4]));
+    assert!(lines[1].contains(SHORT_GRID_NAMES[1]));
+    assert!(lines[1].contains(SHORT_GRID_NAMES[3]));
+    assert!(lines[1].contains(SHORT_GRID_NAMES[5]));
+    assert!(lines.iter().all(|line| *line == line.trim_end()));
+}
+
+#[test]
+fn test_configured_vertical_short_format_forces_grid_when_redirected() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(
+        config_dir.join("config.toml"),
+        "short_format = \"vertical\"\nno_icons = true\nno_color = true\n",
+    )
+    .unwrap();
+    write_short_grid_fixture(temp_dir.path());
+
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert_eq!(stdout.lines().count(), 2);
 }
 
 #[test]
