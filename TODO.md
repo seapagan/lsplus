@@ -30,8 +30,8 @@
       alias for per-section headers. Suggested modes: `section` for every
       recursive section, `once` for the first long-format table only, and
       `none` to disable config-enabled headers for one invocation.
-- [ ] Evaluate the Rust crate `uutils-term-grid` as a short-format layout
-      alternative before expanding the current custom grid code.
+- [ ] Add GNU `-x` / `--format=across` short output with variable-width columns
+      filled from left to right, using the shared `uutils-term-grid` renderer.
 - [ ] Improve listing performance with focused architecture changes, in this
       order:
       1. Add a short-format entry model so short output does not build full

@@ -91,6 +91,16 @@ equivalent long option is `--group-directories-first` (replacing the original
 This option corresponds to `--long` and displays output in long format when set
 to `true`.
 
+### short_format
+
+- Permitted value: `"vertical"`
+- Default value: unset
+
+Short output uses vertical columns when stdout is a terminal and one entry per
+line when stdout is redirected. Set `short_format = "vertical"` to force the
+vertical grid for redirected output. This setting corresponds to `-C` or
+`--format=vertical` and has no effect on long or tree output.
+
 ### header
 
 - Permitted values: `true` or `false`
@@ -288,6 +298,7 @@ show_all = true
 indicator_style = "classify"
 dirs_first = true
 long_format = true
+# short_format = "vertical"
 # header = true
 human_readable = true
 # si = true
