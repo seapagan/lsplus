@@ -680,12 +680,16 @@ fn test_regular_file_redirection_preserves_icons_in_auto_mode() {
 }
 
 #[test]
-fn test_configured_icons_always_applies_to_redirected_output() {
+fn test_configured_icons_always_overrides_legacy_no_icons() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().join(".config").join("lsplus");
     let rust_file = temp_dir.path().join("example.rs");
     fs::create_dir_all(&config_dir).unwrap();
-    fs::write(config_dir.join("config.toml"), "icons = \"always\"\n").unwrap();
+    fs::write(
+        config_dir.join("config.toml"),
+        "icons = \"always\"\nno_icons = true\n",
+    )
+    .unwrap();
     fs::write(&rust_file, "fn main() {}").unwrap();
 
     let mut cmd = command_with_home(temp_dir.path());

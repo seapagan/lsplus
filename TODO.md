@@ -65,6 +65,9 @@
       `icons` and legacy `no_icons` input into one `IconDisplay` policy, resolve
       it once for the stdout destination, and pass rendering one effective
       `show_icons` value.
+- [ ] Detect the stdout destination once at startup and carry that output
+      context through rendering, so icon policy and short-format layout share
+      it instead of calling `is_terminal` again for every listing section.
 - [ ] Detect terminal color capability once at startup and pass the effective
       color mode/level through render paths, instead of re-checking
       `colored_text` capability while building long-format tables. Refactor

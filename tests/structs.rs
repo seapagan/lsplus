@@ -169,6 +169,22 @@ fn test_config_conversion_accepts_icon_display_modes() {
 }
 
 #[test]
+fn test_config_icon_display_overrides_legacy_no_icons() {
+    let config = Config::builder()
+        .set_override("icons", "always")
+        .unwrap()
+        .set_override("no_icons", true)
+        .unwrap()
+        .build()
+        .unwrap();
+
+    let params: Params = config.into();
+
+    assert_eq!(params.icons, IconDisplay::Always);
+    assert!(!params.no_icons);
+}
+
+#[test]
 fn test_params_merge_cli_icon_display_overrides_legacy_config() {
     let config = Params {
         no_icons: true,

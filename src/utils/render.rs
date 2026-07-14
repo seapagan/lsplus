@@ -565,24 +565,31 @@ pub fn display_short_format(
     file_info: &[FileInfo],
     params: &Params,
 ) -> io::Result<()> {
-    let lines = if short_output_uses_grid(
-        io::stdout().is_terminal(),
-        params.short_format,
-    ) {
+    if short_output_uses_grid(io::stdout().is_terminal(), params.short_format)
+    {
         let terminal_width = terminal_width_or_default(terminal_size());
-        render_short_format_lines(file_info, terminal_width)
+        print_short_grid(&render_short_format(file_info, terminal_width))
     } else {
-        render_short_single_column_lines(file_info)
-    };
-
-    print_short_lines(&lines)
+        print_short_lines(&render_short_single_column_lines(file_info))
+    }
 }
 
 /// Render short-format rows for a fixed terminal width.
+#[cfg(test)]
 pub(crate) fn render_short_format_lines(
     file_info: &[FileInfo],
     terminal_width: usize,
 ) -> Vec<String> {
+    render_short_format(file_info, terminal_width)
+        .lines()
+        .map(str::to_owned)
+        .collect()
+}
+
+fn render_short_format(
+    file_info: &[FileInfo],
+    terminal_width: usize,
+) -> String {
     Grid::new(
         short_render_cells(file_info),
         GridOptions {
@@ -592,9 +599,6 @@ pub(crate) fn render_short_format_lines(
         },
     )
     .to_string()
-    .lines()
-    .map(str::to_owned)
-    .collect()
 }
 
 /// Render one unpadded short-format entry per line.
@@ -676,5 +680,11 @@ fn print_short_lines(lines: &[String]) -> io::Result<()> {
     for line in lines {
         writeln!(stdout, "{line}")?;
     }
+    stdout.flush()
+}
+
+fn print_short_grid(grid: &str) -> io::Result<()> {
+    let mut stdout = io::stdout();
+    stdout.write_all(grid.as_bytes())?;
     stdout.flush()
 }

@@ -202,8 +202,8 @@ corresponds to `--icons=auto|always|never`.
 - Default value: `false`
 
 This compatibility option corresponds to `--no-icons` and is equivalent to
-`icons = "never"` when set to `true`. An explicit CLI `--icons` value overrides
-the configured `no_icons` value.
+`icons = "never"` when set to `true`. An explicit `icons` value in the same
+config file overrides `no_icons`; either CLI icon option overrides the config.
 
 ### no_color
 

@@ -252,6 +252,11 @@ impl From<Config> for Params {
 
 impl From<RawParams> for Params {
     fn from(raw: RawParams) -> Self {
+        let (icons, no_icons) = match raw.icons {
+            Some(icons) => (icons, false),
+            None => (IconDisplay::default(), raw.no_icons),
+        };
+
         Self {
             show_all: raw.show_all,
             indicator_style: raw.indicator_style.unwrap_or_else(|| {
@@ -276,8 +281,8 @@ impl From<RawParams> for Params {
                 raw.prune_noisy_dirs,
                 raw.prune_dirs,
             ),
-            icons: raw.icons.unwrap_or_default(),
-            no_icons: raw.no_icons,
+            icons,
+            no_icons,
             no_color: raw.no_color,
             permission_colors: raw.permission_colors.unwrap_or(true),
             permissions: raw.permissions,
