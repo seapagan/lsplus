@@ -19,18 +19,11 @@ use crate::utils::format;
 
 /// Return whether stdout currently refers to a regular file.
 pub(crate) fn stdout_is_regular_file() -> bool {
-    let mut metadata = std::mem::MaybeUninit::<nix::libc::stat>::uninit();
-    // SAFETY: `metadata` points to writable storage for `fstat`, and stdout's
-    // process-wide file descriptor may be queried without taking ownership.
-    if unsafe {
-        nix::libc::fstat(nix::libc::STDOUT_FILENO, metadata.as_mut_ptr())
-    } != 0
-    {
+    let Ok(metadata) = nix::sys::stat::fstat(io::stdout()) else {
         return false;
-    }
+    };
 
-    // SAFETY: a successful `fstat` initialized the complete structure.
-    let mode = mode_bits::as_u32(unsafe { metadata.assume_init() }.st_mode);
+    let mode = mode_bits::as_u32(metadata.st_mode);
     mode & mode_bits::FILE_TYPE_MASK == mode_bits::REGULAR
 }
 

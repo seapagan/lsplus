@@ -31,7 +31,7 @@ ignore = "0.4.25"
 uutils_term_grid = "0.8.0"
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.31.0", features = ["user"] }
+nix = { version = "0.31.0", features = ["fs", "user"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61.0", features = [
