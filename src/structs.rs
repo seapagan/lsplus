@@ -83,7 +83,7 @@ pub enum ShortFormat {
 #[serde(rename_all = "kebab-case")]
 #[value(rename_all = "kebab-case")]
 pub enum IconDisplay {
-    /// Display icons only when stdout is a terminal.
+    /// Display icons when stdout is a terminal or a regular file.
     #[default]
     Auto,
     /// Display icons even when stdout is redirected.
