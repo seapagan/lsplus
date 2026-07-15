@@ -34,10 +34,9 @@ use crate::structs::{AttributeDisplay, NameStyle, Params, PermissionDisplay};
 
 /// Return whether stdout currently refers to a regular disk file.
 pub(crate) fn stdout_is_regular_file() -> bool {
-    let handle = io::stdout().as_raw_handle();
     // SAFETY: the borrowed stdout handle remains valid for the duration of the
     // call, and `GetFileType` does not take ownership of it.
-    unsafe { GetFileType(handle) == FILE_TYPE_DISK }
+    unsafe { GetFileType(io::stdout().as_raw_handle()) == FILE_TYPE_DISK }
 }
 
 const FILE_ATTRIBUTE_NO_SCRUB_DATA: u32 = 0x0002_0000;
