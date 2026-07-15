@@ -561,7 +561,7 @@ fn interpolate(start: u8, end: u8, ratio: f32) -> u8 {
 }
 
 /// Render short-format output to stdout.
-pub fn display_short_format(
+pub(crate) fn display_short_format(
     file_info: &[FileInfo],
     params: &Params,
 ) -> io::Result<()> {
