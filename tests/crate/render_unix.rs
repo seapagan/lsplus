@@ -26,9 +26,9 @@ fn test_render_short_format_lines_preserves_synthetic_dot_names() {
         let rendered = render_short_format_lines(&[dot, dotdot], 80);
 
         assert_eq!(rendered.len(), 1);
-        assert_eq!(strip_str(&rendered[0]), " .   ..  ");
-        assert!(rendered[0].contains("\u{1b}[34m.  \u{1b}[0m"));
-        assert!(rendered[0].contains("\u{1b}[34m..  \u{1b}[0m"));
+        assert_eq!(strip_str(&rendered[0]), ".  ..");
+        assert!(rendered[0].contains("\u{1b}[34m.\u{1b}[0m"));
+        assert!(rendered[0].contains("\u{1b}[34m..\u{1b}[0m"));
     });
 }
 

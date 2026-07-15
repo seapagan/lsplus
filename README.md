@@ -58,8 +58,10 @@ for your terminal. You can find a great selection of Nerd Fonts from the
 My personal favourite is `MesoLG Nerd Font`, but there are many others to choose
 from. You will also need to set up your terminal to use that font.
 
-If you **DO NOT** want to install a Nerd Font, pass the `--no-icons` switch to
-the program (or `no_icons=true` in the config file).
+Icons are displayed automatically when stdout is a terminal or a regular file,
+and omitted from pipes. Use `--icons=always` to retain them through a
+Unicode-aware pipe, or `--no-icons` to disable them completely. The equivalent
+configuration values are `icons = "always"` and `icons = "never"`.
 
 ## Installation
 
@@ -127,6 +129,7 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `-F` / `--classify` - Append type indicators, including `*` for executables
 - `--no-indicators` - Disable file type indicators
 - `-l` / `--long` - Show long format listing
+- `-C` / `--format=vertical` - Force short output into vertical columns
 - `--header` - Show a title row in long-format output
 - `--permissions <MODE>` - Select long-format permission display:
   `symbolic`, `octal`, `both`, or `none`
@@ -141,6 +144,7 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
   permission colors
 - `--no-time-gradient` - Use the fixed long-format timestamp color
 - `--no-size-colors` - Disable long-format large-size colors
+- `--icons=<WHEN>` - Display icons `auto`, `always`, or `never`
 - `--no-icons` - don't show file or folder icons
 - `-V` / `--version` - Print version information and exit
 - `-Z` / `--fuzzy-time` - Show fuzzy time for file modification times
@@ -150,6 +154,12 @@ listing with hidden files, append a '/' to directories, and show human-readable
 file sizes.
 
 Use the `--help` option to see the full list of options.
+
+Short output fills variable-width columns from top to bottom when stdout is a
+terminal. Redirected short output prints one entry per line. Use `-C` or
+`--format=vertical` to keep the vertical grid when redirecting output. The
+grid uses spaces between columns so icons, colors, and Unicode names stay
+aligned across terminals.
 
 Use `-R` or `--recursive` to print GNU-style recursive directory sections.
 Quoted wildcard or filename operands filter matching entries while still
@@ -231,10 +241,13 @@ show the time in a human-readable format, e.g. '2 hours ago', 'yesterday', etc.
 
 ### Icons
 
-`lsp` shows icons for folders, files, and links. The current mappings cover
-common names and extensions. Open an issue or PR if you want another icon.
+`lsp` shows icons for folders, files, and links when stdout is a terminal. The
+current mappings cover common names and extensions. Open an issue or PR if you
+want another icon.
 
-You can disable the icons by using the `--no-icons` option.
+Piped output omits icons by default, while redirection to a regular file keeps
+them. Use `--icons=always` with a Unicode-aware pipe, or disable icons
+completely with `--icons=never` or `--no-icons`.
 
 ### Compatibility Mode
 

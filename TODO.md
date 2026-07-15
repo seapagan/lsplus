@@ -30,8 +30,11 @@
       alias for per-section headers. Suggested modes: `section` for every
       recursive section, `once` for the first long-format table only, and
       `none` to disable config-enabled headers for one invocation.
-- [ ] Evaluate the Rust crate `uutils-term-grid` as a short-format layout
-      alternative before expanding the current custom grid code.
+- [ ] Add GNU `-x` / `--format=across` short output with variable-width columns
+      filled from left to right, using the shared `uutils-term-grid` renderer.
+- [ ] Evaluate GNU last-option-wins precedence for competing format selectors
+      (`-l`, `-C`, and `--format`) in GNU compatibility mode. If adopted, add
+      order-sensitive tests and define the interaction with `--tree`.
 - [ ] Improve listing performance with focused architecture changes, in this
       order:
       1. Add a short-format entry model so short output does not build full
@@ -60,8 +63,14 @@
 - [ ] option to list dotfiles (and folders) before non-dotfiles
 - [ ] Investigate an optional name-shortening mode for very long filenames
       that preserves extensions without changing the default wrap behavior.
-- [ ] Consider separating config-loaded values from effective runtime params so
-      merge behavior is more explicit than the current shared `Params` type.
+- [ ] Separate config-loaded values from effective runtime params so merge
+      behavior is more explicit than the current shared `Params` type. Convert
+      `icons` and legacy `no_icons` input into one `IconDisplay` policy, resolve
+      it once for the stdout destination, and pass rendering one effective
+      `show_icons` value.
+- [ ] Detect the stdout destination once at startup and carry that output
+      context through rendering, so icon policy and short-format layout share
+      it instead of calling `is_terminal` again for every listing section.
 - [ ] Detect terminal color capability once at startup and pass the effective
       color mode/level through render paths, instead of re-checking
       `colored_text` capability while building long-format tables. Refactor

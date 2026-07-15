@@ -18,6 +18,7 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `-F` / `--classify` - Append type indicators, including `*` for executables
 - `--no-indicators` - Disable file type indicators
 - `-l` / `--long` - Show long format listing
+- `-C` / `--format=vertical` - Force short output into vertical columns
 - `--header` - Show a title row in long-format output
 - `--permissions <MODE>` - Select long-format permission display:
   `symbolic`, `octal`, `both`, or `none`
@@ -36,6 +37,7 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
   permission colors
 - `--no-time-gradient` - Use the fixed long-format timestamp color
 - `--no-size-colors` - Disable long-format large-size colors
+- `--icons=<WHEN>` - Display icons `auto`, `always`, or `never`
 - `--no-icons` - don't show file or folder icons
 - `-V` / `--version` - Print version information and exit
 - `-Z` / `--fuzzy-time` - Show fuzzy time for file modification times
@@ -45,6 +47,12 @@ listing with hidden files, append a '/' to directories, and show human-readable
 file sizes.
 
 Use the `--help` option to see the full list of options.
+
+Short output fills variable-width columns from top to bottom when stdout is a
+terminal. Redirected short output prints one entry per line. Use `-C` or
+`--format=vertical` to keep the vertical grid when redirecting output. The
+grid uses spaces between columns so icons, colors, and Unicode names stay
+aligned across terminals.
 
 When listing multiple directory operands, or a mix of files and directories,
 `lsp` prints file operands first and labels each directory section with a
@@ -139,25 +147,25 @@ In `short` and `minimal` modes, each position always represents the same
 attribute. A letter means that the attribute is set; `-` means that it is not
 set. Minimal mode uses the first four positions (`RHSA`) from the short field.
 
-| Character | Attribute | Meaning |
-|-----------|-----------|---------|
-| `R` | Read-only | The file should not normally be modified. |
-| `H` | Hidden | The file is hidden from ordinary directory listings. |
-| `S` | System | The file is used by the operating system. |
-| `A` | Archive | The file has changed since it was last backed up. |
-| `T` | Temporary | The file is intended for temporary storage. |
-| `P` | Sparse | The file uses sparse-file storage. |
-| `C` | Compressed | Filesystem compression is enabled. |
-| `O` | Offline | The file's contents are not immediately available. |
-| `N` | Not indexed | The file is excluded from content indexing. |
-| `E` | Encrypted | Filesystem encryption is enabled. |
-| `I` | Integrity stream | Integrity checking is enabled. |
-| `V` | Virtual | The file has the reserved virtual attribute. |
-| `B` | No scrub data | The file is excluded from integrity scrubbing. |
-| `X` | Extended attributes | The file contains extended attributes (`EA`). |
-| `Q` | Pinned | The file is kept locally available. |
-| `G` | Unpinned | The file is not kept locally available. |
-| `F` | Recall on data access | The contents may be recalled when accessed. |
+| Character | Attribute             | Meaning                                              |
+| --------- | --------------------- | ---------------------------------------------------- |
+| `R`       | Read-only             | The file should not normally be modified.            |
+| `H`       | Hidden                | The file is hidden from ordinary directory listings. |
+| `S`       | System                | The file is used by the operating system.            |
+| `A`       | Archive               | The file has changed since it was last backed up.    |
+| `T`       | Temporary             | The file is intended for temporary storage.          |
+| `P`       | Sparse                | The file uses sparse-file storage.                   |
+| `C`       | Compressed            | Filesystem compression is enabled.                   |
+| `O`       | Offline               | The file's contents are not immediately available.   |
+| `N`       | Not indexed           | The file is excluded from content indexing.          |
+| `E`       | Encrypted             | Filesystem encryption is enabled.                    |
+| `I`       | Integrity stream      | Integrity checking is enabled.                       |
+| `V`       | Virtual               | The file has the reserved virtual attribute.         |
+| `B`       | No scrub data         | The file is excluded from integrity scrubbing.       |
+| `X`       | Extended attributes   | The file contains extended attributes (`EA`).        |
+| `Q`       | Pinned                | The file is kept locally available.                  |
+| `G`       | Unpinned              | The file is not kept locally available.              |
+| `F`       | Recall on data access | The contents may be recalled when accessed.          |
 
 For example, `R--A-------------` means read-only and archive are set. The
 fixed positions make fields directly comparable even when attributes differ.
@@ -231,10 +239,13 @@ The `-Z` option shows file modification times in a human-readable format, e.g.
 
 ## Icons
 
-`lsp` shows icons for folders, files, and links. The current mappings cover
-common names and extensions. Open an issue or PR if you want another icon.
+`lsp` shows icons for folders, files, and links when stdout is a terminal. The
+current mappings cover common names and extensions. Open an issue or PR if you
+want another icon.
 
-Disable icons with the `--no-icons` option.
+Piped output omits icons by default, while redirection to a regular file keeps
+them. Use `--icons=always` with a Unicode-aware pipe, or disable icons
+completely with `--icons=never` or `--no-icons`.
 
 ## Aliases
 

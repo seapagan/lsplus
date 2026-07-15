@@ -7,10 +7,13 @@ use crate::utils::icons::Icon;
 use crate::utils::render::{
     SizeCellStyle, build_long_format_table,
     build_long_format_table_with_name_prefixes, directory_header_text,
-    render_short_format_lines, size_style_for_color_level,
+    render_short_format_lines, render_short_single_column_lines,
+    short_output_uses_grid, size_style_for_color_level,
     terminal_width_or_default,
 };
-use crate::{FileInfo, NameStyle, Params, structs::PermissionDisplay};
+use crate::{
+    FileInfo, NameStyle, Params, ShortFormat, structs::PermissionDisplay,
+};
 use colored_text::{ColorLevel, ColorMode, Colorize};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
@@ -869,7 +872,56 @@ fn test_render_short_format_lines_does_not_pad_short_rows_to_widest_name() {
         .find(|line| line.contains("plain.txt"))
         .unwrap();
 
-    assert_eq!(short_row, " plain.txt  ");
+    assert_eq!(short_row, "plain.txt");
+}
+
+#[test]
+fn test_render_short_format_lines_uses_gnu_vertical_order_and_column_widths() {
+    let files = ["a", "bbbbb", "cc", "dddddddd", "eee", "fffffff"]
+        .map(|name| test_file_info(name, None, 0, SystemTime::now()));
+
+    assert_eq!(
+        render_short_format_lines(&files, 20),
+        vec![
+            String::from("a      dddddddd"),
+            String::from("bbbbb  eee"),
+            String::from("cc     fffffff"),
+        ]
+    );
+}
+
+#[test]
+fn test_render_short_format_lines_handles_incomplete_final_column() {
+    let files = ["a", "b", "c", "dddd", "e"]
+        .map(|name| test_file_info(name, None, 0, SystemTime::now()));
+
+    assert_eq!(
+        render_short_format_lines(&files, 8),
+        vec![
+            String::from("a  dddd"),
+            String::from("b  e"),
+            String::from("c")
+        ]
+    );
+}
+
+#[test]
+fn test_render_short_format_lines_respects_exact_width_boundary() {
+    let files = ["a", "bbb"]
+        .map(|name| test_file_info(name, None, 0, SystemTime::now()));
+
+    assert_eq!(render_short_format_lines(&files, 6), vec!["a  bbb"]);
+    assert_eq!(render_short_format_lines(&files, 5), vec!["a", "bbb"]);
+}
+
+#[test]
+fn test_render_short_format_lines_keeps_wide_names_untruncated() {
+    let files = [test_file_info("界界界.txt", None, 0, SystemTime::now())];
+
+    assert_eq!(
+        render_short_format_lines(&files, 0),
+        vec![String::from("界界界.txt")]
+    );
 }
 
 #[test]
@@ -880,7 +932,7 @@ fn test_render_short_format_lines_handles_empty_input() {
 }
 
 #[test]
-fn test_render_short_format_lines_style_directory_padding_when_enabled() {
+fn test_render_short_format_lines_style_directory_when_enabled() {
     with_color_output_enabled(|| {
         let mut dir =
             test_file_info("alpha/", Some(Icon::Folder), 0, SystemTime::now());
@@ -889,10 +941,10 @@ fn test_render_short_format_lines_style_directory_padding_when_enabled() {
         let lines = render_short_format_lines(&[dir], 80);
 
         assert_eq!(lines.len(), 1);
-        assert!(lines[0].contains(&format!(
-            "{} \u{1b}[34malpha/  \u{1b}[0m",
-            Icon::Folder
-        )));
+        assert_eq!(
+            lines[0],
+            format!("{} \u{1b}[34malpha/\u{1b}[0m", Icon::Folder)
+        );
     });
 }
 
@@ -905,7 +957,40 @@ fn test_render_short_format_lines_keep_plain_output_when_color_disabled() {
 
     let lines = render_short_format_lines(&[dir], 80);
 
-    assert_eq!(lines, vec![format!(" {} alpha/  ", Icon::Folder)]);
+    assert_eq!(lines, vec![format!("{} alpha/", Icon::Folder)]);
+}
+
+#[test]
+fn test_render_short_format_lines_ignores_ansi_when_measuring_columns() {
+    with_color_output_enabled(|| {
+        let mut directory = test_file_info("界/", None, 0, SystemTime::now());
+        directory.name_style = NameStyle::Directory;
+        let plain = test_file_info("x", None, 0, SystemTime::now());
+
+        let lines = render_short_format_lines(&[directory, plain], 7);
+
+        assert_eq!(lines.len(), 1);
+        assert_eq!(strip_str(&lines[0]), "界/  x");
+        assert!(lines[0].contains("\u{1b}[34m界/\u{1b}[0m"));
+    });
+}
+
+#[test]
+fn test_render_short_single_column_lines_has_no_grid_padding() {
+    let files = ["alpha", "beta"]
+        .map(|name| test_file_info(name, None, 0, SystemTime::now()));
+
+    assert_eq!(
+        render_short_single_column_lines(&files),
+        vec![String::from("alpha"), String::from("beta")]
+    );
+}
+
+#[test]
+fn test_short_output_uses_grid_for_terminal_or_explicit_vertical_format() {
+    assert!(short_output_uses_grid(true, None));
+    assert!(short_output_uses_grid(false, Some(ShortFormat::Vertical)));
+    assert!(!short_output_uses_grid(false, None));
 }
 
 #[test]

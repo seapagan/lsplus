@@ -91,6 +91,16 @@ equivalent long option is `--group-directories-first` (replacing the original
 This option corresponds to `--long` and displays output in long format when set
 to `true`.
 
+### short_format
+
+- Permitted value: `"vertical"`
+- Default value: unset
+
+Short output uses vertical columns when stdout is a terminal and one entry per
+line when stdout is redirected. Set `short_format = "vertical"` to force the
+vertical grid for redirected output. This setting corresponds to `-C` or
+`--format=vertical` and has no effect on long or tree output.
+
 ### header
 
 - Permitted values: `true` or `false`
@@ -176,12 +186,24 @@ For example:
 prune_dirs = ["target", "dist"]
 ```
 
+### icons
+
+- Permitted values: `"auto"`, `"always"`, or `"never"`
+- Default value: `"auto"`
+
+This option controls icons in short, long, recursive, and tree output. `auto`
+shows icons when stdout is a terminal or regular file but omits them from
+pipes, `always` retains them everywhere, and `never` disables them. It
+corresponds to `--icons=auto|always|never`.
+
 ### no_icons
 
 - Permitted values: `true` or `false`
 - Default value: `false`
 
-This option corresponds to `--no-icons` and hides icons when set to `true`.
+This compatibility option corresponds to `--no-icons` and is equivalent to
+`icons = "never"` when set to `true`. An explicit `icons` value in the same
+config file overrides `no_icons`; either CLI icon option overrides the config.
 
 ### no_color
 
@@ -288,6 +310,7 @@ show_all = true
 indicator_style = "classify"
 dirs_first = true
 long_format = true
+# short_format = "vertical"
 # header = true
 human_readable = true
 # si = true
@@ -296,6 +319,7 @@ human_readable = true
 # tree_level = 2
 # prune_noisy_dirs = true
 # prune_dirs = ["target", "dist"]
+icons = "auto"
 no_color = true
 permission_colors = false
 permissions = "symbolic"

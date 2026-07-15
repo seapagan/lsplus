@@ -67,6 +67,41 @@ pub enum AttributeDisplay {
     Minimal,
 }
 
+/// Short-format layouts that can be forced for terminal or redirected output.
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+#[value(rename_all = "kebab-case")]
+pub enum ShortFormat {
+    /// Fill entries down variable-width columns.
+    Vertical,
+}
+
+/// Controls when file and directory icons are displayed.
+#[derive(
+    Debug, Clone, Copy, Default, Deserialize, PartialEq, Eq, ValueEnum,
+)]
+#[serde(rename_all = "kebab-case")]
+#[value(rename_all = "kebab-case")]
+pub enum IconDisplay {
+    /// Display icons when stdout is a terminal or a regular file.
+    #[default]
+    Auto,
+    /// Display icons even when stdout is redirected.
+    Always,
+    /// Never display icons.
+    Never,
+}
+
+impl IconDisplay {
+    fn is_enabled(self, is_terminal: bool, is_regular_file: bool) -> bool {
+        match self {
+            Self::Auto => is_terminal || is_regular_file,
+            Self::Always => true,
+            Self::Never => false,
+        }
+    }
+}
+
 /// Runtime options after CLI flags and config defaults have been merged.
 #[derive(Debug, PartialEq)]
 pub struct Params {
@@ -80,6 +115,8 @@ pub struct Params {
     pub almost_all: bool,
     /// Render long-format output.
     pub long_format: bool,
+    /// Force a short-format layout instead of selecting one from stdout.
+    pub short_format: Option<ShortFormat>,
     /// Show a title row in long-format output.
     pub header: bool,
     /// Render human-readable file sizes in long format.
@@ -96,6 +133,8 @@ pub struct Params {
     pub recursive_level: Option<usize>,
     /// Directory basenames to skip while traversing recursive/tree output.
     pub prune_dirs: Vec<String>,
+    /// Select when file and directory icons are displayed.
+    pub icons: IconDisplay,
     /// Disable file and directory icons.
     pub no_icons: bool,
     /// Disable colored or styled output.
@@ -124,6 +163,7 @@ impl Default for Params {
             dirs_first: false,
             almost_all: false,
             long_format: false,
+            short_format: None,
             header: false,
             human_readable: false,
             si: false,
@@ -132,6 +172,7 @@ impl Default for Params {
             tree_level: 2,
             recursive_level: None,
             prune_dirs: Vec::new(),
+            icons: IconDisplay::Auto,
             no_icons: false,
             no_color: false,
             permission_colors: true,
@@ -153,6 +194,7 @@ pub(crate) struct RawParams {
     dirs_first: bool,
     almost_all: bool,
     long_format: bool,
+    short_format: Option<ShortFormat>,
     header: bool,
     human_readable: bool,
     si: bool,
@@ -161,6 +203,7 @@ pub(crate) struct RawParams {
     tree_level: Option<usize>,
     prune_noisy_dirs: bool,
     prune_dirs: Vec<String>,
+    icons: Option<IconDisplay>,
     no_icons: bool,
     no_color: bool,
     permission_colors: Option<bool>,
@@ -209,6 +252,11 @@ impl From<Config> for Params {
 
 impl From<RawParams> for Params {
     fn from(raw: RawParams) -> Self {
+        let (icons, no_icons) = match raw.icons {
+            Some(icons) => (icons, false),
+            None => (IconDisplay::default(), raw.no_icons),
+        };
+
         Self {
             show_all: raw.show_all,
             indicator_style: raw.indicator_style.unwrap_or_else(|| {
@@ -221,6 +269,7 @@ impl From<RawParams> for Params {
             dirs_first: raw.dirs_first,
             almost_all: raw.almost_all,
             long_format: raw.long_format,
+            short_format: raw.short_format,
             header: raw.header,
             human_readable: raw.human_readable,
             si: raw.si,
@@ -232,7 +281,8 @@ impl From<RawParams> for Params {
                 raw.prune_noisy_dirs,
                 raw.prune_dirs,
             ),
-            no_icons: raw.no_icons,
+            icons,
+            no_icons,
             no_color: raw.no_color,
             permission_colors: raw.permission_colors.unwrap_or(true),
             permissions: raw.permissions,
@@ -253,6 +303,13 @@ impl Params {
     /// CLI `--no-*` flags disable long-format accent defaults from config.
     /// Explicit CLI indicator flags override the config indicator style.
     pub fn merge(flags: &cli::Flags, config: &Self) -> Self {
+        let icons = flags.icons.unwrap_or(config.icons);
+        let no_icons = if flags.icons.is_some() {
+            false
+        } else {
+            flags.no_icons || config.no_icons
+        };
+
         Self {
             show_all: flags.show_all || config.show_all,
             indicator_style: flags
@@ -264,6 +321,7 @@ impl Params {
                 || flags.tree
                 || config.long_format
                 || config.tree,
+            short_format: flags.short_format.or(config.short_format),
             header: flags.header || config.header,
             human_readable: flags.si
                 || flags.human_readable
@@ -275,7 +333,8 @@ impl Params {
             tree_level: flags.tree_level.unwrap_or(config.tree_level),
             recursive_level: flags.tree_level.or(config.recursive_level),
             prune_dirs: merged_prune_dirs(flags, config),
-            no_icons: flags.no_icons || config.no_icons,
+            icons,
+            no_icons,
             no_color: flags.no_color || config.no_color,
             permission_colors: config.permission_colors
                 && !flags.no_permission_colors,
@@ -286,6 +345,16 @@ impl Params {
             gitignore: flags.gitignore || config.gitignore,
             fuzzy_time: flags.fuzzy_time || config.fuzzy_time,
         }
+    }
+
+    /// Resolve automatic icon display for the active stdout destination.
+    pub(crate) fn resolve_icon_output(
+        &mut self,
+        is_terminal: bool,
+        is_regular_file: bool,
+    ) {
+        self.no_icons = self.no_icons
+            || !self.icons.is_enabled(is_terminal, is_regular_file);
     }
 
     /// Return the size scaling mode for long-format output.

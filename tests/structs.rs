@@ -2,7 +2,7 @@ use config::Config;
 use lsplus::cli::Flags;
 use lsplus::utils::format::SizeScale;
 use lsplus::{
-    IndicatorStyle, Params,
+    IconDisplay, IndicatorStyle, Params, ShortFormat,
     structs::{AttributeDisplay, PermissionDisplay},
 };
 use std::fs;
@@ -16,6 +16,7 @@ fn test_default_params() {
     assert!(!params.dirs_first);
     assert!(!params.almost_all);
     assert!(!params.long_format);
+    assert_eq!(params.short_format, None);
     assert!(!params.human_readable);
     assert!(!params.si);
     assert!(!params.recursive);
@@ -25,6 +26,7 @@ fn test_default_params() {
     assert!(params.prune_dirs.is_empty());
     assert_eq!(params.size_scale(), None);
     assert!(!params.header);
+    assert_eq!(params.icons, IconDisplay::Auto);
     assert!(!params.no_icons);
     assert!(!params.no_color);
     assert!(params.permission_colors);
@@ -84,6 +86,7 @@ fn test_config_conversion() {
             dirs_first: true,
             almost_all: true,
             long_format: true,
+            short_format: None,
             header: true,
             human_readable: true,
             si: true,
@@ -100,6 +103,7 @@ fn test_config_conversion() {
                 String::from("node_modules"),
                 String::from("__pycache__"),
             ],
+            icons: IconDisplay::Auto,
             no_icons: true,
             no_color: true,
             permission_colors: false,
@@ -130,6 +134,100 @@ fn test_config_conversion_accepts_attribute_display_modes() {
 
         assert_eq!(params.attributes, expected);
     }
+}
+
+#[test]
+fn test_config_conversion_accepts_vertical_short_format() {
+    let config = Config::builder()
+        .set_override("short_format", "vertical")
+        .unwrap()
+        .build()
+        .unwrap();
+
+    let params: Params = config.into();
+
+    assert_eq!(params.short_format, Some(ShortFormat::Vertical));
+}
+
+#[test]
+fn test_config_conversion_accepts_icon_display_modes() {
+    for (value, expected) in [
+        ("auto", IconDisplay::Auto),
+        ("always", IconDisplay::Always),
+        ("never", IconDisplay::Never),
+    ] {
+        let config = Config::builder()
+            .set_override("icons", value)
+            .unwrap()
+            .build()
+            .unwrap();
+
+        let params: Params = config.into();
+
+        assert_eq!(params.icons, expected);
+    }
+}
+
+#[test]
+fn test_config_icon_display_overrides_legacy_no_icons() {
+    let config = Config::builder()
+        .set_override("icons", "always")
+        .unwrap()
+        .set_override("no_icons", true)
+        .unwrap()
+        .build()
+        .unwrap();
+
+    let params: Params = config.into();
+
+    assert_eq!(params.icons, IconDisplay::Always);
+    assert!(!params.no_icons);
+}
+
+#[test]
+fn test_params_merge_cli_icon_display_overrides_legacy_config() {
+    let config = Params {
+        no_icons: true,
+        ..Params::default()
+    };
+    let flags = Flags::parse_from(["lsplus", "--icons=always"]);
+
+    let params = Params::merge(&flags, &config);
+
+    assert_eq!(params.icons, IconDisplay::Always);
+    assert!(!params.no_icons);
+}
+
+#[test]
+fn test_params_merge_no_icons_overrides_configured_icon_display() {
+    let config = Params {
+        icons: IconDisplay::Always,
+        ..Params::default()
+    };
+    let flags = Flags::parse_from(["lsplus", "--no-icons"]);
+
+    let params = Params::merge(&flags, &config);
+
+    assert!(params.no_icons);
+}
+
+#[test]
+fn test_params_merge_uses_cli_short_format_over_config() {
+    let config = Params {
+        short_format: Some(ShortFormat::Vertical),
+        ..Params::default()
+    };
+    let default_flags = Flags::parse_from(["lsplus"]);
+    assert_eq!(
+        Params::merge(&default_flags, &config).short_format,
+        Some(ShortFormat::Vertical)
+    );
+
+    let cli_flags = Flags::parse_from(["lsplus", "-C"]);
+    assert_eq!(
+        Params::merge(&cli_flags, &Params::default()).short_format,
+        Some(ShortFormat::Vertical)
+    );
 }
 
 #[test]
@@ -196,6 +294,7 @@ fn test_params_merge_prefers_true_from_either_source() {
         dirs_first: false,
         almost_all: false,
         long_format: true,
+        short_format: None,
         header: true,
         human_readable: true,
         si: false,
@@ -211,6 +310,7 @@ fn test_params_merge_prefers_true_from_either_source() {
             String::from("__pycache__"),
             String::from("from-config"),
         ],
+        icons: IconDisplay::Auto,
         no_icons: false,
         no_color: true,
         permission_colors: true,
@@ -230,6 +330,7 @@ fn test_params_merge_prefers_true_from_either_source() {
         indicator_style: Some(IndicatorStyle::Classify),
         dirs_first: true,
         long: false,
+        short_format: None,
         header: true,
         human_readable: false,
         si: false,
@@ -238,6 +339,7 @@ fn test_params_merge_prefers_true_from_either_source() {
         tree_level: Some(3),
         prune_noisy_dirs: false,
         prune_dirs: vec![String::from("from-cli")],
+        icons: None,
         no_icons: true,
         no_color: false,
         no_permission_colors: true,
@@ -296,6 +398,7 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
         indicator_style: None,
         dirs_first: false,
         long: false,
+        short_format: None,
         header: false,
         human_readable: false,
         si: false,
@@ -304,6 +407,7 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
         tree_level: None,
         prune_noisy_dirs: false,
         prune_dirs: Vec::new(),
+        icons: None,
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
@@ -330,6 +434,7 @@ fn test_params_merge_header_prefers_true_from_either_source() {
         indicator_style: None,
         dirs_first: false,
         long: false,
+        short_format: None,
         header: false,
         human_readable: false,
         si: false,
@@ -338,6 +443,7 @@ fn test_params_merge_header_prefers_true_from_either_source() {
         tree_level: None,
         prune_noisy_dirs: false,
         prune_dirs: Vec::new(),
+        icons: None,
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
@@ -377,6 +483,7 @@ fn test_params_merge_uses_config_permissions_until_cli_overrides() {
         indicator_style: None,
         dirs_first: false,
         long: false,
+        short_format: None,
         header: false,
         human_readable: false,
         si: false,
@@ -385,6 +492,7 @@ fn test_params_merge_uses_config_permissions_until_cli_overrides() {
         tree_level: None,
         prune_noisy_dirs: false,
         prune_dirs: Vec::new(),
+        icons: None,
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
@@ -451,6 +559,7 @@ fn test_params_merge_si_enables_decimal_human_readable_output() {
         indicator_style: None,
         dirs_first: false,
         long: false,
+        short_format: None,
         header: false,
         human_readable: false,
         si: true,
@@ -459,6 +568,7 @@ fn test_params_merge_si_enables_decimal_human_readable_output() {
         tree_level: None,
         prune_noisy_dirs: false,
         prune_dirs: Vec::new(),
+        icons: None,
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
@@ -492,6 +602,7 @@ fn test_params_merge_config_si_overrides_config_human_readable() {
         indicator_style: None,
         dirs_first: false,
         long: false,
+        short_format: None,
         header: false,
         human_readable: false,
         si: false,
@@ -500,6 +611,7 @@ fn test_params_merge_config_si_overrides_config_human_readable() {
         tree_level: None,
         prune_noisy_dirs: false,
         prune_dirs: Vec::new(),
+        icons: None,
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
@@ -532,6 +644,7 @@ fn test_params_merge_cli_prune_dirs_append_config_prune_dirs() {
         indicator_style: None,
         dirs_first: false,
         long: false,
+        short_format: None,
         header: false,
         human_readable: false,
         si: false,
@@ -540,6 +653,7 @@ fn test_params_merge_cli_prune_dirs_append_config_prune_dirs() {
         tree_level: None,
         prune_noisy_dirs: false,
         prune_dirs: vec![String::from("from-cli")],
+        icons: None,
         no_icons: false,
         no_color: false,
         no_permission_colors: false,
@@ -579,6 +693,7 @@ fn test_params_merge_deduplicates_prune_preset() {
         indicator_style: None,
         dirs_first: false,
         long: false,
+        short_format: None,
         header: false,
         human_readable: false,
         si: false,
@@ -587,6 +702,7 @@ fn test_params_merge_deduplicates_prune_preset() {
         tree_level: None,
         prune_noisy_dirs: true,
         prune_dirs: Vec::new(),
+        icons: None,
         no_icons: false,
         no_color: false,
         no_permission_colors: false,

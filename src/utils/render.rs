@@ -6,24 +6,23 @@
 use chrono::{DateTime, Local};
 use colored_text::{ColorLevel, Colorize, StyledText};
 use std::fmt::Write as FmtWrite;
-use std::io::{self, Write as IoWrite};
+use std::io::{self, IsTerminal, Write as IoWrite};
 use std::time::{Duration, SystemTime};
 
 use strip_ansi_escapes::strip_str;
+use term_grid::{Direction, Filling, Grid, GridOptions};
 use terminal_size::{Height, Width, terminal_size};
 
 use crate::Params;
 use crate::platform::{self, LongColumn, LongFormatLayoutOptions};
-use crate::structs::{AttributeDisplay, FileInfo, NameStyle};
+use crate::structs::{AttributeDisplay, FileInfo, NameStyle, ShortFormat};
 use crate::utils;
 use crate::utils::color::long_format_color_level;
 use crate::utils::file::check_display_name;
-use crate::utils::table::{
-    Cell, HeaderCell, HeaderRow, Row, Table, visible_width,
-};
+use crate::utils::table::{Cell, HeaderCell, HeaderRow, Row, Table};
 use crate::utils::time::{DAY, MONTH, WEEK, YEAR};
 
-const SHORT_CELL_PADDING: usize = 2;
+const SHORT_COLUMN_GAP: usize = 2;
 const LONG_TABLE_DEFAULT_GAP: usize = 2;
 const LONG_TABLE_RELATED_GAP: usize = 1;
 const LARGE_SIZE_BYTES: u64 = 1024 * 1024;
@@ -561,24 +560,64 @@ fn interpolate(start: u8, end: u8, ratio: f32) -> u8 {
         as u8
 }
 
-/// Render short-format columns to stdout.
-pub fn display_short_format(file_info: &[FileInfo]) -> io::Result<()> {
-    let terminal_width = terminal_width_or_default(terminal_size());
-    print_short_lines(&render_short_format_lines(file_info, terminal_width))
+/// Render short-format output to stdout.
+pub(crate) fn display_short_format(
+    file_info: &[FileInfo],
+    params: &Params,
+) -> io::Result<()> {
+    if short_output_uses_grid(io::stdout().is_terminal(), params.short_format)
+    {
+        let terminal_width = terminal_width_or_default(terminal_size());
+        print_short_grid(&render_short_format(file_info, terminal_width))
+    } else {
+        print_short_lines(&render_short_single_column_lines(file_info))
+    }
 }
 
 /// Render short-format rows for a fixed terminal width.
+#[cfg(test)]
 pub(crate) fn render_short_format_lines(
     file_info: &[FileInfo],
     terminal_width: usize,
 ) -> Vec<String> {
-    let render_items = short_render_items(file_info);
-    let rows = short_rows(&render_items, terminal_width);
-    let column_widths = short_column_widths(&rows);
-
-    rows.iter()
-        .map(|row| render_short_row(row, &column_widths))
+    render_short_format(file_info, terminal_width)
+        .lines()
+        .map(str::to_owned)
         .collect()
+}
+
+fn render_short_format(
+    file_info: &[FileInfo],
+    terminal_width: usize,
+) -> String {
+    Grid::new(
+        short_render_cells(file_info),
+        GridOptions {
+            direction: Direction::TopToBottom,
+            filling: Filling::Spaces(SHORT_COLUMN_GAP),
+            width: terminal_width,
+        },
+    )
+    .to_string()
+}
+
+/// Render one unpadded short-format entry per line.
+pub(crate) fn render_short_single_column_lines(
+    file_info: &[FileInfo],
+) -> Vec<String> {
+    short_render_cells(file_info)
+}
+
+/// Return whether short output should use a grid for this stdout context.
+pub(crate) fn short_output_uses_grid(
+    is_terminal: bool,
+    short_format: Option<ShortFormat>,
+) -> bool {
+    is_terminal || short_format == Some(ShortFormat::Vertical)
+}
+
+fn short_render_cells(file_info: &[FileInfo]) -> Vec<String> {
+    file_info.iter().map(short_render_cell).collect()
 }
 
 /// Return the detected terminal width, or the standard 80-column fallback.
@@ -589,53 +628,10 @@ pub(crate) fn terminal_width_or_default(
         .unwrap_or(80)
 }
 
-fn short_rows<'a>(
-    render_items: &'a [ShortRenderItem<'a>],
-    terminal_width: usize,
-) -> Vec<&'a [ShortRenderItem<'a>]> {
-    let num_columns = short_column_count(render_items, terminal_width);
-    render_items.chunks(num_columns).collect()
-}
-
-fn short_column_count(
-    render_items: &[ShortRenderItem<'_>],
-    terminal_width: usize,
-) -> usize {
-    let max_cell_width = render_items
-        .iter()
-        .map(short_cell_width)
-        .max()
-        .unwrap_or(SHORT_CELL_PADDING);
-
-    (terminal_width / max_cell_width).max(1)
-}
-
-fn short_cell_width(item: &ShortRenderItem<'_>) -> usize {
-    item.plain_width + SHORT_CELL_PADDING
-}
-
-struct ShortRenderItem<'a> {
-    info: &'a FileInfo,
-    prefix: String,
-    name: String,
-    plain_width: usize,
-}
-
-fn short_render_items(file_info: &[FileInfo]) -> Vec<ShortRenderItem<'_>> {
-    file_info.iter().map(short_render_item).collect()
-}
-
-fn short_render_item(info: &FileInfo) -> ShortRenderItem<'_> {
+fn short_render_cell(info: &FileInfo) -> String {
     let display_name = check_display_name(info);
     let (prefix, name) = short_cell_parts(info, &display_name);
-    let plain_width = visible_width(&format!("{prefix}{name}"));
-
-    ShortRenderItem {
-        info,
-        prefix,
-        name,
-        plain_width,
-    }
+    format!("{prefix}{}", style_short_segment(info, name))
 }
 
 fn short_cell_parts(info: &FileInfo, display_name: &str) -> (String, String) {
@@ -650,62 +646,6 @@ fn short_cell_parts(info: &FileInfo, display_name: &str) -> (String, String) {
         strip_str(display_name)
     };
     (prefix, name)
-}
-
-fn short_column_widths(rows: &[&[ShortRenderItem<'_>]]) -> Vec<usize> {
-    let mut widths =
-        vec![0; rows.iter().map(|row| row.len()).max().unwrap_or(0)];
-
-    for row in rows {
-        for (index, item) in row.iter().enumerate() {
-            widths[index] = widths[index].max(item.plain_width);
-        }
-    }
-
-    widths
-}
-
-fn render_short_row(
-    row: &[ShortRenderItem<'_>],
-    column_widths: &[usize],
-) -> String {
-    let mut line = String::from(" ");
-
-    for (index, item) in row.iter().enumerate() {
-        let is_last_column = index + 1 == row.len();
-        line.push_str(&item.prefix);
-        line.push_str(&style_short_segment(
-            item.info,
-            padded_short_name(
-                &item.name,
-                column_widths[index],
-                item.plain_width,
-                is_last_column,
-            ),
-        ));
-
-        if !is_last_column {
-            line.push(' ');
-        }
-    }
-
-    line
-}
-
-fn padded_short_name(
-    name: &str,
-    column_width: usize,
-    plain_width: usize,
-    is_last_column: bool,
-) -> String {
-    let right_padding = if is_last_column {
-        SHORT_CELL_PADDING
-    } else {
-        column_width.saturating_sub(plain_width) + SHORT_CELL_PADDING
-    };
-    let mut padded = String::from(name);
-    padded.push_str(&" ".repeat(right_padding));
-    padded
 }
 
 fn style_short_segment(info: &FileInfo, text: String) -> String {
@@ -740,5 +680,11 @@ fn print_short_lines(lines: &[String]) -> io::Result<()> {
     for line in lines {
         writeln!(stdout, "{line}")?;
     }
+    stdout.flush()
+}
+
+fn print_short_grid(grid: &str) -> io::Result<()> {
+    let mut stdout = io::stdout();
+    stdout.write_all(grid.as_bytes())?;
     stdout.flush()
 }

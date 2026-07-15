@@ -3,6 +3,7 @@ use filetime::FileTime;
 use lsplus::settings::CONFIG_FILE_ENV_VAR;
 use lsplus::utils::icons::Icon;
 use std::fs;
+use std::process::Stdio;
 use std::time::{Duration, SystemTime};
 use strip_ansi_escapes::strip_str;
 use tempfile::tempdir;
@@ -11,7 +12,23 @@ mod common;
 
 use common::{
     command_with_home, has_ansi, run_and_capture, run_and_capture_raw,
+    std_command_with_home,
 };
+
+const SHORT_GRID_NAMES: [&str; 6] = [
+    "alpha-000000000.txt",
+    "bravo-000000000.txt",
+    "charlie-000000000.txt",
+    "delta-000000000.txt",
+    "echo-000000000.txt",
+    "foxtrot-000000000.txt",
+];
+
+fn write_short_grid_fixture(root: &std::path::Path) {
+    for name in SHORT_GRID_NAMES {
+        fs::write(root.join(name), name).unwrap();
+    }
+}
 
 #[test]
 fn test_version_flag() {
@@ -600,22 +617,86 @@ fn test_tree_prune_dir_keeps_parent_entry_only() {
 }
 
 #[test]
-fn test_no_icons_omits_file_icons() {
+fn test_redirected_short_output_uses_configured_icon_display() {
     let temp_dir = tempdir().unwrap();
     let rust_file = temp_dir.path().join("example.rs");
     fs::write(&rust_file, "fn main() {}").unwrap();
 
-    let mut with_icons = command_with_home(temp_dir.path());
-    with_icons.arg(&rust_file);
-    let (stdout_with_icons, _stderr) = run_and_capture(&mut with_icons);
+    let mut automatic = command_with_home(temp_dir.path());
+    automatic.arg(&rust_file);
+    let (automatic_stdout, _stderr) = run_and_capture(&mut automatic);
 
-    let mut without_icons = command_with_home(temp_dir.path());
-    without_icons.arg("--no-icons").arg(&rust_file);
-    let (stdout_without_icons, _stderr) = run_and_capture(&mut without_icons);
+    let mut always = command_with_home(temp_dir.path());
+    always.arg("--icons=always").arg(&rust_file);
+    let (always_stdout, _stderr) = run_and_capture(&mut always);
 
-    assert!(stdout_with_icons.contains(""));
-    assert!(!stdout_without_icons.contains(""));
-    assert!(stdout_without_icons.contains("example.rs"));
+    let mut never = command_with_home(temp_dir.path());
+    never.arg("--no-icons").arg(&rust_file);
+    let (never_stdout, _stderr) = run_and_capture(&mut never);
+
+    assert!(!automatic_stdout.contains(""));
+    assert!(always_stdout.contains(""));
+    assert!(!never_stdout.contains(""));
+    assert!(never_stdout.contains("example.rs"));
+}
+
+#[test]
+fn test_redirected_long_output_uses_configured_icon_display() {
+    let temp_dir = tempdir().unwrap();
+    let rust_file = temp_dir.path().join("example.rs");
+    fs::write(&rust_file, "fn main() {}").unwrap();
+
+    let mut automatic = command_with_home(temp_dir.path());
+    automatic.arg("-l").arg(&rust_file);
+    let (automatic_stdout, _stderr) = run_and_capture(&mut automatic);
+
+    let mut always = command_with_home(temp_dir.path());
+    always.arg("-l").arg("--icons=always").arg(&rust_file);
+    let (always_stdout, _stderr) = run_and_capture(&mut always);
+
+    assert!(!automatic_stdout.contains(""));
+    assert!(always_stdout.contains(""));
+}
+
+#[test]
+fn test_regular_file_redirection_preserves_icons_in_auto_mode() {
+    let temp_dir = tempdir().unwrap();
+    let rust_file = temp_dir.path().join("example.rs");
+    fs::write(&rust_file, "fn main() {}").unwrap();
+
+    for long_format in [false, true] {
+        let output_path =
+            temp_dir.path().join(format!("output-{long_format}"));
+        let output_file = fs::File::create(&output_path).unwrap();
+        let mut cmd = std_command_with_home(temp_dir.path());
+        if long_format {
+            cmd.arg("-l");
+        }
+        cmd.arg(&rust_file).stdout(Stdio::from(output_file));
+
+        assert!(cmd.status().unwrap().success());
+        assert!(fs::read_to_string(output_path).unwrap().contains(""));
+    }
+}
+
+#[test]
+fn test_configured_icons_always_overrides_legacy_no_icons() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+    let rust_file = temp_dir.path().join("example.rs");
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(
+        config_dir.join("config.toml"),
+        "icons = \"always\"\nno_icons = true\n",
+    )
+    .unwrap();
+    fs::write(&rust_file, "fn main() {}").unwrap();
+
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg(&rust_file);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert!(stdout.contains(""));
 }
 
 #[test]
@@ -788,7 +869,75 @@ fn test_short_format_does_not_pad_short_rows_to_longest_filename() {
         .find(|line| line.contains(short_name))
         .unwrap();
 
-    assert_eq!(short_row, " plain.txt  ");
+    assert_eq!(short_row, "plain.txt");
+}
+
+#[test]
+fn test_redirected_short_format_uses_one_unpadded_entry_per_line() {
+    let temp_dir = tempdir().unwrap();
+    write_short_grid_fixture(temp_dir.path());
+
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg("--no-icons").arg("--no-color").arg(temp_dir.path());
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+    let lines: Vec<_> = stdout.lines().collect();
+
+    assert_eq!(lines, SHORT_GRID_NAMES);
+    assert!(lines.iter().all(|line| *line == line.trim()));
+}
+
+#[test]
+fn test_vertical_short_format_options_force_grid_when_redirected() {
+    let temp_dir = tempdir().unwrap();
+    write_short_grid_fixture(temp_dir.path());
+
+    let mut short = command_with_home(temp_dir.path());
+    short
+        .arg("-C")
+        .arg("--no-icons")
+        .arg("--no-color")
+        .arg(temp_dir.path());
+    let (short_stdout, _stderr) = run_and_capture(&mut short);
+
+    let mut long = command_with_home(temp_dir.path());
+    long.arg("--format")
+        .arg("vertical")
+        .arg("--no-icons")
+        .arg("--no-color")
+        .arg(temp_dir.path());
+    let (long_stdout, _stderr) = run_and_capture(&mut long);
+
+    assert_eq!(short_stdout, long_stdout);
+    let lines: Vec<_> = short_stdout.lines().collect();
+    assert_eq!(lines.len(), 2);
+    assert!(lines[0].contains(SHORT_GRID_NAMES[0]));
+    assert!(lines[0].contains(SHORT_GRID_NAMES[2]));
+    assert!(lines[0].contains(SHORT_GRID_NAMES[4]));
+    assert!(lines[1].contains(SHORT_GRID_NAMES[1]));
+    assert!(lines[1].contains(SHORT_GRID_NAMES[3]));
+    assert!(lines[1].contains(SHORT_GRID_NAMES[5]));
+    assert!(lines.iter().all(|line| *line == line.trim_end()));
+}
+
+#[test]
+fn test_configured_vertical_short_format_forces_grid_when_redirected() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("lsplus");
+    let listing_dir = temp_dir.path().join("listing");
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::create_dir(&listing_dir).unwrap();
+    fs::write(
+        config_dir.join("config.toml"),
+        "short_format = \"vertical\"\nno_icons = true\nno_color = true\n",
+    )
+    .unwrap();
+    write_short_grid_fixture(&listing_dir);
+
+    let mut cmd = command_with_home(temp_dir.path());
+    cmd.arg(&listing_dir);
+    let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+    assert_eq!(stdout.lines().count(), 2);
 }
 
 #[test]
@@ -800,7 +949,10 @@ fn test_long_format_renders_hidden_git_icons() {
     fs::write(&gitignore, "*.log\n").unwrap();
 
     let mut cmd = command_with_home(temp_dir.path());
-    cmd.arg("-l").arg("-a").arg(temp_dir.path());
+    cmd.arg("-l")
+        .arg("-a")
+        .arg("--icons=always")
+        .arg(temp_dir.path());
     let (stdout, _stderr) = run_and_capture(&mut cmd);
 
     let rows: Vec<_> = stdout

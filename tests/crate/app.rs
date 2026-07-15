@@ -1,4 +1,3 @@
-use crate::Params;
 use crate::app::{
     collect_listing_sections, collect_tree_sections, patterns_from_args,
     run_with_flags, run_with_flags_and_config,
@@ -6,6 +5,7 @@ use crate::app::{
 use crate::cli::Flags;
 use crate::common_tests::ColorModeGuard;
 use crate::utils::color::{color_mode_for, long_format_color_level};
+use crate::{IconDisplay, Params};
 use colored_text::{ColorLevel, ColorMode};
 use std::fs;
 use tempfile::tempdir;
@@ -15,6 +15,7 @@ fn default_flags_with_paths(paths: Vec<String>) -> Flags {
         show_all: false,
         almost_all: false,
         long: false,
+        short_format: None,
         header: false,
         human_readable: false,
         si: false,
@@ -26,6 +27,7 @@ fn default_flags_with_paths(paths: Vec<String>) -> Flags {
         paths,
         indicator_style: None,
         dirs_first: false,
+        icons: None,
         no_icons: true,
         no_color: false,
         no_permission_colors: false,
@@ -36,6 +38,26 @@ fn default_flags_with_paths(paths: Vec<String>) -> Flags {
         gitignore: false,
         version: false,
         fuzzy_time: false,
+    }
+}
+
+#[test]
+fn test_resolve_icon_output_uses_policy_and_destination() {
+    for (icons, is_terminal, is_regular_file, expected_no_icons) in [
+        (IconDisplay::Auto, true, false, false),
+        (IconDisplay::Auto, false, true, false),
+        (IconDisplay::Auto, false, false, true),
+        (IconDisplay::Always, false, false, false),
+        (IconDisplay::Never, true, true, true),
+    ] {
+        let mut params = Params {
+            icons,
+            ..Params::default()
+        };
+
+        params.resolve_icon_output(is_terminal, is_regular_file);
+
+        assert_eq!(params.no_icons, expected_no_icons);
     }
 }
 
@@ -111,6 +133,7 @@ fn test_run_with_flags_lists_matching_entries() {
             show_all: false,
             almost_all: false,
             long: false,
+            short_format: None,
             header: false,
             human_readable: false,
             si: false,
@@ -122,6 +145,7 @@ fn test_run_with_flags_lists_matching_entries() {
             paths: vec![temp_dir.path().display().to_string()],
             indicator_style: None,
             dirs_first: false,
+            icons: None,
             no_icons: true,
             no_color: false,
             no_permission_colors: false,

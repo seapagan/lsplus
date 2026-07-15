@@ -5,7 +5,7 @@
 
 use glob::{Pattern, glob};
 use std::fs;
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
 use std::path::{Path, PathBuf};
 
 use crate::Params;
@@ -82,7 +82,7 @@ pub fn run_with_flags_and_config(
     args: cli::Flags,
     config: &Params,
 ) -> io::Result<()> {
-    let params = Params::merge(&args, config);
+    let mut params = Params::merge(&args, config);
     platform::validate_params(&params)?;
     if params.recursive && params.tree {
         return Err(io::Error::new(
@@ -90,6 +90,10 @@ pub fn run_with_flags_and_config(
             "--tree and --recursive cannot be used together",
         ));
     }
+    params.resolve_icon_output(
+        io::stdout().is_terminal(),
+        platform::stdout_is_regular_file(),
+    );
     utils::color::configure_color_output(&params);
     let patterns = patterns_from_args(args.paths);
 
@@ -142,7 +146,7 @@ fn render_listing_sections(
         if params.long_format {
             utils::render::display_long_format(&section.entries, params)?;
         } else {
-            utils::render::display_short_format(&section.entries)?;
+            utils::render::display_short_format(&section.entries, params)?;
         }
     }
 
@@ -261,7 +265,7 @@ fn render_listing_section(
     if params.long_format {
         utils::render::display_long_format(&section.entries, params)?;
     } else {
-        utils::render::display_short_format(&section.entries)?;
+        utils::render::display_short_format(&section.entries, params)?;
     }
 
     *rendered_section = true;

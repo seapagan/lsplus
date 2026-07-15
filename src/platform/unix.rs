@@ -17,11 +17,25 @@ use crate::platform::{
 use crate::structs::{AttributeDisplay, NameStyle, Params, PermissionDisplay};
 use crate::utils::format;
 
+/// Return whether stdout currently refers to a regular file.
+pub(crate) fn stdout_is_regular_file() -> bool {
+    let Ok(metadata) = nix::sys::stat::fstat(io::stdout()) else {
+        return false;
+    };
+
+    let mode = mode_bits::as_u32(metadata.st_mode);
+    mode & mode_bits::FILE_TYPE_MASK == mode_bits::REGULAR
+}
+
 #[allow(
     clippy::unnecessary_cast,
     reason = "libc::mode_t is u16 on Apple targets"
 )]
 mod mode_bits {
+    pub(super) fn as_u32(mode: nix::libc::mode_t) -> u32 {
+        mode as u32
+    }
+
     pub(super) const FILE_TYPE_MASK: u32 = nix::libc::S_IFMT as u32;
     pub(super) const FIFO: u32 = nix::libc::S_IFIFO as u32;
     pub(super) const CHAR_DEVICE: u32 = nix::libc::S_IFCHR as u32;

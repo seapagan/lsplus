@@ -1,4 +1,3 @@
-use crate::Params;
 use crate::cli::CompatMode;
 #[cfg(unix)]
 use crate::settings::config_path_from_home;
@@ -13,6 +12,7 @@ use crate::{
     IndicatorStyle,
     structs::{AttributeDisplay, PermissionDisplay},
 };
+use crate::{Params, ShortFormat};
 use std::ffi::OsString;
 use std::fs;
 use std::path::PathBuf;
@@ -85,6 +85,28 @@ fn test_load_config_returns_default_when_deserialization_fails() {
 }
 
 #[test]
+fn test_load_config_reads_vertical_short_format() {
+    let temp_dir = tempdir().unwrap();
+    let config_path = temp_dir.path().join("config.toml");
+    fs::write(&config_path, "short_format = \"vertical\"\n").unwrap();
+
+    let params = load_config_from_path(Some(config_path));
+
+    assert_eq!(params.short_format, Some(ShortFormat::Vertical));
+}
+
+#[test]
+fn test_load_config_reads_icon_display() {
+    let temp_dir = tempdir().unwrap();
+    let config_path = temp_dir.path().join("config.toml");
+    fs::write(&config_path, "icons = \"always\"\n").unwrap();
+
+    let params = load_config_from_path(Some(config_path));
+
+    assert_eq!(params.icons, crate::IconDisplay::Always);
+}
+
+#[test]
 #[cfg(unix)]
 fn test_load_config_reads_boolean_settings_from_home_config() {
     let temp_dir = tempdir().unwrap();
@@ -122,6 +144,7 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
                 dirs_first: true,
                 almost_all: true,
                 long_format: true,
+                short_format: None,
                 header: true,
                 human_readable: true,
                 si: false,
@@ -138,6 +161,7 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
                     String::from("node_modules"),
                     String::from("__pycache__"),
                 ],
+                icons: crate::IconDisplay::Auto,
                 no_icons: true,
                 no_color: true,
                 permission_colors: false,
