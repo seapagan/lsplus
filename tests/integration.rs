@@ -920,6 +920,39 @@ fn test_vertical_short_format_options_force_grid_when_redirected() {
 }
 
 #[test]
+fn test_across_short_format_options_force_grid_when_redirected() {
+    let temp_dir = tempdir().unwrap();
+    write_short_grid_fixture(temp_dir.path());
+
+    let mut short = command_with_home(temp_dir.path());
+    short
+        .arg("-x")
+        .arg("--no-icons")
+        .arg("--no-color")
+        .arg(temp_dir.path());
+    let (short_stdout, _stderr) = run_and_capture(&mut short);
+
+    let mut long = command_with_home(temp_dir.path());
+    long.arg("--format")
+        .arg("across")
+        .arg("--no-icons")
+        .arg("--no-color")
+        .arg(temp_dir.path());
+    let (long_stdout, _stderr) = run_and_capture(&mut long);
+
+    assert_eq!(short_stdout, long_stdout);
+    let lines: Vec<_> = short_stdout.lines().collect();
+    assert_eq!(lines.len(), 2);
+    for name in &SHORT_GRID_NAMES[..3] {
+        assert!(lines[0].contains(name));
+    }
+    for name in &SHORT_GRID_NAMES[3..] {
+        assert!(lines[1].contains(name));
+    }
+    assert!(lines.iter().all(|line| *line == line.trim_end()));
+}
+
+#[test]
 fn test_configured_vertical_short_format_forces_grid_when_redirected() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().join(".config").join("lsplus");

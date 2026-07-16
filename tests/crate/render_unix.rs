@@ -10,7 +10,7 @@ use crate::utils::icons::Icon;
 use crate::utils::render::{
     build_long_format_table, render_short_format_lines,
 };
-use crate::{NameStyle, Params, structs::PermissionDisplay};
+use crate::{NameStyle, Params, ShortFormat, structs::PermissionDisplay};
 use colored_text::ColorMode;
 use std::time::{Duration, SystemTime};
 use strip_ansi_escapes::strip_str;
@@ -23,7 +23,11 @@ fn test_render_short_format_lines_preserves_synthetic_dot_names() {
         let mut dotdot = test_file_info("..", None, 0, SystemTime::now());
         dotdot.name_style = NameStyle::Directory;
 
-        let rendered = render_short_format_lines(&[dot, dotdot], 80);
+        let rendered = render_short_format_lines(
+            &[dot, dotdot],
+            80,
+            ShortFormat::Vertical,
+        );
 
         assert_eq!(rendered.len(), 1);
         assert_eq!(strip_str(&rendered[0]), ".  ..");
