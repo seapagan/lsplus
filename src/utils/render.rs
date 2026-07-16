@@ -565,10 +565,15 @@ pub(crate) fn display_short_format(
     file_info: &[FileInfo],
     params: &Params,
 ) -> io::Result<()> {
-    if short_output_uses_grid(io::stdout().is_terminal(), params.short_format)
+    if let Some(short_format) =
+        resolve_short_format(io::stdout().is_terminal(), params.short_format)
     {
         let terminal_width = terminal_width_or_default(terminal_size());
-        print_short_grid(&render_short_format(file_info, terminal_width))
+        print_short_grid(&render_short_format(
+            file_info,
+            terminal_width,
+            short_format,
+        ))
     } else {
         print_short_lines(&render_short_single_column_lines(file_info))
     }
@@ -579,8 +584,9 @@ pub(crate) fn display_short_format(
 pub(crate) fn render_short_format_lines(
     file_info: &[FileInfo],
     terminal_width: usize,
+    short_format: ShortFormat,
 ) -> Vec<String> {
-    render_short_format(file_info, terminal_width)
+    render_short_format(file_info, terminal_width, short_format)
         .lines()
         .map(str::to_owned)
         .collect()
@@ -589,11 +595,15 @@ pub(crate) fn render_short_format_lines(
 fn render_short_format(
     file_info: &[FileInfo],
     terminal_width: usize,
+    short_format: ShortFormat,
 ) -> String {
     Grid::new(
         short_render_cells(file_info),
         GridOptions {
-            direction: Direction::TopToBottom,
+            direction: match short_format {
+                ShortFormat::Vertical => Direction::TopToBottom,
+                ShortFormat::Across => Direction::LeftToRight,
+            },
             filling: Filling::Spaces(SHORT_COLUMN_GAP),
             width: terminal_width,
         },
@@ -608,12 +618,12 @@ pub(crate) fn render_short_single_column_lines(
     short_render_cells(file_info)
 }
 
-/// Return whether short output should use a grid for this stdout context.
-pub(crate) fn short_output_uses_grid(
+/// Resolve the short grid format for this stdout context.
+pub(crate) fn resolve_short_format(
     is_terminal: bool,
     short_format: Option<ShortFormat>,
-) -> bool {
-    is_terminal || short_format == Some(ShortFormat::Vertical)
+) -> Option<ShortFormat> {
+    short_format.or(is_terminal.then_some(ShortFormat::Vertical))
 }
 
 fn short_render_cells(file_info: &[FileInfo]) -> Vec<String> {

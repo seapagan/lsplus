@@ -74,6 +74,8 @@ pub enum AttributeDisplay {
 pub enum ShortFormat {
     /// Fill entries down variable-width columns.
     Vertical,
+    /// Fill entries across variable-width rows.
+    Across,
 }
 
 /// Controls when file and directory icons are displayed.
