@@ -93,13 +93,15 @@ to `true`.
 
 ### short_format
 
-- Permitted value: `"vertical"`
+- Permitted values: `"vertical"` or `"across"`
 - Default value: unset
 
 Short output uses vertical columns when stdout is a terminal and one entry per
 line when stdout is redirected. Set `short_format = "vertical"` to force the
-vertical grid for redirected output. This setting corresponds to `-C` or
-`--format=vertical` and has no effect on long or tree output.
+vertical grid for redirected output, or set `short_format = "across"` to fill
+rows from left to right. The settings correspond to `-C` /
+`--format=vertical` and `-x` / `--format=across`; either explicit format keeps
+the grid when output is redirected and has no effect on long or tree output.
 
 ### header
 
@@ -310,7 +312,7 @@ show_all = true
 indicator_style = "classify"
 dirs_first = true
 long_format = true
-# short_format = "vertical"
+# short_format = "vertical"  # or "across"
 # header = true
 human_readable = true
 # si = true
