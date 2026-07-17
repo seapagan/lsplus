@@ -137,6 +137,19 @@ fn test_config_conversion_accepts_attribute_display_modes() {
 }
 
 #[test]
+fn test_config_conversion_accepts_vertical_short_format() {
+    let config = Config::builder()
+        .set_override("short_format", "vertical")
+        .unwrap()
+        .build()
+        .unwrap();
+
+    let params: Params = config.into();
+
+    assert_eq!(params.short_format, Some(ShortFormat::Vertical));
+}
+
+#[test]
 fn test_config_conversion_accepts_across_short_format() {
     let config = Config::builder()
         .set_override("short_format", "across")
