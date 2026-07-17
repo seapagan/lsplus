@@ -150,6 +150,19 @@ fn test_config_conversion_accepts_vertical_short_format() {
 }
 
 #[test]
+fn test_config_conversion_accepts_across_short_format() {
+    let config = Config::builder()
+        .set_override("short_format", "across")
+        .unwrap()
+        .build()
+        .unwrap();
+
+    let params: Params = config.into();
+
+    assert_eq!(params.short_format, Some(ShortFormat::Across));
+}
+
+#[test]
 fn test_config_conversion_accepts_icon_display_modes() {
     for (value, expected) in [
         ("auto", IconDisplay::Auto),
@@ -214,19 +227,23 @@ fn test_params_merge_no_icons_overrides_configured_icon_display() {
 #[test]
 fn test_params_merge_uses_cli_short_format_over_config() {
     let config = Params {
-        short_format: Some(ShortFormat::Vertical),
+        short_format: Some(ShortFormat::Across),
         ..Params::default()
     };
     let default_flags = Flags::parse_from(["lsplus"]);
     assert_eq!(
         Params::merge(&default_flags, &config).short_format,
-        Some(ShortFormat::Vertical)
+        Some(ShortFormat::Across)
     );
 
-    let cli_flags = Flags::parse_from(["lsplus", "-C"]);
+    let vertical_config = Params {
+        short_format: Some(ShortFormat::Vertical),
+        ..Params::default()
+    };
+    let cli_flags = Flags::parse_from(["lsplus", "-x"]);
     assert_eq!(
-        Params::merge(&cli_flags, &Params::default()).short_format,
-        Some(ShortFormat::Vertical)
+        Params::merge(&cli_flags, &vertical_config).short_format,
+        Some(ShortFormat::Across)
     );
 }
 

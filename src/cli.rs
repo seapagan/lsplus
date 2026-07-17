@@ -18,6 +18,7 @@ const ARG_SHOW_ALL: &str = "show_all";
 const ARG_ALMOST_ALL: &str = "almost_all";
 const ARG_LONG: &str = "long";
 const ARG_VERTICAL: &str = "vertical";
+const ARG_ACROSS: &str = "across";
 const ARG_FORMAT: &str = "format";
 const ARG_HEADER: &str = "header";
 const ARG_HUMAN_READABLE: &str = "human_readable";
@@ -191,6 +192,7 @@ fn build_command(mode: CompatMode) -> Command {
         .arg(almost_all_arg())
         .arg(long_arg())
         .arg(vertical_arg())
+        .arg(across_arg())
         .arg(format_arg())
         .arg(header_arg())
         .arg(human_readable_arg())
@@ -285,12 +287,19 @@ fn vertical_arg() -> Arg {
         .help("List entries in columns sorted vertically")
 }
 
+fn across_arg() -> Arg {
+    Arg::new(ARG_ACROSS)
+        .short('x')
+        .action(ArgAction::SetTrue)
+        .help("List entries in rows from left to right")
+}
+
 fn format_arg() -> Arg {
     Arg::new(ARG_FORMAT)
         .long("format")
         .value_name("FORMAT")
         .value_parser(clap::value_parser!(ShortFormat))
-        .help("Select short output format: vertical")
+        .help("Select short output format: vertical or across")
 }
 
 fn header_arg() -> Arg {
@@ -556,6 +565,9 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
                 matches
                     .get_flag(ARG_VERTICAL)
                     .then_some(ShortFormat::Vertical)
+            })
+            .or_else(|| {
+                matches.get_flag(ARG_ACROSS).then_some(ShortFormat::Across)
             }),
         header: matches.get_flag(ARG_HEADER),
         human_readable: matches.get_flag(ARG_HUMAN_READABLE),

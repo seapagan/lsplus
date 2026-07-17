@@ -96,6 +96,17 @@ fn test_load_config_reads_vertical_short_format() {
 }
 
 #[test]
+fn test_load_config_reads_across_short_format() {
+    let temp_dir = tempdir().unwrap();
+    let config_path = temp_dir.path().join("config.toml");
+    fs::write(&config_path, "short_format = \"across\"\n").unwrap();
+
+    let params = load_config_from_path(Some(config_path));
+
+    assert_eq!(params.short_format, Some(ShortFormat::Across));
+}
+
+#[test]
 fn test_load_config_reads_icon_display() {
     let temp_dir = tempdir().unwrap();
     let config_path = temp_dir.path().join("config.toml");

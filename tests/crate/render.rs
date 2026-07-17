@@ -8,7 +8,7 @@ use crate::utils::render::{
     SizeCellStyle, build_long_format_table,
     build_long_format_table_with_name_prefixes, directory_header_text,
     render_short_format_lines, render_short_single_column_lines,
-    short_output_uses_grid, size_style_for_color_level,
+    resolve_short_format, size_style_for_color_level,
     terminal_width_or_default,
 };
 use crate::{
@@ -510,8 +510,11 @@ fn test_render_short_format_styles_special_name_types() {
             let mut info = test_file_info(name, None, 0, SystemTime::now());
             info.name_style = name_style;
 
-            let rendered =
-                normalized_lines(render_short_format_lines(&[info], 80));
+            let rendered = normalized_lines(render_short_format_lines(
+                &[info],
+                80,
+                ShortFormat::Vertical,
+            ));
 
             assert!(rendered.contains(expected));
         }
@@ -818,7 +821,11 @@ fn test_render_short_format_lines_uses_single_column_for_narrow_width() {
         test_file_info("beta.txt", None, 0, SystemTime::now()),
     ];
 
-    let rendered = normalized_lines(render_short_format_lines(&files, 8));
+    let rendered = normalized_lines(render_short_format_lines(
+        &files,
+        8,
+        ShortFormat::Vertical,
+    ));
     let rows: Vec<_> = rendered
         .lines()
         .filter(|line| !line.trim().is_empty())
@@ -841,7 +848,11 @@ fn test_render_short_format_lines_groups_multiple_files_when_width_allows_it()
         ),
     ];
 
-    let rendered = normalized_lines(render_short_format_lines(&files, 80));
+    let rendered = normalized_lines(render_short_format_lines(
+        &files,
+        80,
+        ShortFormat::Vertical,
+    ));
     let rows: Vec<_> = rendered
         .lines()
         .filter(|line| !line.trim().is_empty())
@@ -866,7 +877,11 @@ fn test_render_short_format_lines_does_not_pad_short_rows_to_widest_name() {
         ),
     ];
 
-    let rendered = normalized_lines(render_short_format_lines(&files, 20));
+    let rendered = normalized_lines(render_short_format_lines(
+        &files,
+        20,
+        ShortFormat::Vertical,
+    ));
     let short_row = rendered
         .lines()
         .find(|line| line.contains("plain.txt"))
@@ -881,11 +896,26 @@ fn test_render_short_format_lines_uses_gnu_vertical_order_and_column_widths() {
         .map(|name| test_file_info(name, None, 0, SystemTime::now()));
 
     assert_eq!(
-        render_short_format_lines(&files, 20),
+        render_short_format_lines(&files, 20, ShortFormat::Vertical),
         vec![
             String::from("a      dddddddd"),
             String::from("bbbbb  eee"),
             String::from("cc     fffffff"),
+        ]
+    );
+}
+
+#[test]
+fn test_render_short_format_lines_uses_gnu_across_order_and_column_widths() {
+    let files = ["a", "bbbbb", "cc", "dddddddd", "eee", "fffffff"]
+        .map(|name| test_file_info(name, None, 0, SystemTime::now()));
+
+    assert_eq!(
+        render_short_format_lines(&files, 20, ShortFormat::Across),
+        vec![
+            String::from("a    bbbbb"),
+            String::from("cc   dddddddd"),
+            String::from("eee  fffffff"),
         ]
     );
 }
@@ -896,7 +926,7 @@ fn test_render_short_format_lines_handles_incomplete_final_column() {
         .map(|name| test_file_info(name, None, 0, SystemTime::now()));
 
     assert_eq!(
-        render_short_format_lines(&files, 8),
+        render_short_format_lines(&files, 8, ShortFormat::Vertical),
         vec![
             String::from("a  dddd"),
             String::from("b  e"),
@@ -910,8 +940,14 @@ fn test_render_short_format_lines_respects_exact_width_boundary() {
     let files = ["a", "bbb"]
         .map(|name| test_file_info(name, None, 0, SystemTime::now()));
 
-    assert_eq!(render_short_format_lines(&files, 6), vec!["a  bbb"]);
-    assert_eq!(render_short_format_lines(&files, 5), vec!["a", "bbb"]);
+    assert_eq!(
+        render_short_format_lines(&files, 6, ShortFormat::Vertical),
+        vec!["a  bbb"]
+    );
+    assert_eq!(
+        render_short_format_lines(&files, 5, ShortFormat::Vertical),
+        vec!["a", "bbb"]
+    );
 }
 
 #[test]
@@ -919,14 +955,18 @@ fn test_render_short_format_lines_keeps_wide_names_untruncated() {
     let files = [test_file_info("界界界.txt", None, 0, SystemTime::now())];
 
     assert_eq!(
-        render_short_format_lines(&files, 0),
+        render_short_format_lines(&files, 0, ShortFormat::Vertical),
         vec![String::from("界界界.txt")]
     );
 }
 
 #[test]
 fn test_render_short_format_lines_handles_empty_input() {
-    let rendered = normalized_lines(render_short_format_lines(&[], 80));
+    let rendered = normalized_lines(render_short_format_lines(
+        &[],
+        80,
+        ShortFormat::Vertical,
+    ));
 
     assert!(rendered.trim().is_empty());
 }
@@ -938,7 +978,8 @@ fn test_render_short_format_lines_style_directory_when_enabled() {
             test_file_info("alpha/", Some(Icon::Folder), 0, SystemTime::now());
         dir.name_style = NameStyle::Directory;
 
-        let lines = render_short_format_lines(&[dir], 80);
+        let lines =
+            render_short_format_lines(&[dir], 80, ShortFormat::Vertical);
 
         assert_eq!(lines.len(), 1);
         assert_eq!(
@@ -955,7 +996,7 @@ fn test_render_short_format_lines_keep_plain_output_when_color_disabled() {
         test_file_info("alpha/", Some(Icon::Folder), 0, SystemTime::now());
     dir.name_style = NameStyle::Directory;
 
-    let lines = render_short_format_lines(&[dir], 80);
+    let lines = render_short_format_lines(&[dir], 80, ShortFormat::Vertical);
 
     assert_eq!(lines, vec![format!("{} alpha/", Icon::Folder)]);
 }
@@ -967,7 +1008,11 @@ fn test_render_short_format_lines_ignores_ansi_when_measuring_columns() {
         directory.name_style = NameStyle::Directory;
         let plain = test_file_info("x", None, 0, SystemTime::now());
 
-        let lines = render_short_format_lines(&[directory, plain], 7);
+        let lines = render_short_format_lines(
+            &[directory, plain],
+            7,
+            ShortFormat::Vertical,
+        );
 
         assert_eq!(lines.len(), 1);
         assert_eq!(strip_str(&lines[0]), "界/  x");
@@ -987,10 +1032,17 @@ fn test_render_short_single_column_lines_has_no_grid_padding() {
 }
 
 #[test]
-fn test_short_output_uses_grid_for_terminal_or_explicit_vertical_format() {
-    assert!(short_output_uses_grid(true, None));
-    assert!(short_output_uses_grid(false, Some(ShortFormat::Vertical)));
-    assert!(!short_output_uses_grid(false, None));
+fn test_resolve_short_format_uses_explicit_format_or_stdout_default() {
+    for format in [ShortFormat::Vertical, ShortFormat::Across] {
+        assert_eq!(resolve_short_format(true, Some(format)), Some(format));
+        assert_eq!(resolve_short_format(false, Some(format)), Some(format));
+    }
+
+    assert_eq!(
+        resolve_short_format(true, None),
+        Some(ShortFormat::Vertical)
+    );
+    assert_eq!(resolve_short_format(false, None), None);
 }
 
 #[test]

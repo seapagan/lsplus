@@ -19,6 +19,7 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `--no-indicators` - Disable file type indicators
 - `-l` / `--long` - Show long format listing
 - `-C` / `--format=vertical` - Force short output into vertical columns
+- `-x` / `--format=across` - Force short output into columns filled across
 - `--header` - Show a title row in long-format output
 - `--permissions <MODE>` - Select long-format permission display:
   `symbolic`, `octal`, `both`, or `none`
@@ -51,8 +52,9 @@ Use the `--help` option to see the full list of options.
 Short output fills variable-width columns from top to bottom when stdout is a
 terminal. Redirected short output prints one entry per line. Use `-C` or
 `--format=vertical` to keep the vertical grid when redirecting output. The
-grid uses spaces between columns so icons, colors, and Unicode names stay
-aligned across terminals.
+`-x` and `--format=across` options instead fill each row from left to right and
+also keep the grid when redirecting output. Grids use spaces between columns
+so icons, colors, and Unicode names stay aligned across terminals.
 
 When listing multiple directory operands, or a mix of files and directories,
 `lsp` prints file operands first and labels each directory section with a

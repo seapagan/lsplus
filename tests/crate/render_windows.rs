@@ -177,7 +177,11 @@ fn test_windows_long_table_colors_native_type_markers() {
 #[test]
 fn test_windows_short_format_colors_junction_name() {
     with_color_environment(None, None, ColorMode::Always, || {
-        let rendered = render_short_format_lines(&[windows_file_info()], 80);
+        let rendered = render_short_format_lines(
+            &[windows_file_info()],
+            80,
+            crate::ShortFormat::Vertical,
+        );
 
         assert_eq!(rendered.len(), 1);
         assert_eq!(

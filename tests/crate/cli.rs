@@ -274,6 +274,38 @@ fn test_parse_from_mode_accepts_vertical_short_format_options() {
 }
 
 #[test]
+fn test_parse_from_mode_accepts_across_short_format_options() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let short = try_parse_from_mode(mode, ["lsplus", "-x"]).unwrap();
+        assert_eq!(short.short_format, Some(ShortFormat::Across));
+
+        let long = try_parse_from_mode(mode, ["lsplus", "--format", "across"])
+            .unwrap();
+        assert_eq!(long.short_format, Some(ShortFormat::Across));
+    }
+}
+
+#[test]
+fn test_parse_from_mode_keeps_short_format_selector_precedence() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let vertical =
+            try_parse_from_mode(mode, ["lsplus", "-x", "-C"]).unwrap();
+        assert_eq!(vertical.short_format, Some(ShortFormat::Vertical));
+
+        let fixed_precedence =
+            try_parse_from_mode(mode, ["lsplus", "-C", "-x"]).unwrap();
+        assert_eq!(fixed_precedence.short_format, Some(ShortFormat::Vertical));
+
+        let explicit = try_parse_from_mode(
+            mode,
+            ["lsplus", "-C", "-x", "--format", "across"],
+        )
+        .unwrap();
+        assert_eq!(explicit.short_format, Some(ShortFormat::Across));
+    }
+}
+
+#[test]
 fn test_parse_from_mode_accepts_icon_display_modes() {
     for mode in [CompatMode::Native, CompatMode::Gnu] {
         for (value, expected) in [
