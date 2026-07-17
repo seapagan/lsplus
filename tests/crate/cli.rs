@@ -292,6 +292,10 @@ fn test_parse_from_mode_keeps_short_format_selector_precedence() {
             try_parse_from_mode(mode, ["lsplus", "-x", "-C"]).unwrap();
         assert_eq!(vertical.short_format, Some(ShortFormat::Vertical));
 
+        let fixed_precedence =
+            try_parse_from_mode(mode, ["lsplus", "-C", "-x"]).unwrap();
+        assert_eq!(fixed_precedence.short_format, Some(ShortFormat::Vertical));
+
         let explicit = try_parse_from_mode(
             mode,
             ["lsplus", "-C", "-x", "--format", "across"],
