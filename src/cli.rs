@@ -291,7 +291,7 @@ fn across_arg() -> Arg {
     Arg::new(ARG_ACROSS)
         .short('x')
         .action(ArgAction::SetTrue)
-        .help("List entries in columns sorted across")
+        .help("List entries in rows from left to right")
 }
 
 fn format_arg() -> Arg {
