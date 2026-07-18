@@ -109,6 +109,22 @@ jobs:
           --remap-path-prefix
           --output-path coverage-windows.lcov
 
+      - name: Normalize coverage paths
+        shell: pwsh
+        run: |
+          $coveragePath = (Resolve-Path coverage-windows.lcov).Path
+          $coverageLines = [System.IO.File]::ReadAllLines($coveragePath)
+          for ($index = 0; $index -lt $coverageLines.Length; $index++) {
+            if ($coverageLines[$index].StartsWith('SF:')) {
+              $coverageLines[$index] = $coverageLines[$index].Replace('\', '/')
+            }
+          }
+          [System.IO.File]::WriteAllLines(
+            $coveragePath,
+            $coverageLines,
+            [System.Text.UTF8Encoding]::new($false)
+          )
+
       - name: Validate coverage paths
         shell: pwsh
         run: |
