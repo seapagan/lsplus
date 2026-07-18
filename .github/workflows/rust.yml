@@ -44,7 +44,7 @@ jobs:
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Generate coverage
+      - name: Run tests and collect coverage
         run: >-
           cargo llvm-cov
           --all-targets
@@ -100,7 +100,7 @@ jobs:
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Generate coverage
+      - name: Run tests and collect coverage
         run: >-
           cargo llvm-cov
           --all-targets
@@ -119,9 +119,10 @@ jobs:
               $coverageLines[$index] = $coverageLines[$index].Replace('\', '/')
             }
           }
-          [System.IO.File]::WriteAllLines(
+          $coverageText = [string]::Join("`n", $coverageLines) + "`n"
+          [System.IO.File]::WriteAllText(
             $coveragePath,
-            $coverageLines,
+            $coverageText,
             [System.Text.UTF8Encoding]::new($false)
           )
 
