@@ -5,6 +5,31 @@ project since the first release.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased](https://github.com/seapagan/lsplus/tree/HEAD)
+
+**New Features**
+
+- Add across short-format output ([#164](https://github.com/seapagan/lsplus/pull/164)) by [seapagan](https://github.com/seapagan)
+- Add GNU-style short-format grid ([#158](https://github.com/seapagan/lsplus/pull/158)) by [seapagan](https://github.com/seapagan)
+- Add compact Windows attribute display ([#157](https://github.com/seapagan/lsplus/pull/157)) by [seapagan](https://github.com/seapagan)
+
+**CI / CD Pipeline**
+
+- Ci: finalize GitHub Actions hardening ([#155](https://github.com/seapagan/lsplus/pull/155)) by [seapagan](https://github.com/seapagan)
+
+**Dependency Updates**
+
+- Chore(deps): update taiki-e/install-action digest to 07b4745 ([#166](https://github.com/seapagan/lsplus/pull/166)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update rust crate ignore to v0.4.30 ([#165](https://github.com/seapagan/lsplus/pull/165)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update taiki-e/install-action digest to ed67fa3 ([#163](https://github.com/seapagan/lsplus/pull/163)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update rust crate ignore to v0.4.29 ([#162](https://github.com/seapagan/lsplus/pull/162)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update rust crate clap to v4.6.2 ([#161](https://github.com/seapagan/lsplus/pull/161)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update zizmorcore/zizmor-action action to v0.6.0 ([#160](https://github.com/seapagan/lsplus/pull/160)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update ghcr.io/zizmorcore/zizmor docker tag to v1.27.0 ([#159](https://github.com/seapagan/lsplus/pull/159)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update taiki-e/install-action digest to 43aecc8 ([#156](https://github.com/seapagan/lsplus/pull/156)) by [renovate[bot]](https://github.com/apps/renovate)
+
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.12.0...HEAD) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.12.0...HEAD.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.12.0...HEAD.patch)
+
 ## [0.12.0](https://github.com/seapagan/lsplus/releases/tag/0.12.0) (2026-07-12)
 
 Now with **100% more Windows Compatibility!** Free!!
