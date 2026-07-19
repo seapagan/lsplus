@@ -6,7 +6,7 @@ project since the first release.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/seapagan/lsplus/tree/HEAD)
+## [0.13.0](https://github.com/seapagan/lsplus/releases/tag/0.13.0) (2026-07-19)
 
 **New Features**
 
@@ -32,7 +32,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Chore(deps): update ghcr.io/zizmorcore/zizmor docker tag to v1.27.0 ([#159](https://github.com/seapagan/lsplus/pull/159)) by [renovate[bot]](https://github.com/apps/renovate)
 - Chore(deps): update taiki-e/install-action digest to 43aecc8 ([#156](https://github.com/seapagan/lsplus/pull/156)) by [renovate[bot]](https://github.com/apps/renovate)
 
-[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.12.0...HEAD) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.12.0...HEAD.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.12.0...HEAD.patch)
+[`Full Changelog`](https://github.com/seapagan/lsplus/compare/0.12.0...0.13.0) | [`Diff`](https://github.com/seapagan/lsplus/compare/0.12.0...0.13.0.diff) | [`Patch`](https://github.com/seapagan/lsplus/compare/0.12.0...0.13.0.patch)
 
 ## [0.12.0](https://github.com/seapagan/lsplus/releases/tag/0.12.0) (2026-07-12)
 
