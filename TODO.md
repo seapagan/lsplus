@@ -2,6 +2,9 @@
 
 - [ ] migrate docs from `mdbook` to `zensical`
 - [ ] complete code coverage - 83 lines uncovered at last run
+- [ ] replace Windows LCOV `SF:` path normalization with the
+      `LLVM_WINDOWS_PREFER_FORWARD_SLASH` environment override once Rust's
+      bundled LLVM supports it at runtime
 - [ ] add colorization for different file types, folders and symlinks. Make it
       customizable and theme-able. Make it default but allow an option to
       disable it (or vice-versa). Files that have a known extension should all
