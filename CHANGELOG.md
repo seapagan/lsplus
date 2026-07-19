@@ -15,10 +15,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 **CI / CD Pipeline**
 
+- Ci: add cross-platform coverage ([#167](https://github.com/seapagan/lsplus/pull/167)) by [seapagan](https://github.com/seapagan)
 - Ci: finalize GitHub Actions hardening ([#155](https://github.com/seapagan/lsplus/pull/155)) by [seapagan](https://github.com/seapagan)
 
 **Dependency Updates**
 
+- Chore(deps): update github artifact actions (major) ([#169](https://github.com/seapagan/lsplus/pull/169)) by [renovate[bot]](https://github.com/apps/renovate)
+- Chore(deps): update rust crate serde to v1.0.229 ([#168](https://github.com/seapagan/lsplus/pull/168)) by [renovate[bot]](https://github.com/apps/renovate)
 - Chore(deps): update taiki-e/install-action digest to 07b4745 ([#166](https://github.com/seapagan/lsplus/pull/166)) by [renovate[bot]](https://github.com/apps/renovate)
 - Chore(deps): update rust crate ignore to v0.4.30 ([#165](https://github.com/seapagan/lsplus/pull/165)) by [renovate[bot]](https://github.com/apps/renovate)
 - Chore(deps): update taiki-e/install-action digest to ed67fa3 ([#163](https://github.com/seapagan/lsplus/pull/163)) by [renovate[bot]](https://github.com/apps/renovate)
