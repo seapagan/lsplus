@@ -1,6 +1,5 @@
 # An `ls` replacement written in `Rust`
 
-
 LSPlus is a functional Unix `ls` clone written in Rust. I built it as a Rust
 learning project, so some code may still show beginner decisions.
 
