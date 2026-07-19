@@ -7,11 +7,11 @@ script = ["mkdir target/llvm-cov"]
 dependencies = ["prepare-coverage"]
 command = "cargo"
 args = [
-  "llvm-cov",
-  "nextest",
-  "--no-fail-fast",
-  "--lcov",
-  "--output-path=target/llvm-cov/coverage.lcov",
+    "llvm-cov",
+    "nextest",
+    "--no-fail-fast",
+    "--lcov",
+    "--output-path=target/llvm-cov/coverage.lcov",
 ]
 
 [tasks.test-html]
@@ -107,11 +107,7 @@ args = [
 
 [tasks.verify-windows]
 description = "Run all Linux-side Windows compatibility checks"
-dependencies = [
-    "windows-check",
-    "windows-clippy",
-    "windows-build",
-]
+dependencies = ["windows-check", "windows-clippy", "windows-build"]
 
 [tasks.windows-verify]
 description = "Compatibility alias for verify-windows"
@@ -120,3 +116,8 @@ dependencies = ["verify-windows"]
 [tasks.verify]
 description = "Run all Linux-host native Unix and Windows cross-target checks"
 dependencies = ["verify-unix", "verify-windows"]
+
+[tasks.changelog]
+description = "Update CHANGELOG.md with the latest merged PR's and closed Issues"
+command = "github-changelog-md"
+args = ["${@}"]

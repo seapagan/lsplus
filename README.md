@@ -414,6 +414,27 @@ cargo install cargo-nextest
 cargo install cargo-llvm-cov
 ```
 
+Only project maintainers should update `CHANGELOG.md`. Do not run this task in
+a pull request. Install `github-changelog-md` with
+`uv tool install github-changelog-md`. You can also use
+`pipx install github-changelog-md` or `pip install github-changelog-md`.
+
+Add merged changes since the latest release to the `Unreleased` section with:
+
+```bash
+cargo make changelog
+```
+
+For release preparation, name the next release with:
+
+```bash
+cargo make changelog -n 0.11.0
+```
+
+Use `-n` to place the merged changes in a new `0.11.0` section instead of the
+`Unreleased` section. Replace `0.11.0` with the next release version. Cargo
+Make forwards any other arguments to `github-changelog-md`.
+
 On Linux, install `cargo-xwin` to cross-check the Windows MSVC target:
 
 ```bash
