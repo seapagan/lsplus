@@ -164,28 +164,35 @@ jobs:
     needs: [unix, windows]
 
     steps:
-      - name: Download Unix coverage
+      - name: Download platform coverage
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
-          name: coverage-linux
-          path: coverage/linux
+          pattern: coverage-*
+          path: coverage
+          merge-multiple: true
 
-      - name: Download Windows coverage
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+      - name: Run Codacy coverage reporter
+        env:
+          CODACY_CONFIGURED: ${{ secrets.CODACY_PROJECT_TOKEN }}
+        if: ${{ env.CODACY_CONFIGURED != '' }}
+        uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699 # v1.3.0
+        continue-on-error: true
         with:
-          name: coverage-windows
-          path: coverage/windows
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: coverage/coverage-linux.lcov,coverage/coverage-windows.lcov
 
       - name: Install LCOV
         run: |
           sudo apt-get update
           sudo apt-get install --yes lcov
 
+      # Keep a vendor-neutral combined report for independent inspection;
+      # Codacy ingests the two platform reports directly above.
       - name: Merge coverage
         run: |
           lcov \
-            --add-tracefile coverage/linux/coverage-linux.lcov \
-            --add-tracefile coverage/windows/coverage-windows.lcov \
+            --add-tracefile coverage/coverage-linux.lcov \
+            --add-tracefile coverage/coverage-windows.lcov \
             --output-file coverage.lcov
 
       - name: Validate combined coverage
