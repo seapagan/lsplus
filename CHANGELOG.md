@@ -1,5 +1,6 @@
 # Changelog
 
+ <!-- markdownlint-configure-file { "MD036": false, "MD013": false } -->
 This is an auto-generated log of all the changes that have been made to the
 project since the first release.
 
