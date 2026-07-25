@@ -2,7 +2,7 @@ use crate::cli::{
     CompatMode, Flags, format_version_info, try_parse_from_mode, version_info,
 };
 use crate::{
-    IconDisplay, IndicatorStyle, ShortFormat,
+    IconDisplay, IndicatorStyle, ShortFormat, SortMode,
     structs::{AttributeDisplay, PermissionDisplay},
 };
 use clap::error::ErrorKind;
@@ -24,6 +24,8 @@ fn test_default_flags() {
     assert!(args.prune_dirs.is_empty());
     assert_eq!(args.indicator_style, None);
     assert!(!args.dirs_first);
+    assert_eq!(args.sort, None);
+    assert!(!args.reverse);
     assert_eq!(args.icons, None);
     assert!(!args.no_icons);
     assert!(!args.no_color);
@@ -258,6 +260,88 @@ fn test_parse_from_mode_accepts_header_option() {
 
         assert!(args.header);
     }
+}
+
+#[test]
+fn test_parse_from_mode_accepts_sort_options() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        for (option, expected) in [
+            ("--sort=name", SortMode::Name),
+            ("--sort=size", SortMode::Size),
+            ("--sort=time", SortMode::Time),
+            ("--sort=extension", SortMode::Extension),
+            ("--sort=version", SortMode::Version),
+            ("--sort=none", SortMode::None),
+            ("-S", SortMode::Size),
+            ("-t", SortMode::Time),
+            ("-X", SortMode::Extension),
+            ("-v", SortMode::Version),
+            ("-U", SortMode::None),
+        ] {
+            let flags = try_parse_from_mode(mode, ["lsplus", option]).unwrap();
+
+            assert_eq!(flags.sort, Some(expected));
+        }
+    }
+}
+
+#[test]
+fn test_parse_from_mode_sort_selector_last_option_wins() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        for (options, expected) in [
+            (["-S", "-t"], SortMode::Time),
+            (["-t", "-S"], SortMode::Size),
+            (["--sort=size", "--sort=time"], SortMode::Time),
+            (["--sort=version", "-X"], SortMode::Extension),
+            (["-U", "--sort=name"], SortMode::Name),
+        ] {
+            let flags =
+                try_parse_from_mode(mode, ["lsplus", options[0], options[1]])
+                    .unwrap();
+
+            assert_eq!(flags.sort, Some(expected));
+        }
+    }
+}
+
+#[test]
+fn test_parse_from_mode_sort_selector_last_clustered_flag_wins() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let time = try_parse_from_mode(mode, ["lsplus", "-St"]).unwrap();
+        assert_eq!(time.sort, Some(SortMode::Time));
+
+        let size = try_parse_from_mode(mode, ["lsplus", "-tS"]).unwrap();
+        assert_eq!(size.sort, Some(SortMode::Size));
+    }
+}
+
+#[test]
+fn test_parse_from_mode_no_sort_all_shows_hidden_entries() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let flags = try_parse_from_mode(mode, ["lsplus", "-f"]).unwrap();
+
+        assert!(flags.show_all);
+        assert_eq!(flags.sort, Some(SortMode::None));
+    }
+}
+
+#[test]
+fn test_parse_from_mode_accepts_reverse_and_directory_grouping() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let flags = try_parse_from_mode(
+            mode,
+            ["lsplus", "--reverse", "--group-directories-first"],
+        )
+        .unwrap();
+
+        assert!(flags.reverse);
+        assert!(flags.dirs_first);
+    }
+
+    let native =
+        try_parse_from_mode(CompatMode::Native, ["lsplus", "--sort-dirs"])
+            .unwrap();
+    assert!(native.dirs_first);
 }
 
 #[test]

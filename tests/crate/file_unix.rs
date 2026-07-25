@@ -2,8 +2,8 @@ use crate::common_tests::{
     ColorModeGuard, has_ansi, with_color_output_enabled,
 };
 use crate::platform::{
-    LongFormatFileType, get_groupname, get_username, long_format_file_type,
-    name_style_for_file_type,
+    LongFormatFileType, compare_entry_names, get_groupname, get_username,
+    long_format_file_type, name_style_for_file_type,
 };
 use crate::utils::file::{
     DirectoryEntryData, check_display_name, collect_file_info,
@@ -13,6 +13,7 @@ use crate::utils::file::{
 use crate::utils::icons::Icon;
 use crate::{IndicatorStyle, NameStyle, Params};
 use colored_text::ColorMode;
+use std::cmp::Ordering;
 use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io;
@@ -33,6 +34,28 @@ fn test_get_username_and_groupname_fall_back_to_ids() {
 }
 
 #[test]
+fn test_unix_name_sort_groups_dotfile_before_matching_visible_name() {
+    assert_eq!(
+        compare_entry_names(
+            OsString::from(".changelog").as_os_str(),
+            OsString::from("changelog").as_os_str(),
+        ),
+        Ordering::Less
+    );
+}
+
+#[test]
+fn test_unix_name_sort_handles_non_utf8_names() {
+    let lower = OsString::from_vec(vec![b'a', 0xfe]);
+    let higher = OsString::from_vec(vec![b'a', 0xff]);
+
+    assert_eq!(
+        compare_entry_names(lower.as_os_str(), higher.as_os_str()),
+        Ordering::Less
+    );
+}
+
+#[test]
 fn test_collect_file_names_lists_broken_symlink_operand() {
     let temp_dir = tempdir().unwrap();
     let broken_dir_link = temp_dir.path().join("broken-dir");
@@ -50,6 +73,7 @@ fn test_collect_visible_file_names_hides_dotfiles_after_metadata_failure() {
         vec![Ok(DirectoryEntryData {
             file_name: OsString::from(".hidden"),
             path: PathBuf::from("/tmp/.hidden"),
+            metadata: None,
             classification_result: Err(io::Error::other("metadata failure")),
         })]
     };

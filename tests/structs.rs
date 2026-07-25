@@ -2,7 +2,7 @@ use config::Config;
 use lsplus::cli::Flags;
 use lsplus::utils::format::SizeScale;
 use lsplus::{
-    IconDisplay, IndicatorStyle, Params, ShortFormat,
+    IconDisplay, IndicatorStyle, Params, ShortFormat, SortMode,
     structs::{AttributeDisplay, PermissionDisplay},
 };
 use std::fs;
@@ -14,6 +14,8 @@ fn test_default_params() {
     assert!(!params.show_all);
     assert_eq!(params.indicator_style, IndicatorStyle::None);
     assert!(!params.dirs_first);
+    assert_eq!(params.sort, SortMode::Name);
+    assert!(!params.reverse);
     assert!(!params.almost_all);
     assert!(!params.long_format);
     assert_eq!(params.short_format, None);
@@ -49,6 +51,8 @@ fn test_config_conversion() {
             show_all = true
             indicator_style = "file-type"
             dirs_first = true
+            sort = "version"
+            reverse = true
             almost_all = true
             long_format = true
             header = true
@@ -84,6 +88,8 @@ fn test_config_conversion() {
             show_all: true,
             indicator_style: IndicatorStyle::FileType,
             dirs_first: true,
+            sort: SortMode::Version,
+            reverse: true,
             almost_all: true,
             long_format: true,
             short_format: None,
@@ -248,6 +254,66 @@ fn test_params_merge_uses_cli_short_format_over_config() {
 }
 
 #[test]
+fn test_params_merge_uses_config_sort_until_cli_overrides() {
+    let config = Params {
+        sort: SortMode::Extension,
+        reverse: true,
+        dirs_first: true,
+        ..Params::default()
+    };
+
+    let params = Params::merge(&Flags::parse_from(["lsplus"]), &config);
+    assert_eq!(params.sort, SortMode::Extension);
+    assert!(params.reverse);
+    assert!(params.dirs_first);
+
+    let flags = Flags::parse_from(["lsplus", "--sort=version"]);
+    let params = Params::merge(&flags, &config);
+    assert_eq!(params.sort, SortMode::Version);
+    assert!(params.reverse);
+    assert!(params.dirs_first);
+}
+
+#[test]
+fn test_params_merge_no_sort_disables_sort_modifiers() {
+    let config = Params {
+        reverse: true,
+        dirs_first: true,
+        ..Params::default()
+    };
+    let flags = Flags::parse_from([
+        "lsplus",
+        "--sort=none",
+        "--reverse",
+        "--group-directories-first",
+    ]);
+
+    let params = Params::merge(&flags, &config);
+
+    assert_eq!(params.sort, SortMode::None);
+    assert!(!params.reverse);
+    assert!(!params.dirs_first);
+}
+
+#[test]
+fn test_params_merge_sort_after_no_sort_all_reenables_modifiers() {
+    let flags = Flags::parse_from([
+        "lsplus",
+        "-f",
+        "--sort=name",
+        "--reverse",
+        "--group-directories-first",
+    ]);
+
+    let params = Params::merge(&flags, &Params::default());
+
+    assert!(params.show_all);
+    assert_eq!(params.sort, SortMode::Name);
+    assert!(params.reverse);
+    assert!(params.dirs_first);
+}
+
+#[test]
 fn test_config_conversion_maps_append_slash_alias_to_slash_style() {
     let temp_dir = tempdir().unwrap();
     let config_path = temp_dir.path().join("config.toml");
@@ -309,6 +375,8 @@ fn test_params_merge_prefers_true_from_either_source() {
         show_all: true,
         indicator_style: IndicatorStyle::FileType,
         dirs_first: false,
+        sort: Default::default(),
+        reverse: false,
         almost_all: false,
         long_format: true,
         short_format: None,
@@ -346,6 +414,8 @@ fn test_params_merge_prefers_true_from_either_source() {
         almost_all: true,
         indicator_style: Some(IndicatorStyle::Classify),
         dirs_first: true,
+        sort: None,
+        reverse: false,
         long: false,
         short_format: None,
         header: true,
@@ -414,6 +484,8 @@ fn test_params_merge_keeps_false_when_both_sources_are_false() {
         almost_all: false,
         indicator_style: None,
         dirs_first: false,
+        sort: None,
+        reverse: false,
         long: false,
         short_format: None,
         header: false,
@@ -450,6 +522,8 @@ fn test_params_merge_header_prefers_true_from_either_source() {
         almost_all: false,
         indicator_style: None,
         dirs_first: false,
+        sort: None,
+        reverse: false,
         long: false,
         short_format: None,
         header: false,
@@ -499,6 +573,8 @@ fn test_params_merge_uses_config_permissions_until_cli_overrides() {
         almost_all: false,
         indicator_style: None,
         dirs_first: false,
+        sort: None,
+        reverse: false,
         long: false,
         short_format: None,
         header: false,
@@ -575,6 +651,8 @@ fn test_params_merge_si_enables_decimal_human_readable_output() {
         almost_all: false,
         indicator_style: None,
         dirs_first: false,
+        sort: None,
+        reverse: false,
         long: false,
         short_format: None,
         header: false,
@@ -618,6 +696,8 @@ fn test_params_merge_config_si_overrides_config_human_readable() {
         almost_all: false,
         indicator_style: None,
         dirs_first: false,
+        sort: None,
+        reverse: false,
         long: false,
         short_format: None,
         header: false,
@@ -660,6 +740,8 @@ fn test_params_merge_cli_prune_dirs_append_config_prune_dirs() {
         almost_all: false,
         indicator_style: None,
         dirs_first: false,
+        sort: None,
+        reverse: false,
         long: false,
         short_format: None,
         header: false,
@@ -709,6 +791,8 @@ fn test_params_merge_deduplicates_prune_preset() {
         almost_all: false,
         indicator_style: None,
         dirs_first: false,
+        sort: None,
+        reverse: false,
         long: false,
         short_format: None,
         header: false,

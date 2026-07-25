@@ -153,6 +153,8 @@ fn test_load_config_reads_boolean_settings_from_home_config() {
                 show_all: true,
                 indicator_style: IndicatorStyle::Classify,
                 dirs_first: true,
+                sort: Default::default(),
+                reverse: false,
                 almost_all: true,
                 long_format: true,
                 short_format: None,
