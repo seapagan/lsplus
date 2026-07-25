@@ -28,9 +28,10 @@ This option selects which command-line interface `lsp` uses at startup.
 `native` keeps the standard `lsplus` CLI, while `gnu` enables the GNU `ls`
 compatibility surface intended for aliases and scripts.
 
-At the moment, `gnu` mode changes the CLI surface and help output only. The
-conflicting GNU short flags `-D`, `-I`, `-N`, and `-Z` are reserved in that
-mode and will error until their GNU behavior is implemented.
+At the moment, `gnu` mode changes the CLI surface and help output only. Sorting
+uses the same native `lsplus` engine in both modes. The conflicting GNU short
+flags `-D`, `-I`, `-N`, and `-Z` are reserved in `gnu` mode and will error
+until their GNU behavior is implemented.
 
 ### show_all
 
@@ -78,10 +79,35 @@ config file and maps to `indicator_style = "slash"`. If both are present,
 - Permitted values: `true` or `false`
 - Default value: `false`
 
-This option corresponds to `--sort-dirs` and sorts directories before files when
-set to `true`. In `gnu` compatibility mode, the
-equivalent long option is `--group-directories-first` (replacing the original
-`--sort-dirs`).
+This option corresponds to `--group-directories-first` and groups directories
+before files when set to `true`. Native mode also accepts `-D` and
+`--sort-dirs`. Directory grouping is disabled when `sort = "none"`.
+
+### sort
+
+- Permitted values: `"name"`, `"size"`, `"time"`, `"extension"`, `"version"`,
+  or `"none"`
+- Default value: `"name"`
+
+This option selects the ordering used for every normal, recursive, or tree
+directory listing. Size order is largest first, time order uses modification
+time with newest first, extension order puts entries without an extension
+first, and version order compares numeric components naturally. `"none"`
+preserves directory iterator order and disables `dirs_first` and `reverse`.
+
+The equivalent command-line selectors are `--sort <WORD>`, `-S`, `-t`, `-X`,
+`-v`, and `-U`. These GNU spellings are accepted in both CLI modes but use the
+native `lsplus` sorting engine. See the sorting section of the usage guide for
+the intentional GNU compatibility differences.
+
+### reverse
+
+- Permitted values: `true` or `false`
+- Default value: `false`
+
+This option corresponds to `-r` or `--reverse` and reverses the selected sort
+order. When `dirs_first` is enabled, directories remain ahead of files and the
+order within each group is reversed. It has no effect when `sort = "none"`.
 
 ### long_format
 
@@ -311,6 +337,8 @@ This example sets several options. Omitted options use default values:
 show_all = true
 indicator_style = "classify"
 dirs_first = true
+sort = "version"
+reverse = false
 long_format = true
 # short_format = "vertical"  # or "across"
 # header = true
