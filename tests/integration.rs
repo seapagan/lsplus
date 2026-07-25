@@ -30,13 +30,20 @@ fn write_short_grid_fixture(root: &std::path::Path) {
     }
 }
 
+fn line_has_name(line: &str, name: &str) -> bool {
+    line.strip_suffix(name).is_some_and(|prefix| {
+        prefix.is_empty()
+            || prefix.chars().last().is_some_and(char::is_whitespace)
+    })
+}
+
 fn assert_names_appear_in_order(output: &str, names: &[&str]) {
     let positions: Vec<_> = names
         .iter()
         .map(|name| {
             output
                 .lines()
-                .position(|line| line.ends_with(name))
+                .position(|line| line_has_name(line, name))
                 .unwrap_or_else(|| panic!("missing {name:?} in {output:?}"))
         })
         .collect();
@@ -45,6 +52,12 @@ fn assert_names_appear_in_order(output: &str, names: &[&str]) {
         positions.windows(2).all(|pair| pair[0] < pair[1]),
         "names are out of order in {output:?}"
     );
+}
+
+fn sorted_output_lines(output: &str) -> Vec<&str> {
+    let mut lines: Vec<_> = output.lines().collect();
+    lines.sort_unstable();
+    lines
 }
 
 fn run_sort_command(
@@ -139,6 +152,13 @@ fn test_sorting_flags_share_native_behavior_in_both_modes() {
             &["release10", "release2", "release1"],
         );
     }
+}
+
+#[test]
+fn test_sort_name_matching_requires_entry_boundary() {
+    assert!(line_has_name("file", "file"));
+    assert!(line_has_name("  tree branch file", "file"));
+    assert!(!line_has_name("somefile", "file"));
 }
 
 #[test]
@@ -243,7 +263,7 @@ fn test_no_sort_selectors_render_equivalent_output() {
         let short = run_sort_command(temp_dir.path(), mode, &["-U"]);
         let long = run_sort_command(temp_dir.path(), mode, &["--sort=none"]);
 
-        assert_eq!(short, long);
+        assert_eq!(sorted_output_lines(&short), sorted_output_lines(&long));
     }
 }
 
@@ -257,7 +277,10 @@ fn test_no_sort_all_matches_all_plus_no_sort() {
         let no_sort_all = run_sort_command(temp_dir.path(), mode, &["-f"]);
         let explicit = run_sort_command(temp_dir.path(), mode, &["-aU"]);
 
-        assert_eq!(no_sort_all, explicit);
+        assert_eq!(
+            sorted_output_lines(&no_sort_all),
+            sorted_output_lines(&explicit)
+        );
         assert!(no_sort_all.lines().any(|line| line == ".hidden"));
     }
 }

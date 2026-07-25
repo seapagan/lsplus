@@ -286,6 +286,16 @@ fn test_parse_from_mode_accepts_sort_options() {
 }
 
 #[test]
+fn test_parse_from_mode_rejects_invalid_sort_option() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let err = try_parse_from_mode(mode, ["lsplus", "--sort=invalid"])
+            .unwrap_err();
+
+        assert_eq!(err.kind(), ErrorKind::InvalidValue);
+    }
+}
+
+#[test]
 fn test_parse_from_mode_sort_selector_last_option_wins() {
     for mode in [CompatMode::Native, CompatMode::Gnu] {
         for (options, expected) in [
