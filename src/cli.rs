@@ -641,7 +641,7 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
         show_all: matches.get_flag(ARG_SHOW_ALL)
             || matches.get_flag(ARG_NO_SORT_ALL),
         almost_all: matches.get_flag(ARG_ALMOST_ALL),
-        long: matches.get_flag(ARG_LONG),
+        long: long_format_from_matches(mode, matches),
         short_format: matches
             .get_one::<ShortFormat>(ARG_FORMAT)
             .copied()
@@ -688,6 +688,27 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
         version: matches.get_flag(ARG_VERSION),
         fuzzy_time: matches.get_flag(ARG_FUZZY_TIME),
     }
+}
+
+fn long_format_from_matches(mode: CompatMode, matches: &ArgMatches) -> bool {
+    if !matches.get_flag(ARG_LONG) {
+        return false;
+    }
+
+    if mode == CompatMode::Native || !matches.get_flag(ARG_NO_SORT_ALL) {
+        return true;
+    }
+
+    let long_index = matches
+        .indices_of(ARG_LONG)
+        .and_then(Iterator::last)
+        .expect("present long-format flag should have an argument index");
+    let no_sort_index = matches
+        .indices_of(ARG_NO_SORT_ALL)
+        .and_then(Iterator::last)
+        .expect("present no-sort-all flag should have an argument index");
+
+    long_index > no_sort_index
 }
 
 fn sort_mode_from_matches(matches: &ArgMatches) -> Option<SortMode> {

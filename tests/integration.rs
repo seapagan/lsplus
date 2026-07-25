@@ -286,6 +286,22 @@ fn test_no_sort_all_matches_all_plus_no_sort() {
 }
 
 #[test]
+fn test_gnu_no_sort_all_and_long_format_follow_option_order() {
+    let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join("entry.txt"), "entry").unwrap();
+
+    let short = run_sort_command(temp_dir.path(), "gnu", &["-lf"]);
+    assert!(short.lines().any(|line| line == "entry.txt"));
+
+    let long = run_sort_command(temp_dir.path(), "gnu", &["-fl"]);
+    assert!(
+        long.lines().any(
+            |line| line_has_name(line, "entry.txt") && line != "entry.txt"
+        )
+    );
+}
+
+#[test]
 fn test_directory_grouping_selectors_render_expected_order() {
     let temp_dir = tempdir().unwrap();
     fs::write(temp_dir.path().join("alpha-file"), "file").unwrap();

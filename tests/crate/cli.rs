@@ -336,6 +336,28 @@ fn test_parse_from_mode_no_sort_all_shows_hidden_entries() {
 }
 
 #[test]
+fn test_parse_from_mode_gnu_f_and_l_follow_option_order() {
+    let no_long =
+        try_parse_from_mode(CompatMode::Gnu, ["lsplus", "-lf"]).unwrap();
+    assert!(!no_long.long);
+
+    let long =
+        try_parse_from_mode(CompatMode::Gnu, ["lsplus", "-fl"]).unwrap();
+    assert!(long.long);
+}
+
+#[test]
+fn test_parse_from_mode_native_f_keeps_long_format() {
+    for option in ["-lf", "-fl"] {
+        let flags =
+            try_parse_from_mode(CompatMode::Native, ["lsplus", option])
+                .unwrap();
+
+        assert!(flags.long);
+    }
+}
+
+#[test]
 fn test_parse_from_mode_accepts_reverse_and_directory_grouping() {
     for mode in [CompatMode::Native, CompatMode::Gnu] {
         let flags = try_parse_from_mode(

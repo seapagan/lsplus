@@ -196,6 +196,10 @@ ahead of files when reversed. `--sort=none`, `-U`, and `-f` disable both
 reversal and directory grouping because there is no active sort. If several
 sort selectors are supplied, the last selector wins.
 
+In GNU mode, `-f` also follows GNU option ordering with `-l`: `-lf` disables
+long format, while `-fl` restores it. Native mode keeps long format enabled
+whenever `-l` is present.
+
 The sorting engine intentionally differs from GNU `ls` in these areas:
 
 - name and extension sorting use the platform-native `lsplus` comparison, not
