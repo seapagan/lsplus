@@ -11,7 +11,10 @@ use std::ffi::OsString;
 
 use crate::{
     IndicatorStyle,
-    structs::{AttributeDisplay, IconDisplay, PermissionDisplay, ShortFormat},
+    structs::{
+        AttributeDisplay, IconDisplay, PermissionDisplay, ShortFormat,
+        SortMode,
+    },
 };
 
 const ARG_SHOW_ALL: &str = "show_all";
@@ -35,6 +38,14 @@ const ARG_FILE_TYPE: &str = "file_type";
 const ARG_CLASSIFY: &str = "classify";
 const ARG_NO_INDICATORS: &str = "no_indicators";
 const ARG_DIRS_FIRST: &str = "dirs_first";
+const ARG_SORT: &str = "sort";
+const ARG_SORT_SIZE: &str = "sort_size";
+const ARG_SORT_TIME: &str = "sort_time";
+const ARG_SORT_EXTENSION: &str = "sort_extension";
+const ARG_SORT_VERSION: &str = "sort_version";
+const ARG_SORT_NONE: &str = "sort_none";
+const ARG_NO_SORT_ALL: &str = "no_sort_all";
+const ARG_REVERSE: &str = "reverse";
 const ARG_ICONS: &str = "icons";
 const ARG_NO_ICONS: &str = "no_icons";
 const ARG_NO_COLOR: &str = "no_color";
@@ -108,6 +119,10 @@ pub struct Flags {
     pub indicator_style: Option<IndicatorStyle>,
     /// Group directories before files.
     pub dirs_first: bool,
+    /// Override the configured directory-entry ordering.
+    pub sort: Option<SortMode>,
+    /// Reverse the selected directory-entry ordering.
+    pub reverse: bool,
     /// Override when file and directory icons are displayed.
     pub icons: Option<IconDisplay>,
     /// Disable file and directory icons.
@@ -207,6 +222,14 @@ fn build_command(mode: CompatMode) -> Command {
         .arg(file_type_arg(mode))
         .arg(classify_arg(mode))
         .arg(dirs_first_arg(mode))
+        .arg(sort_arg())
+        .arg(sort_size_arg())
+        .arg(sort_time_arg())
+        .arg(sort_extension_arg())
+        .arg(sort_version_arg())
+        .arg(sort_none_arg())
+        .arg(no_sort_all_arg())
+        .arg(reverse_arg())
         .arg(icons_arg())
         .arg(no_icons_arg())
         .arg(no_color_arg(mode))
@@ -434,14 +457,74 @@ fn dirs_first_arg(mode: CompatMode) -> Arg {
     match mode {
         CompatMode::Native => Arg::new(ARG_DIRS_FIRST)
             .short('D')
-            .long("sort-dirs")
+            .long("group-directories-first")
+            .visible_alias("sort-dirs")
             .action(ArgAction::SetTrue)
-            .help("Sort directories first"),
+            .help("Group directories before files"),
         CompatMode::Gnu => Arg::new(ARG_DIRS_FIRST)
             .long("group-directories-first")
             .action(ArgAction::SetTrue)
             .help("Group directories before files"),
     }
+}
+
+fn sort_arg() -> Arg {
+    Arg::new(ARG_SORT)
+        .long("sort")
+        .value_name("WORD")
+        .action(ArgAction::Append)
+        .value_parser(clap::value_parser!(SortMode))
+        .help("Sort by WORD: name, size, time, extension, version, or none")
+}
+
+fn sort_size_arg() -> Arg {
+    Arg::new(ARG_SORT_SIZE)
+        .short('S')
+        .action(ArgAction::Count)
+        .help("Sort by file size, largest first")
+}
+
+fn sort_time_arg() -> Arg {
+    Arg::new(ARG_SORT_TIME)
+        .short('t')
+        .action(ArgAction::Count)
+        .help("Sort by modification time, newest first")
+}
+
+fn sort_extension_arg() -> Arg {
+    Arg::new(ARG_SORT_EXTENSION)
+        .short('X')
+        .action(ArgAction::Count)
+        .help("Sort alphabetically by entry extension")
+}
+
+fn sort_version_arg() -> Arg {
+    Arg::new(ARG_SORT_VERSION)
+        .short('v')
+        .action(ArgAction::Count)
+        .help("Sort naturally by version numbers within names")
+}
+
+fn sort_none_arg() -> Arg {
+    Arg::new(ARG_SORT_NONE)
+        .short('U')
+        .action(ArgAction::Count)
+        .help("Do not sort; list entries in directory order")
+}
+
+fn no_sort_all_arg() -> Arg {
+    Arg::new(ARG_NO_SORT_ALL)
+        .short('f')
+        .action(ArgAction::Count)
+        .help("List all entries in directory order")
+}
+
+fn reverse_arg() -> Arg {
+    Arg::new(ARG_REVERSE)
+        .short('r')
+        .long("reverse")
+        .action(ArgAction::SetTrue)
+        .help("Reverse the selected sort order")
 }
 
 fn no_icons_arg() -> Arg {
@@ -555,9 +638,10 @@ fn fuzzy_time_arg(mode: CompatMode) -> Arg {
 
 fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
     Flags {
-        show_all: matches.get_flag(ARG_SHOW_ALL),
+        show_all: matches.get_flag(ARG_SHOW_ALL)
+            || sort_flag_is_present(matches, ARG_NO_SORT_ALL),
         almost_all: matches.get_flag(ARG_ALMOST_ALL),
-        long: matches.get_flag(ARG_LONG),
+        long: long_format_from_matches(mode, matches),
         short_format: matches
             .get_one::<ShortFormat>(ARG_FORMAT)
             .copied()
@@ -586,6 +670,8 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
             .unwrap_or_else(|| vec![String::from(".")]),
         indicator_style: indicator_style_from_matches(mode, matches),
         dirs_first: matches.get_flag(ARG_DIRS_FIRST),
+        sort: sort_mode_from_matches(matches),
+        reverse: matches.get_flag(ARG_REVERSE),
         icons: matches.get_one::<IconDisplay>(ARG_ICONS).copied(),
         no_icons: matches.get_flag(ARG_NO_ICONS),
         no_color: matches.get_flag(ARG_NO_COLOR),
@@ -602,6 +688,65 @@ fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
         version: matches.get_flag(ARG_VERSION),
         fuzzy_time: matches.get_flag(ARG_FUZZY_TIME),
     }
+}
+
+fn long_format_from_matches(mode: CompatMode, matches: &ArgMatches) -> bool {
+    if !matches.get_flag(ARG_LONG) {
+        return false;
+    }
+
+    if mode == CompatMode::Native
+        || !sort_flag_is_present(matches, ARG_NO_SORT_ALL)
+    {
+        return true;
+    }
+
+    let long_index = matches
+        .indices_of(ARG_LONG)
+        .and_then(Iterator::last)
+        .expect("present long-format flag should have an argument index");
+    let no_sort_index = matches
+        .indices_of(ARG_NO_SORT_ALL)
+        .and_then(Iterator::last)
+        .expect("present no-sort-all flag should have an argument index");
+
+    long_index > no_sort_index
+}
+
+fn sort_flag_is_present(matches: &ArgMatches, arg: &str) -> bool {
+    matches.get_count(arg) > 0
+}
+
+fn sort_mode_from_matches(matches: &ArgMatches) -> Option<SortMode> {
+    let mut candidates = Vec::new();
+
+    if let (Some(indices), Some(values)) = (
+        matches.indices_of(ARG_SORT),
+        matches.get_many::<SortMode>(ARG_SORT),
+    ) {
+        candidates.extend(indices.zip(values.copied()));
+    }
+
+    for (arg, mode) in [
+        (ARG_SORT_SIZE, SortMode::Size),
+        (ARG_SORT_TIME, SortMode::Time),
+        (ARG_SORT_EXTENSION, SortMode::Extension),
+        (ARG_SORT_VERSION, SortMode::Version),
+        (ARG_SORT_NONE, SortMode::None),
+        (ARG_NO_SORT_ALL, SortMode::None),
+    ] {
+        if sort_flag_is_present(matches, arg)
+            && let Some(index) =
+                matches.indices_of(arg).and_then(Iterator::last)
+        {
+            candidates.push((index, mode));
+        }
+    }
+
+    candidates
+        .into_iter()
+        .max_by_key(|(index, _)| *index)
+        .map(|(_, mode)| mode)
 }
 
 fn indicator_style_from_matches(

@@ -38,6 +38,15 @@
 - [ ] Evaluate GNU last-option-wins precedence for competing format selectors
       (`-l`, `-C`, `-x`, and `--format`) in GNU compatibility mode. If adopted,
       add order-sensitive tests and define the interaction with `--tree`.
+- [x] Add native sorting by name, size, modification time, extension, version,
+      and directory order. Accept the standard GNU sorting selectors in both
+      CLI modes, with last-selector-wins precedence.
+- [ ] Add alternate timestamp sorting for GNU `--time=ctime`,
+      `--time=atime`, and birth-time selection without replacing the native
+      sorting engine.
+- [ ] Evaluate GNU `--sort=width` against the native short-output layouts.
+- [ ] Evaluate optional locale-aware name and extension sorting. Keep the
+      current deterministic platform-native ordering as the default.
 - [ ] Improve listing performance with focused architecture changes, in this
       order:
       1. Add a short-format entry model so short output does not build full
@@ -62,7 +71,8 @@
          so ancestor ignore files are not rediscovered for every directory.
       10. Revisit `prettytable` for long recursive output; a custom row
          formatter may be leaner for hot paths.
-- [ ] better handle dotfiles?
+- [x] Group a dotfile immediately before a non-dot entry with the same
+      normalized name, such as `.changelog` before `changelog`.
 - [ ] option to list dotfiles (and folders) before non-dotfiles
 - [ ] Investigate an optional name-shortening mode for very long filenames
       that preserves extensions without changing the default wrap behavior.

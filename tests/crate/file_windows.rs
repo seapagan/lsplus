@@ -317,6 +317,10 @@ fn test_windows_sorting_is_case_insensitive_then_deterministic() {
         compare_entry_names(OsStr::new("alpha"), OsStr::new("Beta")),
         Ordering::Less
     );
+    assert_eq!(
+        compare_entry_names(OsStr::new(".changelog"), OsStr::new("changelog")),
+        Ordering::Less
+    );
 }
 
 #[test]
@@ -497,6 +501,7 @@ fn test_windows_collection_filters_hidden_and_groups_directories() {
         |name, file_type, hidden, group_with_directories| DirectoryEntryData {
             file_name: OsString::from(name),
             path: PathBuf::from(name),
+            metadata: None,
             classification_result: Ok(EntryClassification {
                 file_type,
                 hidden,
@@ -549,6 +554,7 @@ fn test_windows_collection_handles_entry_and_classification_errors() {
     let fallback = DirectoryEntryData {
         file_name: OsString::from("fallback"),
         path: PathBuf::from("fallback"),
+        metadata: None,
         classification_result: Err(io::Error::other("metadata")),
     };
     let entries = vec![Ok(fallback), Err(io::Error::other("directory entry"))];

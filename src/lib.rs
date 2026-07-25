@@ -14,6 +14,7 @@ pub mod utils;
 
 pub use structs::{
     FileInfo, IconDisplay, IndicatorStyle, NameStyle, Params, ShortFormat,
+    SortMode,
 };
 
 #[cfg(test)]

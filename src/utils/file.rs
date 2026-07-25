@@ -24,6 +24,8 @@ pub(crate) struct DirectoryEntryData {
     pub file_name: OsString,
     /// Full entry path.
     pub path: PathBuf,
+    /// Link-object metadata captured while reading the entry.
+    pub metadata: Option<fs::Metadata>,
     /// Platform classification captured while reading the entry.
     ///
     /// An error means metadata acquisition failed before classification.
@@ -51,13 +53,24 @@ pub fn collect_file_names(
     } else {
         let entries = fs::read_dir(path)?
             .map(|entry_result| {
-                entry_result.map(|entry| DirectoryEntryData {
-                    file_name: entry.file_name(),
-                    path: entry.path(),
-                    classification_result: fs::symlink_metadata(entry.path())
-                        .map(|metadata| {
-                            platform::classify_entry(&entry.path(), &metadata)
-                        }),
+                entry_result.map(|entry| {
+                    let path = entry.path();
+                    let (metadata, classification_result) =
+                        match fs::symlink_metadata(&path) {
+                            Ok(metadata) => {
+                                let classification =
+                                    platform::classify_entry(&path, &metadata);
+                                (Some(metadata), Ok(classification))
+                            }
+                            Err(err) => (None, Err(err)),
+                        };
+
+                    DirectoryEntryData {
+                        file_name: entry.file_name(),
+                        path,
+                        metadata,
+                        classification_result,
+                    }
                 })
             })
             .collect();
@@ -95,9 +108,7 @@ pub(crate) fn collect_visible_file_names(
         }
     }
 
-    visible_entries.sort_by(|left, right| {
-        platform::compare_entry_names(&left.file_name, &right.file_name)
-    });
+    utils::sort::sort_entries(&mut visible_entries, params);
 
     if params.dirs_first {
         let (dirs, files): (Vec<_>, Vec<_>) = visible_entries

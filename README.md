@@ -34,6 +34,7 @@ all my machines as standard, replacing GNU ls.
   - [Using "cargo-binstall"](#using-cargo-binstall)
   - [From Source](#from-source)
 - [Usage](#usage)
+  - [Sorting](#sorting)
   - [Fuzzy Time](#fuzzy-time)
   - [Icons](#icons)
   - [Compatibility Mode](#compatibility-mode)
@@ -138,7 +139,17 @@ Currently, only a sub-set of the standard `ls` options are supported. These are:
 - `-h` / `--human-readable` - Human readable file sizes using powers of 1024
 - `--si` - Human readable file sizes using powers of 1000
 - `-R` / `--recursive` - List subdirectories recursively
-- `-D` / `--sort-dirs` - Sort directories first
+- `--sort <WORD>` - Sort by `name`, `size`, `time`, `extension`, `version`, or
+  `none`
+- `-S` - Sort by size, largest first
+- `-t` - Sort by modification time, newest first
+- `-X` - Sort by extension
+- `-v` - Sort naturally by version numbers in names
+- `-U` - Preserve directory order instead of sorting
+- `-f` - Show all entries and preserve directory order
+- `-r` / `--reverse` - Reverse the selected sort order
+- `-D` / `--group-directories-first` / `--sort-dirs` - Group directories
+  before files
 - `-I` / `--gitignore` - Dim entries matched by Git ignore rules
 - `-N` / `--no-color` - Disable colored and styled output
 - `--no-permission-colors` - Disable long-format file type character and
@@ -162,6 +173,46 @@ terminal. Redirected short output prints one entry per line. Use `-C` or
 `-x` and `--format=across` options instead fill each row from left to right and
 also keep the grid when redirecting output. Grids use spaces between columns
 so icons, colors, and Unicode names stay aligned across terminals.
+
+### Sorting
+
+Sorting is native `lsplus` behavior in both CLI modes. The GNU spellings are
+accepted in `native` and `gnu` mode, but they all feed the same sorting engine;
+GNU mode does not replace the native output or ordering model.
+
+The default is `--sort=name`. Name sorting is case-insensitive for ASCII names,
+ignores leading dots for the primary comparison, and places a dotfile
+immediately before a non-dot entry with the same normalized name. Other modes
+use name order as a stable tie-breaker:
+
+- `--sort=size` / `-S`: largest first
+- `--sort=time` / `-t`: newest modification time first
+- `--sort=extension` / `-X`: entries without an extension first
+- `--sort=version` / `-v`: natural version order
+- `--sort=none` / `-U`: preserve the directory iterator order
+
+Use `-r` or `--reverse` to reverse the chosen order. Directory grouping stays
+ahead of files when reversed. `--sort=none`, `-U`, and `-f` disable both
+reversal and directory grouping because there is no active sort. If several
+sort selectors are supplied, the last selector wins.
+
+In GNU mode, `-f` also follows GNU option ordering with `-l`: `-lf` disables
+long format, while `-fl` restores it. Native mode keeps long format enabled
+whenever `-l` is present.
+
+The sorting engine intentionally differs from GNU `ls` in these areas:
+
+- name and extension sorting use the platform-native `lsplus` comparison, not
+  locale collation through `LC_COLLATE`
+- `-t` sorts modification time only; alternate timestamp selectors such as
+  `--time=ctime`, `--time=atime`, and birth time are not implemented
+- GNU's width sort is not implemented
+- version sorting is Unicode-aware; non-UTF-8 Unix names fall back to native
+  name order rather than GNU's byte-for-byte version comparison
+
+See the [GNU Coreutils sorting
+manual](https://www.gnu.org/software/coreutils/manual/html_node/Sorting-the-output.html)
+for the upstream behavior being compared.
 
 Use `-R` or `--recursive` to print GNU-style recursive directory sections.
 Quoted wildcard or filename operands filter matching entries while still
@@ -278,10 +329,14 @@ It does not yet implement the missing GNU meanings for the conflicting short
 flags `-D`, `-I`, `-N`, and `-Z`; those flags are reserved in `gnu` mode and
 will error until their GNU behavior is implemented.
 
+The standard GNU sorting flags are available in both modes and use the native
+sorting behavior documented above. The listed sorting differences are
+intentional; `gnu` mode does not select a separate GNU sorting engine.
+
 The current `lsplus` features behind those four native short flags are still
 available in `gnu` mode through their long forms only:
 
-- `--group-directories-first` (replaces the original `--sort-dirs`)
+- `--group-directories-first` (`--sort-dirs` is a native-mode alias)
 - `--gitignore`
 - `--no-color`
 - `--fuzzy-time`

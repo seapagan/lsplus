@@ -152,7 +152,14 @@ pub(crate) fn compare_entry_names(left: &OsStr, right: &OsStr) -> Ordering {
             .collect()
     }
 
-    sort_key(left).cmp(&sort_key(right))
+    sort_key(left)
+        .cmp(&sort_key(right))
+        .then_with(|| {
+            let left_hidden = left.as_bytes().starts_with(b".");
+            let right_hidden = right.as_bytes().starts_with(b".");
+            right_hidden.cmp(&left_hidden)
+        })
+        .then_with(|| left.as_bytes().cmp(right.as_bytes()))
 }
 
 pub(crate) fn is_executable(_path: &Path, metadata: &fs::Metadata) -> bool {

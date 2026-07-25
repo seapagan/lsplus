@@ -1,7 +1,5 @@
 use crate::common_tests::with_color_output_enabled;
-#[cfg(unix)]
 use crate::platform::{EntryClassification, LongFormatFileType};
-#[cfg(unix)]
 use crate::utils::file::DirectoryEntryData;
 use crate::utils::file::{
     append_file_info_for_names, check_display_name, collect_file_info,
@@ -9,8 +7,9 @@ use crate::utils::file::{
     format_path_error, format_symlink_display_name_with_dim,
     preserve_synthetic_dot_name, sanitize_for_terminal,
 };
-use crate::{FileInfo, IndicatorStyle, NameStyle, Params};
-#[cfg(unix)]
+use crate::utils::sort::sort_entries;
+use crate::{FileInfo, IndicatorStyle, NameStyle, Params, SortMode};
+use filetime::FileTime;
 use std::ffi::OsString;
 use std::fs;
 #[cfg(unix)]
@@ -39,6 +38,26 @@ fn basic_info(display_name: &str, full_path: PathBuf) -> FileInfo {
         name_style: NameStyle::Plain,
         dimmed: false,
         full_path,
+    }
+}
+
+fn sortable_entry(name: &str, is_directory: bool) -> DirectoryEntryData {
+    DirectoryEntryData {
+        file_name: OsString::from(name),
+        path: PathBuf::from(name),
+        metadata: None,
+        classification_result: Ok(EntryClassification {
+            file_type: if is_directory {
+                LongFormatFileType::Directory
+            } else {
+                LongFormatFileType::Regular
+            },
+            hidden: name.starts_with('.'),
+            display_as_directory: is_directory,
+            group_with_directories: is_directory,
+            may_recurse: is_directory,
+            may_render_link_target: false,
+        }),
     }
 }
 
@@ -187,6 +206,157 @@ fn test_collect_file_names_handles_visibility_flags_and_regular_files() {
 }
 
 #[test]
+fn test_name_sort_groups_dotfile_with_matching_visible_name() {
+    let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join("changelog"), "visible").unwrap();
+    fs::write(temp_dir.path().join(".changelog"), "hidden").unwrap();
+    fs::write(temp_dir.path().join("zebra"), "other").unwrap();
+
+    let names = collect_file_names(
+        temp_dir.path(),
+        &Params {
+            almost_all: true,
+            ..Params::default()
+        },
+    )
+    .unwrap();
+
+    assert_eq!(names, [".changelog", "changelog", "zebra"]);
+}
+
+#[test]
+fn test_size_sort_is_largest_first_and_reversible() {
+    let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join("small"), "1").unwrap();
+    fs::write(temp_dir.path().join("large"), "12345").unwrap();
+
+    let names = collect_file_names(
+        temp_dir.path(),
+        &Params {
+            sort: SortMode::Size,
+            ..Params::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(names, ["large", "small"]);
+
+    let names = collect_file_names(
+        temp_dir.path(),
+        &Params {
+            sort: SortMode::Size,
+            reverse: true,
+            ..Params::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(names, ["small", "large"]);
+}
+
+#[test]
+fn test_time_sort_is_newest_first() {
+    let temp_dir = tempdir().unwrap();
+    let old = temp_dir.path().join("old");
+    let new = temp_dir.path().join("new");
+    fs::write(&old, "old").unwrap();
+    fs::write(&new, "new").unwrap();
+    filetime::set_file_mtime(&old, FileTime::from_unix_time(1, 0)).unwrap();
+    filetime::set_file_mtime(&new, FileTime::from_unix_time(2, 0)).unwrap();
+
+    let names = collect_file_names(
+        temp_dir.path(),
+        &Params {
+            sort: SortMode::Time,
+            ..Params::default()
+        },
+    )
+    .unwrap();
+
+    assert_eq!(names, ["new", "old"]);
+}
+
+#[test]
+fn test_extension_sort_uses_name_as_tie_breaker() {
+    let temp_dir = tempdir().unwrap();
+    for name in ["plain", "z.rs", "a.rs", "b.txt"] {
+        fs::write(temp_dir.path().join(name), name).unwrap();
+    }
+
+    let names = collect_file_names(
+        temp_dir.path(),
+        &Params {
+            sort: SortMode::Extension,
+            ..Params::default()
+        },
+    )
+    .unwrap();
+
+    assert_eq!(names, ["plain", "a.rs", "z.rs", "b.txt"]);
+}
+
+#[test]
+fn test_version_sort_orders_numeric_components_naturally() {
+    let temp_dir = tempdir().unwrap();
+    for name in ["release10", "release2", "release1"] {
+        fs::write(temp_dir.path().join(name), name).unwrap();
+    }
+
+    let names = collect_file_names(
+        temp_dir.path(),
+        &Params {
+            sort: SortMode::Version,
+            ..Params::default()
+        },
+    )
+    .unwrap();
+
+    assert_eq!(names, ["release1", "release2", "release10"]);
+}
+
+#[test]
+fn test_no_sort_preserves_input_order() {
+    let mut entries = vec![
+        sortable_entry("zeta", false),
+        sortable_entry("alpha", false),
+        sortable_entry("middle", false),
+    ];
+
+    sort_entries(
+        &mut entries,
+        &Params {
+            sort: SortMode::None,
+            ..Params::default()
+        },
+    );
+
+    let names: Vec<_> = entries
+        .iter()
+        .map(|entry| entry.file_name.to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(names, ["zeta", "alpha", "middle"]);
+}
+
+#[test]
+fn test_reverse_keeps_directories_grouped_first() {
+    let entries = vec![
+        Ok(sortable_entry("alpha-file", false)),
+        Ok(sortable_entry("zeta-dir", true)),
+        Ok(sortable_entry("alpha-dir", true)),
+        Ok(sortable_entry("zeta-file", false)),
+    ];
+    let names = collect_visible_file_names(
+        Path::new("/tmp"),
+        entries,
+        &Params {
+            dirs_first: true,
+            reverse: true,
+            ..Params::default()
+        },
+    );
+
+    assert_eq!(names, ["zeta-dir", "alpha-dir", "zeta-file", "alpha-file"]);
+}
+
+#[test]
 #[cfg(unix)]
 fn test_collect_visible_file_names_handles_iterator_and_file_type_errors() {
     let params = Params {
@@ -199,6 +369,7 @@ fn test_collect_visible_file_names_handles_iterator_and_file_type_errors() {
         Ok(DirectoryEntryData {
             file_name: OsString::from("alpha.txt"),
             path: PathBuf::from("/tmp/alpha.txt"),
+            metadata: None,
             classification_result: Ok(EntryClassification {
                 file_type: LongFormatFileType::Regular,
                 hidden: false,
@@ -211,11 +382,13 @@ fn test_collect_visible_file_names_handles_iterator_and_file_type_errors() {
         Ok(DirectoryEntryData {
             file_name: OsString::from("broken"),
             path: PathBuf::from("/tmp/broken"),
+            metadata: None,
             classification_result: Err(io::Error::other("type error")),
         }),
         Ok(DirectoryEntryData {
             file_name: OsString::from("dir"),
             path: PathBuf::from("/tmp/dir"),
+            metadata: None,
             classification_result: Ok(EntryClassification {
                 file_type: LongFormatFileType::Directory,
                 hidden: false,

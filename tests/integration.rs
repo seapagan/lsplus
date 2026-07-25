@@ -1,6 +1,6 @@
 use assert_cmd::Command;
 use filetime::FileTime;
-use lsplus::settings::CONFIG_FILE_ENV_VAR;
+use lsplus::settings::{COMPAT_MODE_ENV_VAR, CONFIG_FILE_ENV_VAR};
 use lsplus::utils::icons::Icon;
 use std::fs;
 use std::process::Stdio;
@@ -27,6 +27,61 @@ const SHORT_GRID_NAMES: [&str; 6] = [
 fn write_short_grid_fixture(root: &std::path::Path) {
     for name in SHORT_GRID_NAMES {
         fs::write(root.join(name), name).unwrap();
+    }
+}
+
+fn line_has_name(line: &str, name: &str) -> bool {
+    line.strip_suffix(name).is_some_and(|prefix| {
+        prefix.is_empty()
+            || prefix.chars().last().is_some_and(char::is_whitespace)
+    })
+}
+
+fn assert_names_appear_in_order(output: &str, names: &[&str]) {
+    let positions: Vec<_> = names
+        .iter()
+        .map(|name| {
+            output
+                .lines()
+                .position(|line| line_has_name(line, name))
+                .unwrap_or_else(|| panic!("missing {name:?} in {output:?}"))
+        })
+        .collect();
+
+    assert!(
+        positions.windows(2).all(|pair| pair[0] < pair[1]),
+        "names are out of order in {output:?}"
+    );
+}
+
+fn sorted_output_lines(output: &str) -> Vec<&str> {
+    let mut lines: Vec<_> = output.lines().collect();
+    lines.sort_unstable();
+    lines
+}
+
+fn run_sort_command(
+    root: &std::path::Path,
+    mode: &str,
+    options: &[&str],
+) -> String {
+    let mut cmd = command_with_home(root);
+    cmd.current_dir(root)
+        .env(COMPAT_MODE_ENV_VAR, mode)
+        .args(["--no-icons", "--no-color"])
+        .args(options);
+
+    run_and_capture(&mut cmd).0
+}
+
+fn assert_sort_for_both_modes(
+    root: &std::path::Path,
+    options: &[&str],
+    expected: &[&str],
+) {
+    for mode in ["native", "gnu"] {
+        let output = run_sort_command(root, mode, options);
+        assert_names_appear_in_order(&output, expected);
     }
 }
 
@@ -70,6 +125,253 @@ fn test_list_current_directory() {
 
     assert!(stdout.contains("alpha.txt"));
     assert!(stdout.contains("beta.txt"));
+}
+
+#[test]
+fn test_sorting_flags_share_native_behavior_in_both_modes() {
+    let temp_dir = tempdir().unwrap();
+    for name in ["release1", "release2", "release10"] {
+        fs::write(temp_dir.path().join(name), name).unwrap();
+    }
+
+    for mode in ["native", "gnu"] {
+        let mut cmd = command_with_home(temp_dir.path());
+        cmd.current_dir(temp_dir.path())
+            .env(COMPAT_MODE_ENV_VAR, mode)
+            .args([
+                "--sort=version",
+                "--reverse",
+                "--long",
+                "--no-icons",
+                "--no-color",
+            ]);
+        let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+        assert_names_appear_in_order(
+            &stdout,
+            &["release10", "release2", "release1"],
+        );
+    }
+}
+
+#[test]
+fn test_sort_name_matching_requires_entry_boundary() {
+    assert!(line_has_name("file", "file"));
+    assert!(line_has_name("  tree branch file", "file"));
+    assert!(!line_has_name("somefile", "file"));
+}
+
+#[test]
+fn test_name_selector_renders_expected_order() {
+    let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join("zeta"), "z").unwrap();
+    fs::write(temp_dir.path().join("alpha"), "a").unwrap();
+    assert_sort_for_both_modes(
+        temp_dir.path(),
+        &["--sort=name"],
+        &["alpha", "zeta"],
+    );
+}
+
+#[test]
+fn test_size_selectors_render_expected_order() {
+    let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join("small"), "1").unwrap();
+    fs::write(temp_dir.path().join("large"), "12345").unwrap();
+    for option in ["-S", "--sort=size"] {
+        assert_sort_for_both_modes(
+            temp_dir.path(),
+            &[option],
+            &["large", "small"],
+        );
+    }
+}
+
+#[test]
+fn test_repeated_sort_selectors_render_last_selected_order() {
+    let temp_dir = tempdir().unwrap();
+    let large_old = temp_dir.path().join("large-old");
+    let small_new = temp_dir.path().join("small-new");
+    fs::write(&large_old, "12345").unwrap();
+    fs::write(&small_new, "1").unwrap();
+    filetime::set_file_mtime(
+        &large_old,
+        FileTime::from_unix_time(1_600_000_000, 0),
+    )
+    .unwrap();
+    filetime::set_file_mtime(
+        &small_new,
+        FileTime::from_unix_time(1_700_000_000, 0),
+    )
+    .unwrap();
+
+    assert_sort_for_both_modes(
+        temp_dir.path(),
+        &["-S", "-t", "-S"],
+        &["large-old", "small-new"],
+    );
+}
+
+#[test]
+fn test_time_selectors_render_expected_order() {
+    let temp_dir = tempdir().unwrap();
+    let old = temp_dir.path().join("old");
+    let new = temp_dir.path().join("new");
+    fs::write(&old, "old").unwrap();
+    fs::write(&new, "new").unwrap();
+    filetime::set_file_mtime(&old, FileTime::from_unix_time(1_600_000_000, 0))
+        .unwrap();
+    filetime::set_file_mtime(&new, FileTime::from_unix_time(1_700_000_000, 0))
+        .unwrap();
+    for option in ["-t", "--sort=time"] {
+        assert_sort_for_both_modes(
+            temp_dir.path(),
+            &[option],
+            &["new", "old"],
+        );
+    }
+}
+
+#[test]
+fn test_extension_selectors_render_expected_order() {
+    let temp_dir = tempdir().unwrap();
+    for name in ["plain", "zeta.rs", "alpha.txt"] {
+        fs::write(temp_dir.path().join(name), name).unwrap();
+    }
+    for option in ["-X", "--sort=extension"] {
+        assert_sort_for_both_modes(
+            temp_dir.path(),
+            &[option],
+            &["plain", "zeta.rs", "alpha.txt"],
+        );
+    }
+}
+
+#[test]
+fn test_version_selectors_render_expected_order() {
+    let temp_dir = tempdir().unwrap();
+    for name in ["item10", "item2", "item1"] {
+        fs::write(temp_dir.path().join(name), name).unwrap();
+    }
+    for option in ["-v", "--sort=version"] {
+        assert_sort_for_both_modes(
+            temp_dir.path(),
+            &[option],
+            &["item1", "item2", "item10"],
+        );
+    }
+}
+
+#[test]
+fn test_reverse_selectors_render_expected_order() {
+    let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join("alpha"), "a").unwrap();
+    fs::write(temp_dir.path().join("zeta"), "z").unwrap();
+
+    for option in ["-r", "--reverse"] {
+        assert_sort_for_both_modes(
+            temp_dir.path(),
+            &[option],
+            &["zeta", "alpha"],
+        );
+    }
+}
+
+#[test]
+fn test_no_sort_selectors_render_equivalent_output() {
+    let temp_dir = tempdir().unwrap();
+    for name in ["zeta", "alpha", "middle"] {
+        fs::write(temp_dir.path().join(name), name).unwrap();
+    }
+
+    for mode in ["native", "gnu"] {
+        let short = run_sort_command(temp_dir.path(), mode, &["-U"]);
+        let long = run_sort_command(temp_dir.path(), mode, &["--sort=none"]);
+
+        assert_eq!(sorted_output_lines(&short), sorted_output_lines(&long));
+    }
+}
+
+#[test]
+fn test_no_sort_all_matches_all_plus_no_sort() {
+    let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join(".hidden"), "hidden").unwrap();
+    fs::write(temp_dir.path().join("visible"), "visible").unwrap();
+
+    for mode in ["native", "gnu"] {
+        let no_sort_all = run_sort_command(temp_dir.path(), mode, &["-f"]);
+        let explicit = run_sort_command(temp_dir.path(), mode, &["-aU"]);
+
+        assert_eq!(
+            sorted_output_lines(&no_sort_all),
+            sorted_output_lines(&explicit)
+        );
+        assert!(no_sort_all.lines().any(|line| line == ".hidden"));
+    }
+}
+
+#[test]
+fn test_gnu_no_sort_all_and_long_format_follow_option_order() {
+    let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join("entry.txt"), "entry").unwrap();
+
+    let short = run_sort_command(temp_dir.path(), "gnu", &["-lf"]);
+    assert!(short.lines().any(|line| line == "entry.txt"));
+
+    let long = run_sort_command(temp_dir.path(), "gnu", &["-fl"]);
+    assert!(
+        long.lines().any(
+            |line| line_has_name(line, "entry.txt") && line != "entry.txt"
+        )
+    );
+}
+
+#[test]
+fn test_directory_grouping_selectors_render_expected_order() {
+    let temp_dir = tempdir().unwrap();
+    fs::write(temp_dir.path().join("alpha-file"), "file").unwrap();
+    fs::create_dir(temp_dir.path().join("zeta-dir")).unwrap();
+
+    assert_sort_for_both_modes(
+        temp_dir.path(),
+        &["--group-directories-first"],
+        &["zeta-dir", "alpha-file"],
+    );
+
+    for option in ["-D", "--sort-dirs"] {
+        let output = run_sort_command(temp_dir.path(), "native", &[option]);
+        assert_names_appear_in_order(&output, &["zeta-dir", "alpha-file"]);
+    }
+}
+
+#[test]
+fn test_recursive_and_tree_output_use_selected_sort() {
+    let temp_dir = tempdir().unwrap();
+    let nested = temp_dir.path().join("nested");
+    fs::create_dir(&nested).unwrap();
+    for name in ["item10", "item2", "item1"] {
+        fs::write(nested.join(name), name).unwrap();
+    }
+
+    for mode in ["native", "gnu"] {
+        for traversal in ["--recursive", "--tree"] {
+            let mut cmd = command_with_home(temp_dir.path());
+            cmd.current_dir(temp_dir.path())
+                .env(COMPAT_MODE_ENV_VAR, mode)
+                .args([
+                    traversal,
+                    "--sort=version",
+                    "--no-icons",
+                    "--no-color",
+                ]);
+            let (stdout, _stderr) = run_and_capture(&mut cmd);
+
+            assert_names_appear_in_order(
+                &stdout,
+                &["item1", "item2", "item10"],
+            );
+        }
+    }
 }
 
 #[test]
