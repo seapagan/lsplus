@@ -205,7 +205,22 @@ pub(crate) fn file_details(
 pub(crate) fn compare_entry_names(left: &OsStr, right: &OsStr) -> Ordering {
     let left = left.encode_wide().collect::<Vec<_>>();
     let right = right.encode_wide().collect::<Vec<_>>();
-    compare_wide(&left, &right, true)
+
+    let left_key = &left[left
+        .iter()
+        .take_while(|unit| **unit == u16::from(b'.'))
+        .count()..];
+    let right_key = &right[right
+        .iter()
+        .take_while(|unit| **unit == u16::from(b'.'))
+        .count()..];
+
+    compare_wide(left_key, right_key, true)
+        .then_with(|| {
+            let left_hidden = left.first() == Some(&u16::from(b'.'));
+            let right_hidden = right.first() == Some(&u16::from(b'.'));
+            right_hidden.cmp(&left_hidden)
+        })
         .then_with(|| compare_wide(&left, &right, false))
 }
 

@@ -10,6 +10,7 @@ pub mod fuzzy_time;
 pub mod gitignore;
 pub mod icons;
 pub mod render;
+pub(crate) mod sort;
 pub mod table;
 pub(crate) mod time;
 

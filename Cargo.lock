@@ -669,6 +669,7 @@ dependencies = [
  "terminal_size",
  "unicode-width 0.2.2",
  "uutils_term_grid",
+ "vsort",
  "windows-sys 0.61.2",
 ]
 
@@ -1248,6 +1249,12 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "vsort"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11331a1b48f99ea6bb27faae41399d08783d055ddee131e1b1b70a854207ebf8"
 
 [[package]]
 name = "vte"

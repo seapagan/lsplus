@@ -78,6 +78,28 @@ pub enum ShortFormat {
     Across,
 }
 
+/// Ordering modes for directory entries.
+#[derive(
+    Debug, Clone, Copy, Deserialize, PartialEq, Eq, Default, ValueEnum,
+)]
+#[serde(rename_all = "kebab-case")]
+#[value(rename_all = "kebab-case")]
+pub enum SortMode {
+    /// Sort by the native `lsplus` name ordering.
+    #[default]
+    Name,
+    /// Sort by file size, largest first.
+    Size,
+    /// Sort by modification time, newest first.
+    Time,
+    /// Sort by file extension.
+    Extension,
+    /// Sort using GNU-style version ordering.
+    Version,
+    /// Preserve filesystem directory order.
+    None,
+}
+
 /// Controls when file and directory icons are displayed.
 #[derive(
     Debug, Clone, Copy, Default, Deserialize, PartialEq, Eq, ValueEnum,
@@ -113,6 +135,10 @@ pub struct Params {
     pub indicator_style: IndicatorStyle,
     /// Group directories before files.
     pub dirs_first: bool,
+    /// Select how directory entries are ordered.
+    pub sort: SortMode,
+    /// Reverse the selected entry ordering.
+    pub reverse: bool,
     /// Hide `.` and `..` while still showing other dotfiles.
     pub almost_all: bool,
     /// Render long-format output.
@@ -163,6 +189,8 @@ impl Default for Params {
             show_all: false,
             indicator_style: IndicatorStyle::None,
             dirs_first: false,
+            sort: SortMode::default(),
+            reverse: false,
             almost_all: false,
             long_format: false,
             short_format: None,
@@ -194,6 +222,8 @@ impl Default for Params {
 pub(crate) struct RawParams {
     show_all: bool,
     dirs_first: bool,
+    sort: SortMode,
+    reverse: bool,
     almost_all: bool,
     long_format: bool,
     short_format: Option<ShortFormat>,
@@ -269,6 +299,8 @@ impl From<RawParams> for Params {
                 }
             }),
             dirs_first: raw.dirs_first,
+            sort: raw.sort,
+            reverse: raw.reverse,
             almost_all: raw.almost_all,
             long_format: raw.long_format,
             short_format: raw.short_format,
@@ -312,12 +344,18 @@ impl Params {
             flags.no_icons || config.no_icons
         };
 
+        let sort = flags.sort.unwrap_or(config.sort);
+        let sort_enabled = sort != SortMode::None;
+
         Self {
             show_all: flags.show_all || config.show_all,
             indicator_style: flags
                 .indicator_style
                 .unwrap_or(config.indicator_style),
-            dirs_first: flags.dirs_first || config.dirs_first,
+            dirs_first: sort_enabled
+                && (flags.dirs_first || config.dirs_first),
+            sort,
+            reverse: sort_enabled && (flags.reverse || config.reverse),
             almost_all: flags.almost_all || config.almost_all,
             long_format: flags.long
                 || flags.tree
