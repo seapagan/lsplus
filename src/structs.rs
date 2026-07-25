@@ -336,6 +336,10 @@ impl Params {
     ///
     /// CLI `--no-*` flags disable long-format accent defaults from config.
     /// Explicit CLI indicator flags override the config indicator style.
+    ///
+    /// Directory grouping and reverse ordering are disabled when the resolved
+    /// sort mode is `None`, matching GNU `--sort=none` / `-U` behavior. `-f`
+    /// also selects `None` unless a later sort selector overrides it.
     pub fn merge(flags: &cli::Flags, config: &Self) -> Self {
         let icons = flags.icons.unwrap_or(config.icons);
         let no_icons = if flags.icons.is_some() {
