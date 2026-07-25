@@ -188,6 +188,31 @@ fn test_size_selectors_render_expected_order() {
 }
 
 #[test]
+fn test_repeated_sort_selectors_render_last_selected_order() {
+    let temp_dir = tempdir().unwrap();
+    let large_old = temp_dir.path().join("large-old");
+    let small_new = temp_dir.path().join("small-new");
+    fs::write(&large_old, "12345").unwrap();
+    fs::write(&small_new, "1").unwrap();
+    filetime::set_file_mtime(
+        &large_old,
+        FileTime::from_unix_time(1_600_000_000, 0),
+    )
+    .unwrap();
+    filetime::set_file_mtime(
+        &small_new,
+        FileTime::from_unix_time(1_700_000_000, 0),
+    )
+    .unwrap();
+
+    assert_sort_for_both_modes(
+        temp_dir.path(),
+        &["-S", "-t", "-S"],
+        &["large-old", "small-new"],
+    );
+}
+
+#[test]
 fn test_time_selectors_render_expected_order() {
     let temp_dir = tempdir().unwrap();
     let old = temp_dir.path().join("old");

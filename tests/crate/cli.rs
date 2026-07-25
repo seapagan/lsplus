@@ -326,6 +326,22 @@ fn test_parse_from_mode_sort_selector_last_clustered_flag_wins() {
 }
 
 #[test]
+fn test_parse_from_mode_repeated_sort_selector_last_option_wins() {
+    for mode in [CompatMode::Native, CompatMode::Gnu] {
+        let size =
+            try_parse_from_mode(mode, ["lsplus", "-S", "-t", "-S"]).unwrap();
+        assert_eq!(size.sort, Some(SortMode::Size));
+
+        let time =
+            try_parse_from_mode(mode, ["lsplus", "-t", "-S", "-t"]).unwrap();
+        assert_eq!(time.sort, Some(SortMode::Time));
+
+        let clustered = try_parse_from_mode(mode, ["lsplus", "-StS"]).unwrap();
+        assert_eq!(clustered.sort, Some(SortMode::Size));
+    }
+}
+
+#[test]
 fn test_parse_from_mode_no_sort_all_shows_hidden_entries() {
     for mode in [CompatMode::Native, CompatMode::Gnu] {
         let flags = try_parse_from_mode(mode, ["lsplus", "-f"]).unwrap();
@@ -344,6 +360,11 @@ fn test_parse_from_mode_gnu_f_and_l_follow_option_order() {
     let long =
         try_parse_from_mode(CompatMode::Gnu, ["lsplus", "-fl"]).unwrap();
     assert!(long.long);
+
+    let repeated =
+        try_parse_from_mode(CompatMode::Gnu, ["lsplus", "-f", "-l", "-f"])
+            .unwrap();
+    assert!(!repeated.long);
 }
 
 #[test]

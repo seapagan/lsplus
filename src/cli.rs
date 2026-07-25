@@ -480,42 +480,42 @@ fn sort_arg() -> Arg {
 fn sort_size_arg() -> Arg {
     Arg::new(ARG_SORT_SIZE)
         .short('S')
-        .action(ArgAction::SetTrue)
+        .action(ArgAction::Count)
         .help("Sort by file size, largest first")
 }
 
 fn sort_time_arg() -> Arg {
     Arg::new(ARG_SORT_TIME)
         .short('t')
-        .action(ArgAction::SetTrue)
+        .action(ArgAction::Count)
         .help("Sort by modification time, newest first")
 }
 
 fn sort_extension_arg() -> Arg {
     Arg::new(ARG_SORT_EXTENSION)
         .short('X')
-        .action(ArgAction::SetTrue)
+        .action(ArgAction::Count)
         .help("Sort alphabetically by entry extension")
 }
 
 fn sort_version_arg() -> Arg {
     Arg::new(ARG_SORT_VERSION)
         .short('v')
-        .action(ArgAction::SetTrue)
+        .action(ArgAction::Count)
         .help("Sort naturally by version numbers within names")
 }
 
 fn sort_none_arg() -> Arg {
     Arg::new(ARG_SORT_NONE)
         .short('U')
-        .action(ArgAction::SetTrue)
+        .action(ArgAction::Count)
         .help("Do not sort; list entries in directory order")
 }
 
 fn no_sort_all_arg() -> Arg {
     Arg::new(ARG_NO_SORT_ALL)
         .short('f')
-        .action(ArgAction::SetTrue)
+        .action(ArgAction::Count)
         .help("List all entries in directory order")
 }
 
@@ -639,7 +639,7 @@ fn fuzzy_time_arg(mode: CompatMode) -> Arg {
 fn flags_from_matches(mode: CompatMode, matches: &ArgMatches) -> Flags {
     Flags {
         show_all: matches.get_flag(ARG_SHOW_ALL)
-            || matches.get_flag(ARG_NO_SORT_ALL),
+            || sort_flag_is_present(matches, ARG_NO_SORT_ALL),
         almost_all: matches.get_flag(ARG_ALMOST_ALL),
         long: long_format_from_matches(mode, matches),
         short_format: matches
@@ -695,7 +695,9 @@ fn long_format_from_matches(mode: CompatMode, matches: &ArgMatches) -> bool {
         return false;
     }
 
-    if mode == CompatMode::Native || !matches.get_flag(ARG_NO_SORT_ALL) {
+    if mode == CompatMode::Native
+        || !sort_flag_is_present(matches, ARG_NO_SORT_ALL)
+    {
         return true;
     }
 
@@ -709,6 +711,10 @@ fn long_format_from_matches(mode: CompatMode, matches: &ArgMatches) -> bool {
         .expect("present no-sort-all flag should have an argument index");
 
     long_index > no_sort_index
+}
+
+fn sort_flag_is_present(matches: &ArgMatches, arg: &str) -> bool {
+    matches.get_count(arg) > 0
 }
 
 fn sort_mode_from_matches(matches: &ArgMatches) -> Option<SortMode> {
@@ -729,8 +735,9 @@ fn sort_mode_from_matches(matches: &ArgMatches) -> Option<SortMode> {
         (ARG_SORT_NONE, SortMode::None),
         (ARG_NO_SORT_ALL, SortMode::None),
     ] {
-        if matches.get_flag(arg)
-            && let Some(index) = matches.index_of(arg)
+        if sort_flag_is_present(matches, arg)
+            && let Some(index) =
+                matches.indices_of(arg).and_then(Iterator::last)
         {
             candidates.push((index, mode));
         }
