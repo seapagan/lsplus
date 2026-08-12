@@ -17,6 +17,7 @@ permissions: {}
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_VERSION: "1.97.1"
 
 jobs:
   unix:
@@ -29,8 +30,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: ./.github/actions/setup-rust
+        uses: seapagan/setup-rust@a91f5a34c552642ece0e8cef8b5e9226f41a3c0b # v1.0.0
         with:
+          toolchain: ${{ env.RUST_VERSION }}
           components: rustfmt clippy
 
       - name: Install cargo-llvm-cov
@@ -85,8 +87,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: ./.github/actions/setup-rust
+        uses: seapagan/setup-rust@a91f5a34c552642ece0e8cef8b5e9226f41a3c0b # v1.0.0
         with:
+          toolchain: ${{ env.RUST_VERSION }}
           components: rustfmt clippy
 
       - name: Install cargo-llvm-cov
@@ -238,7 +241,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: ./.github/actions/setup-rust
+        uses: seapagan/setup-rust@a91f5a34c552642ece0e8cef8b5e9226f41a3c0b # v1.0.0
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
 
       - name: Install cargo tools
         uses: taiki-e/install-action@7572810d7dd469b651bb7793945692cf78da5dd7 # v2
@@ -258,7 +263,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: ./.github/actions/setup-rust
+        uses: seapagan/setup-rust@a91f5a34c552642ece0e8cef8b5e9226f41a3c0b # v1.0.0
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
 
       - name: Install cargo tools
         uses: taiki-e/install-action@7572810d7dd469b651bb7793945692cf78da5dd7 # v2
