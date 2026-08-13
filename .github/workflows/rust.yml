@@ -36,7 +36,7 @@ jobs:
           components: rustfmt clippy
 
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@7572810d7dd469b651bb7793945692cf78da5dd7 # v2
+        uses: taiki-e/install-action@82cd3e7658a6f96c86c0234aeeda1748937cb0a1 # v2
         with:
           tool: cargo-llvm-cov
 
@@ -93,7 +93,7 @@ jobs:
           components: rustfmt clippy
 
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@7572810d7dd469b651bb7793945692cf78da5dd7 # v2
+        uses: taiki-e/install-action@82cd3e7658a6f96c86c0234aeeda1748937cb0a1 # v2
         with:
           tool: cargo-llvm-cov
 
@@ -246,7 +246,7 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
 
       - name: Install cargo tools
-        uses: taiki-e/install-action@7572810d7dd469b651bb7793945692cf78da5dd7 # v2
+        uses: taiki-e/install-action@82cd3e7658a6f96c86c0234aeeda1748937cb0a1 # v2
         with:
           tool: cargo-make,cargo-audit
 
@@ -268,7 +268,7 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
 
       - name: Install cargo tools
-        uses: taiki-e/install-action@7572810d7dd469b651bb7793945692cf78da5dd7 # v2
+        uses: taiki-e/install-action@82cd3e7658a6f96c86c0234aeeda1748937cb0a1 # v2
         with:
           tool: cargo-make,cargo-deny
 
